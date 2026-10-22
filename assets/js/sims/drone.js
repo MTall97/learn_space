@@ -7,21 +7,27 @@
   const RHO = 1.2, G = 9.81;
 
   /* ---------- Propulsion : poussée, poids, autonomie ---------- */
-  const CADRES = { 3: { m: 0.11, ct: 0.16, cp: 0.075 }, 5: { m: 0.26, ct: 0.17, cp: 0.08 }, 7: { m: 0.36, ct: 0.15, cp: 0.065 }, 10: { m: 0.75, ct: 0.13, cp: 0.05 } };
+  // Pmot : puissance maximale d'un moteur de la taille habituelle pour ce cadre (W, ordre de grandeur :
+  // 1404 pour 3", 2207 pour 5", 2806 pour 7", 4114 pour 10").
+  const CADRES = { 3: { m: 0.11, ct: 0.16, cp: 0.075, Pmot: 200 }, 5: { m: 0.26, ct: 0.17, cp: 0.08, Pmot: 900 }, 7: { m: 0.36, ct: 0.15, cp: 0.065, Pmot: 1000 }, 10: { m: 0.75, ct: 0.13, cp: 0.05, Pmot: 1500 } };
   LS.bilanDrone = function (p) {
     const cad = CADRES[p.helice], Dm = p.helice * 0.0254, V = p.cellules * 3.7;
     const moteur = 0.0008 * p.helice * p.helice + 0.012;                // masse d'un moteur (kg) : ≈ 32 g en 5 pouces, 90 g en 10 pouces
     const Wh = V * p.capacite / 1000, mBat = Wh / 150 + 0.01;           // 150 Wh/kg pour une LiPo
     const m = cad.m + 4 * moteur + mBat + p.charge / 1000;
-    const nmax = p.kv * V * 0.8 / 60;                                    // tr/s en charge
+    let nmax = p.kv * V * 0.8 / 60;                                      // tr/s en charge
+    let Pmax = cad.cp * RHO * Math.pow(nmax, 3) * Math.pow(Dm, 5);       // W par moteur
+    // Un moteur de cette taille ne peut pas fournir plus que Pmot sans surchauffer : au-delà, l'hélice
+    // est trop grosse ou le KV trop élevé, le moteur sature (et en vrai, il grille ou l'ESC coupe).
+    const limite = Pmax > cad.Pmot;
+    if (limite) { nmax *= Math.cbrt(cad.Pmot / Pmax); Pmax = cad.Pmot; }
     const Tmax = cad.ct * RHO * nmax * nmax * Math.pow(Dm, 4);           // N par moteur
-    const Pmax = cad.cp * RHO * Math.pow(nmax, 3) * Math.pow(Dm, 5);     // W par moteur
     const Tvol = m * G / 4, nvol = Math.sqrt(Tvol / (cad.ct * RHO * Math.pow(Dm, 4)));
     const Pvol = cad.cp * RHO * Math.pow(nvol, 3) * Math.pow(Dm, 5);
     const rend = 0.78;
     const Ivol = 4 * Pvol / (V * rend), Imax = 4 * Pmax / (V * rend);
     const autonomie = 0.8 * p.capacite / 1000 / Ivol * 60;              // min, on ne vide qu'à 80 %
-    return { m, mBat, Tmax, Pmax, twr: 4 * Tmax / (m * G), gazVol: Math.sqrt(Tvol / Tmax), Ivol, Imax, autonomie, Icrete: p.capacite / 1000 * p.crate };
+    return { m, mBat, Tmax, Pmax, twr: 4 * Tmax / (m * G), gazVol: Math.sqrt(Tvol / Tmax), Ivol, Imax, autonomie, Icrete: p.capacite / 1000 * p.crate, limite, Pmot: cad.Pmot };
   };
   LS.sims.propulsion = function (el, cfg) {
     return LS.simAnimee(el, {
@@ -62,12 +68,12 @@
         const k = LS.bilanDrone(s.p);
         return [["Rapport poussée / poids", LS.nombre(k.twr, 2), k.twr < 2 ? "alerte" : ""], ["Gaz en vol stationnaire", LS.nombre(100 * k.gazVol, 0) + " %", k.gazVol > 0.7 ? "alerte" : ""],
           ["Courant en stationnaire", LS.nombre(k.Ivol, 1) + " A"], ["Courant à plein gaz", LS.nombre(k.Imax, 0) + " A", k.Imax > k.Icrete ? "alerte" : ""],
-          ["Courant maxi de la batterie (C × Ah)", LS.nombre(k.Icrete, 0) + " A"], ["Autonomie estimée", LS.nombre(k.autonomie, 1) + " min"]];
+          ["Courant maxi de la batterie (C × Ah)", LS.nombre(k.Icrete, 0) + " A"], ["Puissance maxi par moteur", LS.nombre(k.Pmax, 0) + " W", k.limite ? "alerte" : ""], ["Autonomie estimée", LS.nombre(k.autonomie, 1) + " min"]];
       },
       explication(s) {
         const k = LS.bilanDrone(s.p);
         return "Une hélice pousse proportionnellement au **carré** de sa vitesse et à la **puissance 4** de son diamètre ; la puissance absorbée croît comme le **cube** de la vitesse. Un drone doit avoir une **poussée d'au moins 2 fois son poids** pour être pilotable (≥ 4 en voltige). Une plus grosse batterie dure plus longtemps… mais pèse plus : l'autonomie plafonne." +
-          (k.twr < 1 ? "\n\n⚠ **Le drone ne peut pas décoller** : poids supérieur à la poussée." : k.Imax > k.Icrete ? "\n\n⚠ À plein gaz, les moteurs demandent plus de courant que la batterie ne peut en fournir : chute de tension, batterie abîmée." : "");
+          (k.twr < 1 ? "\n\n⚠ **Le drone ne peut pas décoller** : poids supérieur à la poussée." : k.limite ? "\n\n⚠ **Moteurs surchargés** : avec ce KV et cette tension, l'hélice demanderait plus de " + LS.nombre(k.Pmot, 0) + " W par moteur, le maximum d'un moteur de cette taille. Le moteur plafonne (il chaufferait jusqu'à griller) : baisse le KV ou la tension." : k.Imax > k.Icrete ? "\n\n⚠ À plein gaz, les moteurs demandent plus de courant que la batterie ne peut en fournir : chute de tension, batterie abîmée." : "");
       }
     }, cfg);
   };
@@ -145,6 +151,10 @@
       return Math.max(0, Math.min(1, v));
     });
   };
+  /* Sens de rotation du châssis quand un moteur tombe en panne (+1 = horaire vu de dessus). Une hélice
+     horaire exerce sur le châssis un couple de réaction antihoraire : sans elle, il reste celui des
+     hélices antihoraires, qui fait tourner le châssis en sens horaire. */
+  LS.sensRotationPanne = i => MOT[i].horaire ? 1 : -1;
   LS.sims.mixage = function (el, cfg) {
     return LS.simAnimee(el, {
       hauteur: 440,
@@ -171,7 +181,10 @@
         // Repère du drone → repère du sol (x vers la droite, y vers le haut de la carte ; cap compté dans le sens horaire).
         e.vx += (ax * c + ay * sn - 0.5 * e.vx) * dt; e.vy += (-ax * sn + ay * c - 0.5 * e.vy) * dt;
         e.vz += ((poussee / 0.5 - 1) * G - 0.8 * e.vz) * dt;
-        if (p.panne >= 0) { e.cap += 6 * dt * (MOT[p.panne].horaire ? -1 : 1); e.vz -= 3 * dt; }
+        // Panne : les hélices restantes ne s'équilibrent plus ; leur couple de réaction fait tourner le
+        // châssis (même sens que le mixage : perdre un moteur horaire fait tourner le drone en horaire),
+        // et le contrôleur sature, d'où une rotation rapide.
+        if (p.panne >= 0) { e.cap += 6 * dt * LS.sensRotationPanne(p.panne); e.vz -= 3 * dt; }
         e.x += e.vx * dt; e.y += e.vy * dt; e.z = Math.max(0, e.z + e.vz * dt); if (e.z === 0) e.vz = Math.max(0, e.vz);
         e.trace.push([e.x, e.y]); if (e.trace.length > 400) e.trace.shift();
         e.a += dt * 25;

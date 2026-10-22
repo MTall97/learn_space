@@ -11,11 +11,19 @@
   const DISTRIB = { AOA: 710, RFA: 220, AOE: 500, RFE: 10 };
   LS.DISTRIBUTION = DISTRIB;
 
-  /* Remplissage (rendement volumétrique) selon le régime : meilleur au régime « accordé ». */
-  function remplissage(N, Nopt, largeur) {
+  /* Remplissage (rendement volumétrique) selon le régime : meilleur au régime « accordé ».
+     etaMax dépasse 1 sur un moteur à admission accordée (pipes d'admission, prise d'air dynamique). */
+  function remplissage(N, Nopt, largeur, etaMax) {
     const x = (N - Nopt) / largeur;
-    return Math.max(0.45, 0.95 - 0.25 * x * x);
+    return Math.max(0.3, (etaMax || 0.95) - 0.25 * x * x);
   }
+
+  /* Frottements (pression moyenne de frottement, bar, pertes par pompage comprises) selon la vitesse
+     moyenne du piston Vp = 2·course·N/60 : un moteur à course courte peut tourner plus vite. */
+  LS.frottementsMoteur = function (courseMm, regime) {
+    const Vp = 2 * courseMm / 1000 * regime / 60;
+    return 0.9 + 0.06 * Vp + 0.004 * Vp * Vp;
+  };
 
   /* Géométrie : déplacement du piston depuis le PMH (m), volume (m³). */
   LS.geometrieMoteur = function (p) {
@@ -30,7 +38,7 @@
     const g = LS.geometrieMoteur(p);
     const diesel = p.mode === "diesel";
     const charge = Math.max(0.05, Math.min(1, p.charge / 100));
-    const etaV = diesel ? remplissage(p.regime, p.Nopt || 2200, 2600) : remplissage(p.regime, p.Nopt || 4200, 4200);
+    const etaV = diesel ? remplissage(p.regime, p.Nopt || 2200, p.largeur || 2600, p.etaMax) : remplissage(p.regime, p.Nopt || 4200, p.largeur || 4200, p.etaMax);
     // Pression d'admission : le papillon étrangle l'essence ; le diesel n'a pas de papillon.
     const padm = diesel ? PATM * etaV * (p.turbo ? 1.8 : 1) : PATM * etaV * (0.22 + 0.78 * charge);
     const T2 = T_ADM * Math.pow(p.eps, GAMMA - 1);  // température en fin de compression (K)
@@ -52,7 +60,12 @@
     for (let th = 0; th <= 720; th++) {
       V[th] = g.V(th);
       let x = 0;
-      if (allume && th > debut) x = 1 - Math.exp(-5 * Math.pow((th - debut) / duree, forme));
+      if (allume && th > debut) {
+        x = 1 - Math.exp(-5 * Math.pow((th - debut) / duree, forme));
+        // Diesel : une partie du gazole, mélangée pendant le délai, brûle d'un coup (combustion de
+        // prémélange, le « claquement » du diesel), le reste brûle au fil de l'injection (diffusion).
+        if (diesel) x = 0.3 * (1 - Math.exp(-5 * Math.pow((th - debut) / 10, 2))) + 0.7 * x;
+      }
       xb[th] = x;
       let pp;
       if (th < 20) pp = PECH + (padm - PECH) * th / 20;                  // fin du croisement
@@ -71,8 +84,7 @@
       if (pr[th] > pmax) { pmax = pr[th]; thmax = th; }
     }
     const pmi = W / g.Vd / 1e5;                                       // pression moyenne indiquée (bar)
-    const N = p.regime / 1000;
-    const pmf = 0.97 + 0.15 * N + 0.05 * N * N;                       // frottements (bar)
+    const pmf = LS.frottementsMoteur(p.course, p.regime);             // frottements (bar)
     const pme = pmi - pmf;                                            // pression moyenne effective
     const couple = pme * 1e5 * g.Vd / (4 * Math.PI);                  // N·m par cylindre
     const puissance = couple * p.regime * 2 * Math.PI / 60;           // W par cylindre

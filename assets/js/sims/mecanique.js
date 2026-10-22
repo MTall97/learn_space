@@ -301,21 +301,16 @@
   const MOTEURS = {
     citadine: { nom: "Citadine essence 1,2 L, 3 cylindres", n: 3, alesage: 71, course: 100.6, bielle: 150, eps: 11, mode: "essence", avance: 22, Nopt: 3800, Nmax: 6300 },
     diesel: { nom: "Diesel turbo 1,5 L, 4 cylindres", n: 4, alesage: 76, course: 80.5, bielle: 140, eps: 16, mode: "diesel", avance: 8, Nopt: 2000, Nmax: 4600, turbo: true },
-    moto: { nom: "Moto sportive 600 cm³, 4 cylindres", n: 4, alesage: 67, course: 42.5, bielle: 95, eps: 12.5, mode: "essence", avance: 26, Nopt: 11000, Nmax: 14500 },
+    moto: { nom: "Moto sportive 600 cm³, 4 cylindres", n: 4, alesage: 67, course: 42.5, bielle: 95, eps: 12.5, mode: "essence", avance: 26, Nopt: 11000, Nmax: 14500, largeur: 6000, etaMax: 1.12 },
     scooter: { nom: "Scooter 125 cm³, monocylindre", n: 1, alesage: 52.4, course: 57.8, bielle: 100, eps: 11, mode: "essence", avance: 20, Nopt: 7000, Nmax: 9500 }
   };
   LS.MOTEURS = MOTEURS;
   LS.courbeMoteur = function (m, N) {
-    const largeur = m.mode === "diesel" ? 2500 : m.Nopt * 0.85;
-    const cyc = LS.cycleMoteur(Object.assign({}, m, { charge: 100, regime: N, Nopt: m.Nopt }));
-    // Les frottements d'un moteur à régime élevé sont plus faibles par tour (pièces légères).
-    const echelle = m.Nmax > 9000 ? 0.45 : 1;
-    const N1 = N / 1000;
-    const pmf = 0.97 + echelle * (0.15 * N1 + 0.05 * N1 * N1) - (m.Nmax > 9000 ? 0.002 * N1 * N1 : 0);
-    const pme = cyc.pmi - pmf;
-    const C = Math.max(0, pme * 1e5 * cyc.g.Vd * m.n / (4 * Math.PI));
-    void largeur;
-    return { C, P: C * N * 2 * Math.PI / 60, pme };
+    // Même modèle de cylindre pour tous ; ce qui change d'un moteur à l'autre : géométrie, taux de
+    // compression, avance, remplissage (accord de l'admission) et frottements selon la vitesse du piston.
+    const cyc = LS.cycleMoteur(Object.assign({}, m, { charge: 100, regime: N }));
+    const C = Math.max(0, cyc.pme * 1e5 * cyc.g.Vd * m.n / (4 * Math.PI));
+    return { C, P: C * N * 2 * Math.PI / 60, pme: cyc.pme };
   };
   LS.sims.courbesMoteur = function (el, cfg) {
     return LS.simAnimee(el, {

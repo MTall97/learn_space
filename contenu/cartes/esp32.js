@@ -39,7 +39,7 @@ LS.ajouterCarte({
       { t: "Alimentation 3,3 V", d: "La puce fonctionne en 3,0–3,6 V. Elle consomme ≈ 40–80 mA en calcul, 100–250 mA en Wi-Fi avec des **pics de 400–500 mA**. Le régulateur de la carte (souvent AMS1117) abaisse le 5 V de l'USB.", tp: "esp-06-niveaux" },
       { t: "Niveaux logiques", d: "Les entrées de l'ESP32 ne tolèrent **pas le 5 V**. Pour un capteur ou un module 5 V : pont diviseur (1 kΩ / 2 kΩ), adaptateur de niveaux bidirectionnel, ou modèle en 3,3 V.", tp: "esp-06-niveaux" },
       { t: "Brownout", d: "Détecteur de chute de tension : si l'alimentation baisse trop (pic du Wi-Fi, câble USB trop fin, batterie faible), l'ESP32 redémarre. Remède : bonne alimentation, condensateur de 470 µF près de la carte.", tp: "esp-06-niveaux" },
-      { t: "Sommeil profond", d: "Mode deep sleep : ≈ 10 µA, seul le RTC reste éveillé ; réveil par minuterie ou par broche. Permet des mois d'autonomie sur batterie pour un capteur qui mesure toutes les 10 minutes." }
+      { t: "Sommeil profond", d: "Mode deep sleep : ≈ 10 µA pour la puce seule, seul le RTC reste éveillé ; réveil par minuterie ou par broche. Attention : une carte de développement (DevKitC) consomme encore plusieurs mA en sommeil (régulateur, convertisseur USB-série, LED) ; il faut un montage optimisé (régulateur à faible courant de repos, pas de pont USB) pour tenir des mois sur batterie avec une mesure toutes les 10 minutes." }
     ] },
     { t: "Programmation", c: [
       { t: "Arduino IDE", d: "Environnement simple : installer le support « esp32 by Espressif » dans le gestionnaire de cartes, choisir la carte et le port, téléverser. Programme = setup() une fois, puis loop() en boucle." },

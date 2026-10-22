@@ -9,6 +9,9 @@
   // Brochage de la DevKitC v4 (vue de dessus, USB en bas).
   const GAUCHE = ["3V3", "EN", "36", "39", "34", "35", "32", "33", "25", "26", "27", "14", "12", "GND", "13", "9", "10", "11", "5V"];
   const DROITE = ["GND", "23", "22", "1", "3", "21", "GND", "19", "18", "5", "17", "16", "4", "0", "2", "15", "8", "7", "6"];
+  LS.BROCHES_ESP32 = { gauche: GAUCHE, droite: DROITE };
+  // Broches des bus dans le TP (les mêmes que dans le code affiché).
+  LS.BUS_ESP32 = { UART: { tx: "17", rx: "16", code: "Serial2.begin(9600, SERIAL_8N1, 16, 17); // RX, TX" }, I2C: { sda: "21", scl: "22", code: "Wire.begin(21, 22);          // SDA, SCL" } };
   const NOMS = { 36: "VP", 39: "VN", 1: "TX0", 3: "RX0", 9: "SD2", 10: "SD3", 11: "CMD", 8: "SD1", 7: "SD0", 6: "CLK" };
   function infoBroche(b) {
     const n = +b, i = { gpio: !isNaN(n), n };
@@ -244,7 +247,7 @@
           ctx.strokeStyle = c.texte; ctx.beginPath(); ctx.moveTo(x0 + t * w, y - 28); ctx.lineTo(x0 + t * w, y + 6); ctx.stroke();
         };
         if (s.p.proto === "I2C") {
-          const sda = g.px(1, 5), scl = g.px(1, 2);
+          const sda = g.px(1, DROITE.indexOf(LS.BUS_ESP32.I2C.sda)), scl = g.px(1, DROITE.indexOf(LS.BUS_ESP32.I2C.scl));
           fil(ctx, [sda, [x0 - 20, sda[1]]], "#1e88e5"); fil(ctx, [scl, [x0 - 30, scl[1]]], "#fb8c00");
           if (!s.p.pullup) { D().texte(ctx, "⚠ Sans résistances de tirage, SDA et SCL ne remontent jamais à 1 : le bus est muet.", x0, H - 20, c.alerte, 12, "left", true); }
           const capteur = "0x77", ok = s.p.pullup && s.p.adresse === capteur;
@@ -254,15 +257,16 @@
           const horl = seq.map((_, i) => s.p.pullup ? (i % 2 ? 1 : 0) : 0);
           trace(120, seq, "SDA (données)", "#1e88e5"); trace(200, horl, "SCL (horloge)", "#fb8c00");
           D().texte(ctx, ok ? "START · adresse 0x77 + lecture · ACK du capteur · octet 0x60 (identifiant d'un BME280) · STOP" : s.p.pullup ? "Personne ne répond à " + s.p.adresse + " : NACK (vérifie l'adresse avec un scanner I2C)" : "", x0, 240, ok ? c.ok : c.alerte, 12);
-          code(ctx, c, ["#include <Wire.h>", "Wire.begin(21, 22);          // SDA, SCL", "Wire.beginTransmission(" + s.p.adresse + ");", "Wire.write(0xD0);             // registre ID", "Wire.endTransmission(false);", "Wire.requestFrom(" + s.p.adresse + ", 1);", "byte id = Wire.read();       // " + (ok ? "0x60" : "rien")], x0, 270, w);
+          code(ctx, c, ["#include <Wire.h>", LS.BUS_ESP32.I2C.code, "Wire.beginTransmission(" + s.p.adresse + ");", "Wire.write(0xD0);             // registre ID", "Wire.endTransmission(false);", "Wire.requestFrom(" + s.p.adresse + ", 1);", "byte id = Wire.read();       // " + (ok ? "0x60" : "rien")], x0, 270, w);
           s.etat.ok = ok;
         } else if (s.p.proto === "UART") {
-          const tx = g.px(1, 3), rx = g.px(1, 4);
+          // UART2 (Serial2) sur GPIO 17 (TX) et 16 (RX) : GPIO 1 et 3 servent à l'USB (UART0).
+          const tx = g.px(1, DROITE.indexOf(LS.BUS_ESP32.UART.tx)), rx = g.px(1, DROITE.indexOf(LS.BUS_ESP32.UART.rx));
           fil(ctx, [tx, [x0 - 20, tx[1]]], "#e53935"); fil(ctx, [rx, [x0 - 30, rx[1]]], "#43a047");
           const octet = 0x47, bits = [1, 0].concat([...Array(8)].map((_, i) => (octet >> i) & 1), [1, 1]);
           trace(120, bits, "TX de l'ESP32 → " + (s.p.croise ? "RX" : "TX") + " du module", "#e53935");
           D().texte(ctx, s.p.croise ? "Le module reçoit « G » (0x47) ✓" : "✗ TX relié à TX : deux sorties face à face, rien n'est reçu (et risque de court-circuit)", x0, 160, s.p.croise ? c.ok : c.alerte, 12, "left", true);
-          code(ctx, c, ["Serial2.begin(9600, SERIAL_8N1, 16, 17); // RX, TX", "Serial2.write('G');"], x0, 270, w);
+          code(ctx, c, [LS.BUS_ESP32.UART.code, "Serial2.write('G');"], x0, 270, w);
           s.etat.ok = s.p.croise;
         } else {
           const lignes = [["CS (choix de l'esclave)", [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1], "#8e24aa"], ["SCK (horloge)", [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0], "#fb8c00"],
@@ -330,7 +334,7 @@
           bouton: "Une entrée non reliée « flotte » : elle lit 0 ou 1 au hasard (elle capte les parasites). Il faut une **résistance de tirage** : INPUT_PULLUP (≈ 45 kΩ interne vers 3,3 V) et un bouton vers la masse — appui = LOW. Un contact mécanique **rebondit** quelques millisecondes : sans **anti-rebond**, un appui compte plusieurs fois.",
           pwm: "L'ESP32 n'a pas de vraie sortie analogique sur toutes ses broches : il fait de la **PWM** (modulation de largeur d'impulsion). Le signal alterne très vite entre 0 et 3,3 V ; la LED (ou le moteur) « voit » la moyenne. Le périphérique **LEDC** a 16 canaux ; fréquence × 2^résolution ≤ 80 MHz.",
           adc: "L'**ADC** 12 bits de l'ESP32 donne 0 à 4095. Il a des défauts réels : rien sous ≈ 0,1 V, réponse **non linéaire** vers le haut de la plage, bruit. `analogReadMilliVolts()` applique une correction d'usine. L'**ADC2** est utilisé par le Wi-Fi : préfère les broches 32 à 39 (ADC1).",
-          bus: "Trois bus pour parler aux capteurs et modules. **UART** : 2 fils croisés (TX→RX), asynchrone. **I2C** : 2 fils partagés (SDA, SCL) par jusqu'à 127 appareils, chacun a une **adresse** ; les lignes ont besoin de **résistances de tirage** (4,7 kΩ). **SPI** : 4 fils, rapide, un fil CS par appareil.",
+          bus: "Trois bus pour parler aux capteurs et modules. **UART** : 2 fils croisés (TX→RX), asynchrone. **I2C** : 2 fils partagés (SDA, SCL) par de nombreux appareils (adresses sur 7 bits : environ 112 utilisables, certaines étant réservées), chacun a une **adresse** ; les lignes ont besoin de **résistances de tirage** (4,7 kΩ). **SPI** : 4 fils, rapide, un fil CS par appareil.",
           alim: "L'ESP32 vit en **3,3 V** (maxi absolu 3,6 V) et ses entrées ne tolèrent **pas le 5 V**. Le régulateur de la carte abaisse le 5 V de l'USB ou de la broche 5V/VIN, mais il lui faut ≈ 1 V de marge et il chauffe (P = (Ve − 3,3) × I). Le **Wi-Fi** demande des pics de 400–500 mA : une alimentation faible provoque des redémarrages (brownout)."
         }[mode];
       }

@@ -116,7 +116,8 @@
       mesures(s) {
         const f = s.p.p * s.p.n / 60, Ueff = (s.etat.emax || 0) / Math.SQRT2, I = Ueff / (s.p.R + 2);
         return [["Fréquence f = p·n / 60", LS.nombre(f, 1) + " Hz"], ["Tension crête", LS.nombre(s.etat.emax || 0, 1) + " V"], ["Tension efficace", LS.nombre(Ueff, 1) + " V"],
-          ["Courant dans la charge", LS.nombre(I, 2) + " A"], ["Puissance fournie", LS.nombre(Ueff * I, 1) + " W"], ["Couple de freinage", LS.nombre(s.p.n > 0 ? Ueff * I / (s.p.n * 2 * Math.PI / 60) : 0, 3) + " N·m"]];
+          ["Courant dans la charge", LS.nombre(I, 2) + " A"], ["Puissance utile (dans la charge, R·I²)", LS.nombre(s.p.R * I * I, 1) + " W"],
+          ["Puissance convertie (E·I, pertes du bobinage comprises)", LS.nombre(Ueff * I, 1) + " W"], ["Couple de freinage", LS.nombre(s.p.n > 0 ? Ueff * I / (s.p.n * 2 * Math.PI / 60) : 0, 3) + " N·m"]];
       },
       explication() {
         return "Quand un aimant tourne devant une bobine, le flux magnétique qui la traverse varie : il apparaît une tension (**loi de Faraday**, e = −N·dΦ/dt). Elle est **sinusoïdale**, de fréquence **f = p × n / 60**. Plus on tourne vite, plus la tension et la fréquence augmentent. Quand on branche une charge, le courant crée un **couple de freinage** (loi de **Lenz**) : il faut fournir de l'énergie mécanique pour produire de l'électricité.";
@@ -125,25 +126,35 @@
   };
 
   /* ---------- Transformateur ---------- */
+  /* Transformateur de 50 VA environ, prévu pour 0,2 V par spire (230 V sur 1 150 spires).
+     Le flux dans le fer est proportionnel aux volts par spire (U1 / N1). Au-delà d'environ 1,2 fois la
+     valeur prévue, le fer sature : le courant magnétisant croît très vite, limité seulement par la
+     résistance du fil du primaire. Pertes fer ∝ (U1 / N1)². */
+  LS.calcTransformateur = function (p) {
+    const R1 = 2.5 * p.N1 / 1150;                                   // résistance du primaire (Ω)
+    if (p.continu) { const I1 = p.U1 / R1; return { U2: 0, I2: 0, I1, P: 0, b: 0, grille: I1 > 2 }; }
+    const m = p.N2 / p.N1, b = (p.U1 / p.N1) / 0.2;                  // b = flux / flux prévu
+    const U2v = p.U1 * m, Rs = 0.4 * m * m * 50 + 0.2;               // résistance des enroulements ramenée
+    const I2 = U2v / (p.R + Rs), U2 = I2 * p.R;
+    const sat = b > 1.1 ? Math.exp(6 * (b - 1.1)) : 1;
+    const Imag = Math.min(p.U1 / R1, 0.03 * b * sat * 1150 / p.N1);
+    const I1 = Math.hypot(I2 * m, Imag);
+    const Pfer = 4 * b * b, Pcu = I2 * I2 * Rs + I1 * I1 * R1;
+    const P = U2 * I2;
+    return { U2, I2, I1, P, m, b, Imag, Pfer, sature: b > 1.2, grille: I1 * I1 * R1 > 60, rend: P > 0 ? P / (P + Pcu + Pfer) : 0 };
+  };
   LS.sims.transformateur = function (el, cfg) {
     return LS.simAnimee(el, {
       hauteur: 360,
       controles: [
         { k: "U1", nom: "Tension primaire (efficace)", min: 0, max: 400, pas: 5, defaut: 230, unite: "V" },
         { k: "N1", nom: "Spires au primaire N1", min: 100, max: 2000, pas: 10, defaut: 1150 },
-        { k: "N2", nom: "Spires au secondaire N2", min: 10, max: 2000, pas: 5, defaut: 60 },
+        { k: "N2", nom: "Spires au secondaire N2", min: 10, max: 2000, pas: 5, defaut: 120 },
         { k: "R", nom: "Charge au secondaire", min: 1, max: 1000, pas: 1, defaut: 12, unite: "Ω" },
         { k: "continu", nom: "Alimenter en courant continu", bool: true, defaut: false }
       ],
       init(s) { s.etat.t = 0; },
-      calc(s) {
-        if (s.p.continu) return { U2: 0, I2: 0, I1: s.p.U1 / 2.5, P: 0, grille: s.p.U1 > 10 };
-        const m = s.p.N2 / s.p.N1, U2v = s.p.U1 * m, Rs = 0.4 * m * m * 50 + 0.2; // résistance des enroulements ramenée
-        const I2 = U2v / (s.p.R + Rs), U2 = I2 * s.p.R;
-        const Imag = 0.03 * s.p.U1 / 230 * 1150 / s.p.N1;
-        const I1 = Math.hypot(I2 * m, Imag);
-        return { U2, I2, I1, P: U2 * I2, m, rend: U2 * I2 / (U2 * I2 + I2 * I2 * Rs + 2 + 0.0001 * s.p.U1 * s.p.U1 * 1150 / s.p.N1) };
-      },
+      calc(s) { return LS.calcTransformateur(s.p); },
       dessiner(s, ctx, W, H, c) {
         const k = this.calc(s), cx = W * 0.42, cy = H / 2;
         ctx.strokeStyle = "#78909c"; ctx.lineWidth = 26; ctx.strokeRect(cx - 110, cy - 90, 220, 180);
@@ -160,19 +171,47 @@
         D().texte(ctx, "secondaire : " + s.p.N2 + " spires", cx + 110, cy + 112, "#1565c0", 12, "center", true);
         D().texte(ctx, "U1 = " + s.p.U1 + " V", cx - 190, cy, c.texte, 14, "center", true);
         D().texte(ctx, "U2 = " + LS.nombre(k.U2, 1) + " V", cx + 200, cy, c.texte, 14, "center", true);
-        if (k.grille) D().texte(ctx, "⚠ En continu : pas de variation de flux, donc rien au secondaire ; au primaire, seule la résistance du fil limite le courant : il brûle !", W / 2, H - 14, c.alerte, 12, "center", true);
+        if (s.p.continu && k.grille) D().texte(ctx, "⚠ En continu : pas de variation de flux, donc rien au secondaire ; au primaire, seule la résistance du fil limite le courant : il brûle !", W / 2, H - 14, c.alerte, 12, "center", true);
+        else if (k.sature) D().texte(ctx, "⚠ Trop de volts par spire : le fer sature, le courant à vide explose" + (k.grille ? " et le primaire brûle !" : "."), W / 2, H - 14, c.alerte, 12, "center", true);
       },
       mesures(s) {
         const k = this.calc(s);
-        return [["Rapport m = N2/N1", LS.nombre(s.p.N2 / s.p.N1, 3)], ["U2", LS.nombre(k.U2, 1) + " V"], ["I2", LS.nombre(k.I2, 2) + " A"], ["I1", LS.nombre(k.I1, 2) + " A", k.grille ? "alerte" : ""],
+        return [["Rapport m = N2/N1", LS.nombre(s.p.N2 / s.p.N1, 3)], ["U2", LS.nombre(k.U2, 1) + " V"], ["I2", LS.nombre(k.I2, 2) + " A"], ["I1", LS.nombre(k.I1, 2) + " A", k.grille || k.sature ? "alerte" : ""],
+          ["Volts par spire (prévu : 0,20)", s.p.continu ? "—" : LS.nombre(s.p.U1 / s.p.N1, 2) + " V", k.sature ? "alerte" : ""],
           ["Puissance transmise", LS.nombre(k.P, 0) + " W"], ["Rendement", k.rend ? LS.nombre(100 * k.rend, 0) + " %" : "—"]];
       },
-      explication() { return "Le **primaire** crée dans le noyau de fer un **flux alternatif**, qui traverse le **secondaire** et y induit une tension. Rapport : **U2 / U1 ≈ N2 / N1 = m**. La puissance se conserve presque : si la tension baisse, le courant augmente (I1 ≈ m·I2). Les deux enroulements ne sont pas reliés électriquement : le transformateur **isole**. Il ne fonctionne qu'en **alternatif**."; }
+      explication() { return "Le **primaire** crée dans le noyau de fer un **flux alternatif**, qui traverse le **secondaire** et y induit une tension. Rapport : **U2 / U1 ≈ N2 / N1 = m**. La puissance se conserve presque : si la tension baisse, le courant augmente (I1 ≈ m·I2). Les deux enroulements ne sont pas reliés électriquement : le transformateur **isole**. Il ne fonctionne qu'en **alternatif**.\n\nLe nombre de spires du primaire n'est pas libre : le **flux** dans le fer est proportionnel à U1 / N1. Trop peu de spires pour la tension, et le fer **sature** : le courant à vide devient énorme et le transformateur chauffe. Ici, le noyau est prévu pour 0,2 V par spire."; }
     }, cfg);
   };
 
   /* ---------- Moteur asynchrone triphasé ---------- */
+  /* Couple (N·m) d'un moteur à cage de 4 kW environ selon le glissement g, à la fréquence f (loi U/f
+     constante). Rotor à double cage simplifié : somme de deux courbes de Kloss, l'une pour la marche
+     (couple maxi vers g = 0,15 à 50 Hz), l'autre pour le démarrage (couple maxi vers g = 1).
+     Résultat : couple de démarrage ≈ 0,7 × couple maximal, comme une cage d'écureuil courante.
+     À U/f constant, le couple ne dépend que de la vitesse de glissement : les deux glissements
+     caractéristiques varient comme 50 / f. */
+  LS.coupleAsynchrone = function (g, f) {
+    if (g === 0) return 0;
+    const k = 50 / f, g1 = 0.15 * k, g2 = 1 * k;
+    return 2 * 27 / (g / g1 + g1 / g) + 2 * 13 / (g / g2 + g2 / g);
+  };
+  /* Point de fonctionnement en régime établi : glissement dans [0, 1], ou moteur calé. */
+  LS.regimeAsynchrone = function (f, p, Cr, demarre) {
+    const ns = 60 * f / p, C = g => LS.coupleAsynchrone(g, f);
+    let gmax = 0.001, Cmax = 0;
+    for (let g = 0.001; g <= 1; g += 0.001) { const c = C(g); if (c > Cmax) { Cmax = c; gmax = g; } }
+    const Cd = C(1);
+    // Moteur arrêté : il ne démarre que si le couple de démarrage dépasse la charge ;
+    // en marche : il décroche si la charge dépasse le couple maximal.
+    if (Cr >= Cmax || (!demarre && Cr >= Cd)) return { ns, g: 1, n: 0, Cmax, Cd, gmax, cale: true };
+    let lo = 0, hi = gmax;
+    for (let k = 0; k < 60; k++) { const m = (lo + hi) / 2; if (C(m) < Cr) lo = m; else hi = m; }
+    const g = (lo + hi) / 2;
+    return { ns, g, n: ns * (1 - g), Cmax, Cd, gmax, cale: false };
+  };
   LS.sims.asynchrone = function (el, cfg) {
+    const J = 0.03; // inertie du rotor et de la charge (kg·m²)
     return LS.simAnimee(el, {
       hauteur: 420,
       controles: [
@@ -181,17 +220,26 @@
         { k: "Cr", nom: "Couple de la charge", min: 0, max: 40, pas: 1, defaut: 10, unite: "N·m" },
         { k: "vitVis", nom: "Ralenti de l'animation", min: 5, max: 200, pas: 5, defaut: 50, unite: "×" }
       ],
-      init(s) { s.etat.af = 0; s.etat.ar = 0; },
+      boutons: [{ k: "arret", texte: "⏹ Arrêter puis redémarrer", action: s => { s.etat.w = 0; } }],
+      init(s) { s.etat.af = 0; s.etat.ar = 0; s.etat.w = 0; },
       calc(s) {
-        // Couple selon le glissement (formule de Kloss), couple maxi 30 N·m à g = 0,15 (à 50 Hz, loi U/f constante)
-        const ns = 60 * s.p.f / s.p.p, Cmax = 30, gm = 0.15 * 50 / s.p.f;
-        const C = g => g <= 0 ? 0 : 2 * Cmax / (g / gm + gm / g);
-        let g = 0;
-        if (s.p.Cr >= Cmax) g = 1;            // décroche : le moteur cale
-        else { let lo = 0, hi = gm; for (let k = 0; k < 50; k++) { const m = (lo + hi) / 2; if (C(m) < s.p.Cr) lo = m; else hi = m; } g = (lo + hi) / 2; }
-        return { ns, g, n: ns * (1 - g), C, Cmax, gm, cale: s.p.Cr >= Cmax };
+        const r = LS.regimeAsynchrone(s.p.f, s.p.p, s.p.Cr, true);
+        const ws = 2 * Math.PI * r.ns / 60, n = Math.max(0, (s.etat.w || 0) * 60 / (2 * Math.PI));
+        const g = Math.min(1, Math.max(0, 1 - n / r.ns));
+        return Object.assign(r, { n, g, C: gg => LS.coupleAsynchrone(gg, s.p.f), cale: n < 0.5 && LS.coupleAsynchrone(1, s.p.f) <= s.p.Cr, ws });
       },
-      avancer(s, dt) { const k = this.calc(s); s.etat.af += 2 * Math.PI * s.p.f / s.p.p * dt / s.p.vitVis; s.etat.ar += 2 * Math.PI * k.n / 60 * dt / s.p.vitVis; s.etat.tph = (s.etat.tph || 0) + dt / s.p.vitVis; },
+      avancer(s, dt) {
+        // Démarrage et changements de charge : J·dω/dt = C(g) − Cr. La charge est passive : elle freine
+        // mais n'entraîne pas le moteur en arrière.
+        const e = s.etat, ns = 60 * s.p.f / s.p.p, ws = 2 * Math.PI * ns / 60, n = 20, h = dt / n;
+        for (let q = 0; q < n; q++) {
+          const g = 1 - e.w / ws, Cm = LS.coupleAsynchrone(Math.min(1, g), s.p.f);
+          let acc = (Cm - s.p.Cr) / J;
+          if (e.w <= 0 && acc < 0) { e.w = 0; acc = 0; }
+          e.w = Math.max(0, e.w + acc * h);
+        }
+        e.af += 2 * Math.PI * s.p.f / s.p.p * dt / s.p.vitVis; e.ar += e.w * dt / s.p.vitVis; e.tph = (e.tph || 0) + dt / s.p.vitVis;
+      },
       dessiner(s, ctx, W, H, c) {
         const k = this.calc(s), cx = W * 0.25, cy = H * 0.45, R = Math.min(100, H * 0.28);
         const coul = ["#e53935", "#43a047", "#1e88e5"];
@@ -213,15 +261,16 @@
         const t0 = s.etat.tph || 0, series = [0, 1, 2].map(ph => ({ pts: [...Array(101)].map((_, i) => { const t = t0 - 0.04 + i * 0.0004; return [t, Math.sin(2 * Math.PI * s.p.f * t - ph * 2 * Math.PI / 3)]; }), coul: coul[ph] }));
         D().graphe(ctx, gx, 30, gw, gh - 10, { c, xlim: [t0 - 0.04, t0], ylim: [-1.2, 1.2], series, titre: "Les 3 courants décalés de 120°" });
         const pts = []; for (let g = 0.001; g <= 1; g += 0.005) pts.push([k.ns * (1 - g), k.C(g)]);
-        D().graphe(ctx, gx, gh + 50, gw, gh - 20, { c, xlim: [0, k.ns * 1.05], ylim: [0, k.Cmax * 1.1], series: [{ pts, coul: c.info, ep: 3 }, { pts: [[0, s.p.Cr], [k.ns, s.p.Cr]], coul: c.alerte, ep: 1.5 }],
+        D().graphe(ctx, gx, gh + 50, gw, gh - 20, { c, xlim: [0, k.ns * 1.05], ylim: [0, Math.max(k.Cmax, s.p.Cr) * 1.1], series: [{ pts, coul: c.info, ep: 3 }, { pts: [[0, s.p.Cr], [k.ns, s.p.Cr]], coul: c.alerte, ep: 1.5 }],
           points: [{ x: k.n, y: s.p.Cr, coul: c.accentFort }], titre: "Couple moteur (bleu) et charge (rouge) selon la vitesse", xlab: "tr/min" });
       },
       mesures(s) {
         const k = this.calc(s);
-        return [["Vitesse de synchronisme ns = 60f/p", LS.nombre(k.ns, 0) + " tr/min"], ["Vitesse du rotor", LS.nombre(k.n, 0) + " tr/min", k.cale ? "alerte" : ""], ["Glissement g", LS.nombre(100 * k.g, 1) + " %"], ["Puissance utile", LS.nombre(s.p.Cr * k.n * 2 * Math.PI / 60, 0) + " W"]];
+        return [["Vitesse de synchronisme ns = 60f/p", LS.nombre(k.ns, 0) + " tr/min"], ["Vitesse du rotor", LS.nombre(k.n, 0) + " tr/min", k.cale ? "alerte" : ""], ["Glissement g", LS.nombre(100 * k.g, 1) + " %"],
+          ["Couple de démarrage / maximal", LS.nombre(k.Cd, 0) + " / " + LS.nombre(k.Cmax, 0) + " N·m"], ["Puissance utile", LS.nombre(s.p.Cr * k.n * 2 * Math.PI / 60, 0) + " W"]];
       },
       explication(s) {
-        return "Trois bobines alimentées par des courants **décalés de 120°** créent un **champ magnétique tournant** à la vitesse de synchronisme **ns = 60·f / p**. Il induit des courants dans les barres du rotor (cage d'écureuil), qui est entraîné… sans jamais l'atteindre : s'il tournait aussi vite, plus rien ne serait induit. L'écart relatif est le **glissement** g = (ns − n) / ns, quelques %. Un **variateur** change f pour régler la vitesse." + (this.calc(s).cale ? "\n\n⚠ La charge dépasse le couple maximal : le moteur **décroche** et cale." : "");
+        return "Trois bobines alimentées par des courants **décalés de 120°** créent un **champ magnétique tournant** à la vitesse de synchronisme **ns = 60·f / p**. Il induit des courants dans les barres du rotor (cage d'écureuil), qui est entraîné… sans jamais l'atteindre : s'il tournait aussi vite, plus rien ne serait induit. L'écart relatif est le **glissement** g = (ns − n) / ns, quelques %. Un **variateur** change f pour régler la vitesse.\n\nAu démarrage, le moteur ne fournit que le **couple de démarrage** (environ 70 % du couple maximal ici) : une charge plus lourde l'empêche de démarrer, alors qu'il la supporte une fois lancé. Le courant de démarrage vaut 5 à 8 fois le courant nominal (non simulé)." + (this.calc(s).cale ? (s.p.Cr >= this.calc(s).Cmax ? "\n\n⚠ La charge dépasse le couple maximal : le moteur **décroche** et cale." : "\n\n⚠ Moteur à l'arrêt : la charge dépasse le **couple de démarrage**, il ne peut pas démarrer. Allège la charge.") : "");
       }
     }, cfg);
   };

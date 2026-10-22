@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Poussée, poids et autonomie",
   domaine: "drones", niveau: 1, duree: "25 min",
   sim: "propulsion",
-  intro: "Concevoir un drone, c'est équilibrer **poussée**, **poids** et **énergie**. Les calculs utilisent les lois des hélices (poussée ∝ n²·D⁴, puissance ∝ n³·D⁵) avec des coefficients typiques ; les valeurs sont des ordres de grandeur réalistes, pas celles d'un modèle commercial précis.",
+  intro: "Concevoir un drone, c'est équilibrer **poussée**, **poids** et **énergie**. Les calculs utilisent les lois des hélices (poussée ∝ n²·D⁴, puissance ∝ n³·D⁵) avec des coefficients typiques, et la puissance de chaque moteur est plafonnée selon sa taille (≈ 900 W pour un 5 pouces, 1 500 W pour un 10 pouces) ; les valeurs sont des ordres de grandeur réalistes, pas celles d'un modèle commercial précis.",
   objectifs: [
     { texte: "Drone 5 pouces, 4S : obtiens un rapport poussée/poids d'au moins **4** (freestyle).", verif: s => s.p.helice === 5 && LS.bilanDrone(s.p).twr >= 4 },
     { texte: "Augmente la batterie jusqu'à **5 000 mAh** : l'autonomie progresse-t-elle autant que la capacité ?", verif: s => s.p.capacite >= 5000, bravo: "La batterie pèse : il faut plus de puissance pour la porter. L'autonomie plafonne." },

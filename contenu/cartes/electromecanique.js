@@ -24,7 +24,7 @@ LS.ajouterCarte({
       { t: "Glissement", d: "Écart relatif entre la vitesse du champ et celle du rotor, quelques pour cent en charge.", f: "g = (ns − n) / ns", tp: "em-05-asynchrone" },
       { t: "Moteur synchrone", d: "Le rotor (aimants) tourne exactement à la vitesse du champ. Avec un variateur, c'est le moteur de la plupart des voitures électriques et des robots." }
     ] },
-    { t: "Transformateur", d: "Deux bobinages sur un noyau de fer feuilleté. Le flux alternatif créé par le primaire induit une tension au secondaire. Il élève ou abaisse une tension alternative avec un très bon rendement, et isole galvaniquement.", f: "U2 / U1 = N2 / N1 = I1 / I2", tp: "em-04-transformateur" },
+    { t: "Transformateur", d: "Deux bobinages sur un noyau de fer feuilleté. Le flux alternatif créé par le primaire induit une tension au secondaire. Il élève ou abaisse une tension alternative avec un très bon rendement, et isole galvaniquement. Le nombre de spires du primaire est imposé par la tension : trop peu de spires et le fer **sature** (courant à vide énorme).", f: "U2 / U1 = N2 / N1 = I1 / I2 ; flux ∝ U1 / (N1 · f)", tp: "em-04-transformateur" },
     { t: "Positionnement", c: [
       { t: "Moteur pas à pas", d: "Moteur qui avance d'un angle fixe (souvent 1,8°, soit 200 pas par tour) à chaque impulsion envoyée dans ses bobines, dans l'ordre. Positionnement précis sans capteur : imprimantes 3D, CNC.", tp: "em-06-pas-a-pas" },
       { t: "Servomoteur", d: "Moteur, réducteur et capteur de position avec un asservissement : il rejoint l'angle commandé par la durée d'une impulsion (1 à 2 ms toutes les 20 ms).", tp: "em-06-pas-a-pas" }

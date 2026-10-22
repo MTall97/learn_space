@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Couple, puissance et régime",
   domaine: "moteurs", niveau: 3, duree: "20 min",
   sim: "courbesMoteur",
-  intro: "Les fiches techniques donnent le **couple maxi** (en N·m, à un régime) et la **puissance maxi** (en kW ou ch, à un régime plus élevé). Les courbes sont calculées avec le même modèle de cylindre que dans les TP précédents, en tenant compte du remplissage et des frottements.",
+  intro: "Les fiches techniques donnent le **couple maxi** (en N·m, à un régime) et la **puissance maxi** (en kW ou ch, à un régime plus élevé). Les courbes sont calculées avec le modèle de cylindre des TP précédents. D'un moteur à l'autre ne changent que des paramètres réels ou calés : géométrie, taux de compression, avance, **remplissage** (la moto a une admission accordée qui dépasse 100 % vers 11 000 tr/min ; le diesel est suralimenté) et **frottements**, calculés selon la vitesse moyenne du piston (une course courte permet de tourner vite). Ordres de grandeur obtenus : citadine 114 N·m / 55 kW, diesel 250 N·m / 83 kW, moto 68 N·m / 86 kW à 13 500 tr/min, scooter 11 N·m / 9 kW ; ce ne sont pas les courbes d'un modèle commercial précis.",
   objectifs: [
     { texte: "Citadine essence : place le curseur au régime de **couple maximal** (± 200 tr/min).", verif: s => s.p.moteur === "citadine" && Math.abs(s.p.N - s.etat.Cmax[0]) <= 200 },
     { texte: "Même moteur : place-toi au régime de **puissance maximale**.", verif: s => s.p.moteur === "citadine" && Math.abs(s.p.N - s.etat.Pmax[0]) <= 200 },
