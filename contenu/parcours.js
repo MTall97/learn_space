@@ -8,6 +8,14 @@
   const T = (id, titre, desc) => ({ type: "tp", id, titre, desc });
 
   LS.parcours = [
+    { id: "maths", icone: "📐", titre: "Maths utiles (le socle)", desc: "Trigonométrie, nombres complexes, dérivées, exponentielles et logarithmes, statistiques : les outils de tous les autres domaines.", etapes: [
+      C("maths", "Carte : les maths utiles", "Fonctions, trigonométrie, complexes, analyse, exponentielle, statistiques."),
+      T("math-01-trigo", "Le cercle trigonométrique et la sinusoïde", "Sinus, cosinus, phase, radians."),
+      T("math-02-complexes", "Nombres complexes et phaseurs", "Module, argument, impédance d'un circuit RLC."),
+      T("math-03-derivees", "Dérivée et intégrale", "Pente, tangente, aire sous la courbe."),
+      T("math-04-exponentielle", "Exponentielle, logarithme et décibels", "Croissance, décroissance, échelles logarithmiques."),
+      T("math-05-statistiques", "Statistiques et probabilités", "Moyenne, écart type, loi normale, échantillonnage.")
+    ] },
     { id: "electricite", icone: "⚡", titre: "Électricité : bases et composants", desc: "Tension, courant, résistance, lois des circuits, mesures et premiers composants.", etapes: [
       C("elec-bases", "Carte : les bases de l'électricité", "Grandeurs, lois, associations, mesures, sécurité."),
       T("elec-01-premier-circuit", "Premier circuit : pile, interrupteur, lampe", "Circuit ouvert, circuit fermé, sens du courant."),
@@ -41,6 +49,19 @@
       T("num-03-additionneur", "Construire un additionneur", "Additionner deux bits avec des portes."),
       T("num-04-bascules", "Mémoriser un bit : les bascules", "Bascule RS, bascule D, compteur."),
       T("num-05-echantillonnage", "Échantillonner et quantifier", "Fréquence d'échantillonnage, Shannon, nombre de bits.")
+    ] },
+    { id: "solaire", icone: "☀️", titre: "Énergie solaire et batteries", desc: "Panneaux photovoltaïques, régulateurs, batteries, onduleurs, dimensionnement d'une installation autonome.", etapes: [
+      C("solaire", "Carte : l'énergie solaire et les batteries", "Rayonnement, panneau, régulateur, batteries, onduleur, dimensionnement."),
+      T("sol-01-panneau", "La courbe d'un panneau solaire", "Courant, tension, ensoleillement, température, point de puissance maximale."),
+      T("sol-02-batterie", "Charger et décharger une batterie", "Capacité, état de charge, profondeur de décharge, plomb ou lithium."),
+      T("sol-03-regulateur", "Régulateur PWM ou MPPT", "Pourquoi le MPPT récupère plus d'énergie."),
+      T("sol-04-dimensionnement", "Dimensionner un kit solaire autonome", "Besoins, panneaux, batterie : tenir la nuit et les jours couverts.")
+    ] },
+    { id: "batiment", icone: "🏠", titre: "Électricité du bâtiment", desc: "Protections, mise à la terre, différentiel, sections de câbles : une installation sûre.", etapes: [
+      C("batiment", "Carte : l'électricité du bâtiment", "Tableau, protections, terre, schémas de liaison, câbles, sécurité."),
+      T("bat-01-protection", "Disjoncteur et section des câbles", "Surcharge, court-circuit, courbes B, C, D."),
+      T("bat-02-differentiel", "Défaut d'isolement et différentiel 30 mA", "Prise de terre, tension de contact, déclenchement."),
+      T("bat-03-chute-tension", "Longueur de câble et chute de tension", "Pourquoi un câble trop fin chauffe et fait baisser la tension.")
     ] },
     { id: "electromecanique", icone: "🧲", titre: "Électromécanique", desc: "Magnétisme, moteurs, relais, transformateurs, alternateurs.", etapes: [
       C("electromecanique", "Carte : l'électromécanique", "Champ magnétique, induction, machines électriques, commande."),
@@ -88,6 +109,13 @@
       T("esp-05-bus", "Bus UART, I2C et SPI", "Brancher un capteur et lire ses octets."),
       T("esp-06-niveaux", "Niveaux logiques 3,3 V / 5 V et alimentation", "Ne pas griller son ESP.")
     ] },
+    { id: "capteurs", icone: "🌡️", titre: "Capteurs et mesure", desc: "Température, distance, mouvement : lire le monde réel, avec son bruit et ses erreurs.", etapes: [
+      C("capteurs", "Carte : les capteurs", "Principes, caractéristiques, conditionnement, erreurs, capteurs courants."),
+      T("cap-01-thermistance", "Mesurer une température avec une thermistance", "Diviseur de tension, courbe non linéaire, ADC."),
+      T("cap-02-ultrason", "Mesurer une distance aux ultrasons", "Temps de vol, vitesse du son, angle du faisceau."),
+      T("cap-03-imu", "Gyroscope et accéléromètre : estimer un angle", "Dérive, bruit, filtre complémentaire."),
+      T("cap-04-etalonnage", "Bruit, moyenne et étalonnage", "Erreur de décalage, de gain, filtrer sans retarder.")
+    ] },
     { id: "drones", icone: "🚁", titre: "Drones", desc: "Moteurs brushless, hélices, batterie LiPo, contrôleur de vol, PID.", etapes: [
       C("drone", "Carte : le drone multirotor", "Structure, propulsion, énergie, électronique, pilotage."),
       T("dr-01-propulsion", "Poussée, poids et autonomie", "Choisir moteurs, hélices et batterie."),
@@ -98,7 +126,12 @@
       C("python", "Carte : Python et la data science", "Langage, pandas, statistiques, visualisation.")
     ] },
     { id: "ml-audio", icone: "🎧", titre: "Machine learning et audio", desc: "Apprentissage automatique, parole, traduction, évaluation.", etapes: [
-      C("ml-audio", "Carte : machine learning et audio", "Données, modèles, entraînement, audio, évaluation.")
+      C("ml-audio", "Carte : machine learning et audio", "Données, modèles, entraînement, audio, évaluation."),
+      T("ia-01-neurone", "Un neurone qui apprend", "Poids, biais, descente de gradient, frontière de décision."),
+      T("ia-02-surapprentissage", "Surapprentissage", "Complexité du modèle, erreurs d'entraînement et de validation."),
+      T("ia-03-spectrogramme", "Le spectrogramme d'un son", "Temps, fréquence, voyelles, sifflement, bruit."),
+      T("ia-04-evaluation", "Évaluer une transcription et une traduction", "WER, BLEU et ce qu'ils ne voient pas."),
+      T("ia-05-fuite", "La fuite de données", "Découper par série et non par segment.")
     ] },
     { id: "finance", icone: "📈", titre: "Finance et trading", desc: "Marchés, Forex, risque, backtest, saisonnalité.", etapes: [
       C("finance", "Carte : finance et trading", "Marchés, ordres, risque, analyse, backtest.")

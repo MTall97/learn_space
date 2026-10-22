@@ -1,0 +1,69 @@
+LS.ajouterCarte({
+  id: "capteurs",
+  titre: "Les capteurs",
+  intro: "Un capteur transforme une grandeur physique (température, distance, force, mouvement…) en un signal électrique qu'un microcontrôleur peut lire. Aucun capteur n'est parfait : il a une plage, une sensibilité, du bruit, une dérive et des erreurs qu'il faut connaître, corriger par l'étalonnage et réduire par le filtrage. Cette carte présente les principes, les caractéristiques, le conditionnement du signal, les erreurs et les capteurs les plus courants.",
+  racine: { t: "Capteurs", c: [
+    { t: "Principes", c: [
+      { t: "Grandeur mesurée", d: "La grandeur physique qu'on veut connaître : le **mesurande** (température, pression, distance, accélération…). Le capteur n'en donne qu'une **image** électrique, avec ses défauts.", ex: "Une thermistance ne mesure pas la température de l'air, mais la sienne : si le soleil la chauffe ou si le courant la chauffe, la mesure est fausse." },
+      { t: "Transducteur", d: "L'élément qui convertit une forme d'énergie en une autre : la dilatation d'une membrane en variation de résistance, une onde sonore en tension, une force en déformation. La chaîne complète : mesurande → transducteur → conditionnement → conversion analogique-numérique → calcul." },
+      { t: "Capteur passif", d: "Il ne produit pas d'énergie : une de ses propriétés (résistance, capacité, inductance) varie avec la grandeur. Il faut l'alimenter et le placer dans un montage (diviseur, pont) pour en tirer une tension.", ex: "Thermistance, photorésistance, jauge de contrainte, potentiomètre.", voir: ["Diviseur de tension (capteur)", "Pont de Wheatstone"] },
+      { t: "Capteur actif", d: "Il produit lui-même un signal électrique à partir de l'énergie de la grandeur mesurée.", ex: "Thermocouple (effet Seebeck : quelques dizaines de µV par °C), photodiode et cellule solaire, capteur piézoélectrique, dynamo tachymétrique." },
+      { t: "Capteur numérique (intégré)", d: "Un circuit qui contient le transducteur, l'amplificateur, l'ADC et souvent l'étalonnage d'usine, et qui répond par un bus (I2C, SPI, 1-Wire). Plus simple à utiliser, mais on dépend de sa fiche technique.", ex: "DS18B20, BME280, MPU6050.", voir: ["Bus I2C et SPI des capteurs"] }
+    ] },
+    { t: "Caractéristiques", c: [
+      { t: "Étendue de mesure", d: "Plage entre la plus petite et la plus grande valeur mesurable correctement. En dehors, le capteur sature, se trompe ou s'abîme.", ex: "HC-SR04 : 2 cm à 4 m. DS18B20 : −55 à +125 °C.", tp: "cap-02-ultrason" },
+      { t: "Sensibilité", d: "Variation de la sortie pour une variation de la grandeur : la pente de la courbe d'étalonnage. Plus elle est grande, plus la mesure est facile à lire précisément.", f: "S = Δsortie / Δgrandeur", ex: "Une CTN 10 kΩ dans un diviseur avec 10 kΩ sous 3,3 V : environ 35 mV/°C à 25 °C.", tp: "cap-01-thermistance" },
+      { t: "Résolution", d: "Plus petite variation de la grandeur que la chaîne de mesure peut distinguer. Elle dépend de la sensibilité, du bruit et du pas de l'ADC.", f: "résolution ≈ pas de l'ADC / sensibilité", ex: "Pas de 0,7 mV et 35 mV/°C : environ 0,02 °C. Cela ne veut pas dire que la mesure est juste à 0,02 °C près.", tp: "cap-01-thermistance", voir: ["Justesse et fidélité"] },
+      { t: "Justesse et fidélité", d: "**Justesse** : la moyenne des mesures tombe sur la vraie valeur (pas d'erreur systématique). **Fidélité** : les mesures répétées sont proches les unes des autres (peu de dispersion). Un capteur peut être fidèle mais faux.", an: "Des fléchettes groupées mais loin du centre : fidèles, pas justes. Corriger le réglage du viseur (l'étalonnage) les ramène au centre.", tp: "cap-04-etalonnage" },
+      { t: "Temps de réponse", d: "Temps que met la sortie à suivre un changement brusque de la grandeur, souvent donné à 63 % (constante de temps) ou à 90 %. Le filtrage l'allonge.", ex: "Une sonde de température dans un tube en inox : plusieurs secondes à quelques minutes.", tp: "cap-04-etalonnage" },
+      { t: "Hystérésis", d: "La sortie n'est pas la même selon qu'on arrive à une valeur en montant ou en descendant. Fréquent sur les capteurs mécaniques et magnétiques.", ex: "Un capteur d'humidité qui affiche 52 % en montant et 49 % en redescendant au même point." }
+    ] },
+    { t: "Erreurs de mesure", c: [
+      { t: "Erreur de décalage (offset)", d: "La sortie n'est pas nulle quand la grandeur l'est : toute la courbe est décalée. On la corrige par la **tare** ou le réglage du zéro.", ex: "Une balance qui affiche 84 g plateau vide.", tp: "cap-04-etalonnage" },
+      { t: "Erreur de gain", d: "La pente réelle n'est pas celle de la fiche technique : l'erreur grandit proportionnellement à la valeur mesurée. On la corrige avec une valeur étalon.", ex: "Une balance juste à 0 g mais qui affiche 532 g pour 500 g.", tp: "cap-04-etalonnage" },
+      { t: "Non-linéarité", d: "La sortie ne varie pas en ligne droite avec la grandeur. On corrige par une formule (Steinhart-Hart pour une thermistance), une table ou une linéarisation par morceaux.", tp: "cap-01-thermistance", voir: ["Thermistance CTN"] },
+      { t: "Bruit", d: "Variations aléatoires de la mesure, d'origine électrique (thermique, alimentation, perturbations) ou physique (vibrations). Il se caractérise par son **écart type**. On le réduit par le blindage, le découplage et le filtrage.", tp: "cap-04-etalonnage", voir: ["Moyenne glissante", "Passe-bas exponentiel"] },
+      { t: "Dérive", d: "Lente variation de la mesure dans le temps ou avec la température, à grandeur constante. Elle oblige à refaire le zéro ou l'étalonnage. Pour un gyroscope, un petit **biais** intégré devient une dérive d'angle sans limite.", tp: "cap-03-imu" },
+      { t: "Effet de charge", d: "Mesurer perturbe ce qu'on mesure : un courant chauffe la thermistance (auto-échauffement), une sonde ajoute de la masse thermique, un voltmètre consomme un peu de courant.", ex: "CTN 10 kΩ avec 1 kΩ sous 3,3 V : environ 0,9 mW, soit 0,6 °C de trop dans l'air calme.", tp: "cap-01-thermistance" }
+    ] },
+    { t: "Conditionnement du signal", c: [
+      { t: "Diviseur de tension (capteur)", d: "Le capteur résistif et une résistance fixe en série sur l'alimentation : la tension au milieu dépend de la résistance du capteur. La sensibilité est maximale quand la résistance fixe vaut celle du capteur au milieu de la plage visée.", f: "V = Vcc · R_capteur / (R_capteur + R_fixe) ; R_capteur = R_fixe · V / (Vcc − V)", tp: "cap-01-thermistance" },
+      { t: "Pont de Wheatstone", d: "Quatre résistances en losange ; on mesure la différence de tension entre les deux milieux. Elle est nulle à l'équilibre et proportionnelle à de très petites variations de résistance : idéal pour les jauges de contrainte (variations de l'ordre de 0,1 %).", ex: "Une cellule de charge 5 kg alimentée en 5 V donne environ 5 mV à pleine charge (1 mV/V).", voir: ["Jauge de contrainte et HX711"] },
+      { t: "Amplificateur", d: "Rend un petit signal assez grand pour l'ADC. Un **amplificateur d'instrumentation** amplifie la différence entre deux entrées en rejetant ce qui leur est commun (perturbations).", ex: "HX711 : gain 128 et ADC 24 bits intégrés." },
+      { t: "Conversion analogique-numérique", d: "L'ADC transforme la tension en nombre. Sa résolution (10, 12, 24 bits), sa plage, sa linéarité et son bruit limitent la mesure : l'ADC de l'ESP32 n'est ni linéaire aux extrémités ni très précis sans correction.", tp: "cap-01-thermistance" },
+      { t: "Bus I2C et SPI des capteurs", d: "Les capteurs numériques parlent en I2C (2 fils, adresse par capteur, 100–400 kHz) ou en SPI (4 fils, plus rapide). On lit des registres puis on applique les coefficients d'étalonnage donnés par le capteur.", ex: "BME280 à l'adresse 0x76, MPU6050 à 0x68." }
+    ] },
+    { t: "Traitement", c: [
+      { t: "Étalonnage", d: "Comparer le capteur à des références connues pour calculer la correction. **Deux points** (zéro et une valeur étalon) corrigent le décalage et le gain d'un capteur linéaire ; plusieurs points ou une formule corrigent la non-linéarité.", f: "valeur = (lecture − lecture₀) × valeur_étalon / (lecture_étalon − lecture₀)", tp: "cap-04-etalonnage" },
+      { t: "Moyenne glissante", d: "Moyenne des N dernières mesures. Le bruit aléatoire est divisé par √N, mais la sortie a environ N/2 mesures de retard. Elle n'améliore pas la résolution si le bruit est plus petit qu'un pas de l'ADC.", f: "σ_moyenne = σ / √N", tp: "cap-04-etalonnage" },
+      { t: "Passe-bas exponentiel", d: "Filtre très simple : chaque nouvelle sortie se rapproche de la mesure d'une fraction a. Petit a : sortie lisse mais lente.", f: "y ← y + a·(x − y) ; constante de temps ≈ Te / a", ex: "10 mesures/s et a = 0,05 : environ 2 s pour atteindre 63 %.", tp: "cap-04-etalonnage" },
+      { t: "Fusion de capteurs", d: "Combiner plusieurs capteurs aux défauts complémentaires pour une meilleure estimation : gyroscope et accéléromètre, GPS et centrale inertielle. Outils : filtre complémentaire, filtre de Kalman.", tp: "cap-03-imu" },
+      { t: "Filtre complémentaire", d: "On fait confiance au gyroscope à court terme et à l'accéléromètre à long terme. α proche de 1 : on suit le gyroscope, la correction par l'accéléromètre est lente.", f: "angle = α·(angle + ω·dt) + (1 − α)·angle_accéléro ; τ = α·dt / (1 − α)", tp: "cap-03-imu" }
+    ] },
+    { t: "Capteurs courants", c: [
+      { t: "Température", c: [
+        { t: "Thermistance CTN", d: "Résistance qui diminue quand la température monte, fortement et de façon non linéaire. Repérée par sa résistance à 25 °C et son coefficient B.", f: "1/T = 1/T₂₅ + ln(R/R₂₅)/B (Beta) ; 1/T = A + B·ln R + C·(ln R)³ (Steinhart-Hart)", ex: "CTN 10 kΩ, B = 3950 : 33 kΩ à 0 °C, 680 Ω à 100 °C.", tp: "cap-01-thermistance" },
+        { t: "CTP et PT100", d: "**CTP** : résistance qui augmente avec la température (souvent utilisée comme protection). **PT100** : sonde en platine de 100 Ω à 0 °C, presque linéaire (+0,385 Ω/°C), précise et stable, pour l'industrie ; il faut un montage 3 ou 4 fils pour annuler la résistance des câbles." },
+        { t: "DS18B20", d: "Capteur numérique sur bus 1-Wire : résolution jusqu'à 0,0625 °C, justesse ± 0,5 °C entre −10 et +85 °C, conversion de 750 ms en 12 bits. Plusieurs sondes sur le même fil, chacune avec son adresse." },
+        { t: "DHT22 et BME280", d: "**DHT22** : température et humidité, protocole propriétaire à 1 fil, lent (une mesure toutes les 2 s). **BME280** : température, humidité et pression atmosphérique en I2C ou SPI, plus précis ; la pression donne aussi l'altitude (environ 12 Pa par mètre près du sol)." }
+      ] },
+      { t: "Lumière", c: [
+        { t: "Photorésistance et photodiode", d: "**LDR** : résistance qui baisse à la lumière (de quelques MΩ dans le noir à quelques centaines d'Ω au soleil), lente et imprécise mais simple. **Photodiode** : courant proportionnel à l'éclairement, rapide et linéaire, montée avec un amplificateur transimpédance." }
+      ] },
+      { t: "Distance et présence", c: [
+        { t: "HC-SR04 (ultrasons)", d: "Émet une salve à 40 kHz et mesure la durée de l'écho : d = v·t/2. Portée 2 cm à 4 m, faisceau d'environ ± 15°. Trompé par les surfaces inclinées, molles ou petites ; la vitesse du son dépend de la température. Alimenté en 5 V : sa sortie ECHO à 5 V doit être abaissée pour un ESP32.", f: "v ≈ 331,3 + 0,606·T (m/s)", tp: "cap-02-ultrason" },
+        { t: "Capteurs infrarouges", d: "**Télémètre IR** (Sharp GP2Y) : triangulation, sortie analogique non linéaire. **Temps de vol laser** (VL53L0X) : mesure le temps de trajet de la lumière, jusqu'à 2 m en I2C. **PIR** : détecte le rayonnement infrarouge d'un corps qui bouge (alarmes, éclairage)." }
+      ] },
+      { t: "Position et mouvement", c: [
+        { t: "Potentiomètre et codeur", d: "**Potentiomètre** : position angulaire absolue par diviseur de tension, mais usure du curseur. **Codeur incrémental** : impulsions à chaque fraction de tour sur deux voies décalées (A et B) pour connaître le sens ; on compte les impulsions. **Codeur absolu** : un code unique par position." },
+        { t: "Capteur à effet Hall", d: "Une tension apparaît dans un semi-conducteur traversé par un courant et placé dans un champ magnétique. Sert à détecter un aimant (tout ou rien), à mesurer un champ, une vitesse de rotation (roue phonique) ou un courant sans contact.", voir: ["Capteur de courant"] },
+        { t: "MPU6050 (centrale inertielle)", d: "Accéléromètre et gyroscope 3 axes en I2C. Gyroscope : vitesses de rotation, biais de quelques °/s à corriger au démarrage. Accéléromètre : direction de la pesanteur, donc inclinaison, mais sensible aux vibrations. On fusionne les deux.", tp: "cap-03-imu", voir: ["Fusion de capteurs"] },
+        { t: "GPS", d: "Le récepteur calcule sa position à partir des temps de trajet des signaux d'au moins 4 satellites. Précision de l'ordre de 2 à 5 m à découvert, bien pire en ville ou sous un toit ; il répond en trames texte NMEA sur une liaison série, une fois par seconde en général." }
+      ] },
+      { t: "Force et courant", c: [
+        { t: "Jauge de contrainte et HX711", d: "Fil résistif collé sur une pièce : sa résistance varie quand la pièce se déforme. Montée en pont de Wheatstone dans une cellule de charge ; le HX711 amplifie (×128) et numérise (24 bits, 10 ou 80 mesures/s). À étalonner : tare et masse connue.", tp: "cap-04-etalonnage", voir: ["Pont de Wheatstone"] },
+        { t: "Capteur de courant", d: "**Shunt** : petite résistance en série (quelques mΩ) dont on mesure la tension, U = R·I ; simple et précis, mais pas d'isolement. **ACS712** : effet Hall, isolé du circuit mesuré, sortie centrée sur Vcc/2 (185 mV/A pour la version 5 A). **Pince ampèremétrique** : mesure sans couper le circuit." }
+      ] }
+    ] }
+  ] }
+});
