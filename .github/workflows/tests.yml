@@ -1,0 +1,18 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Simulateur et contenu
+        run: node --test tests/*.test.js
+      - name: Syntaxe de tous les scripts
+        run: for f in $(find assets contenu -name '*.js'); do node --check "$f" || exit 1; done
