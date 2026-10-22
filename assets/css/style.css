@@ -152,9 +152,9 @@ select, input[type="text"], input[type="number"] {
 
 /* ---------- Accueil / parcours ---------- */
 .domaine { margin-top: 28px; }
-.domaine > header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.domaine > header h2 { margin: 0; }
-.domaine > header .barre { flex: 1; min-width: 120px; max-width: 260px; }
+.domaine > header, details.domaine > summary > header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.domaine > header h2, details.domaine > summary > header h2 { margin: 0; }
+.domaine > header .barre, details.domaine > summary > header .barre { flex: 1; min-width: 120px; max-width: 260px; }
 .etapes { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
 .etape {
   display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center;
@@ -185,18 +185,19 @@ select, input[type="text"], input[type="number"] {
 .carte-svg .lien-arbre { fill: none; stroke: var(--lien); stroke-width: 2.2; }
 .carte-svg .lien-croise { fill: none; stroke: var(--lien); stroke-width: 1.4; stroke-dasharray: 5 5; opacity: .8; }
 .carte-svg .noeud rect { fill: var(--noeud); stroke: transparent; stroke-width: 2.5; }
-.carte-svg .noeud text { fill: var(--noeud-texte); font-size: 14px; font-weight: 600; pointer-events: none; }
+.carte-svg .noeud > text { fill: var(--noeud-texte); font-size: 14px; font-weight: 600; pointer-events: none; }
+.carte-svg .noeud g text { pointer-events: none; font-family: var(--police); font-weight: 500; }
 .carte-svg .noeud.feuille rect { fill: transparent; }
-.carte-svg .noeud.feuille text { fill: var(--texte); font-weight: 500; }
+.carte-svg .noeud.feuille > text { fill: var(--texte); font-weight: 500; }
 .carte-svg .noeud.racine rect { fill: var(--accent); }
-.carte-svg .noeud.racine text { fill: #4a1d0e; font-family: var(--police-titre); font-size: 22px; font-weight: 700; }
-.carte-svg .noeud.n1 text { font-family: var(--police-titre); font-size: 17px; }
+.carte-svg .noeud.racine > text { fill: #4a1d0e; font-family: var(--police-titre); font-size: 22px; font-weight: 700; }
+.carte-svg .noeud.n1 > text { font-family: var(--police-titre); font-size: 17px; }
 .carte-svg .noeud { cursor: pointer; }
 .carte-svg .noeud:hover rect { stroke: var(--accent-fort); }
 .carte-svg .noeud.feuille:hover rect { fill: var(--fond-2); }
 .carte-svg .noeud.choisi rect { stroke: var(--accent-fort); stroke-width: 3; }
 .carte-svg .noeud.compris rect { stroke: var(--ok); }
-.carte-svg .noeud.feuille.compris text { fill: var(--ok); }
+.carte-svg .noeud.feuille.compris > text { fill: var(--ok); }
 .carte-svg .coche { fill: var(--ok); font-size: 13px; }
 .carte-svg .bulle rect { fill: var(--noeud); opacity: .92; }
 .carte-svg .bulle text { fill: var(--noeud-texte); font-size: 12px; }

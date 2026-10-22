@@ -140,11 +140,19 @@
     if (LS.compris(n._id) && n._niveau > 0) {
       const c = svg("text", { class: "coche", x: -14, y: n._h / 2 + 5 }, grp); c.textContent = "✓";
     }
+    const tronquer = (txt, taille, max) => {
+      if (largeurTexte(txt, taille, false) <= max) return txt;
+      let t = txt;
+      while (t.length > 4 && largeurTexte(t + "…", taille, false) > max) t = t.slice(0, -1);
+      return t.trim() + "…";
+    };
     if (n.note) {
-      const w = largeurTexte(n.note, 12, false) + 16;
-      const b = svg("g", { class: "bulle", transform: `translate(${Math.min(0, (n._w - w) / 2)},${-26})` }, grp);
+      const txt = tronquer(n.note, 12, Math.max(n._w + 40, 150));
+      const w = largeurTexte(txt, 12, false) + 16;
+      const b = svg("g", { class: "bulle", transform: `translate(0,${-26})` }, grp);
       svg("rect", { width: w, height: 21, rx: 6 }, b);
-      const tb = svg("text", { x: 8, y: 15 }, b); tb.textContent = n.note;
+      const tb = svg("text", { x: 8, y: 15 }, b); tb.textContent = txt;
+      const titre = svg("title", {}, b); titre.textContent = n.note;
     }
     if (n.tag) {
       const w = largeurTexte(n.tag, 11, false) + 14;
@@ -201,6 +209,8 @@
     pan.append(LS.el("button", { class: "btn secondaire petit fermer", text: "✕", title: "Fermer", onclick: () => pan.classList.add("cache") }));
     if (chemin.length) pan.append(LS.el("div", { class: "chemin", text: chemin.join(" › ") }));
     pan.append(LS.el("h2", { text: n.t }));
+    if (n.note) pan.append(LS.el("div", { class: "note", html: "💬 " + LS.texte(n.note) }));
+    if (n.tag) pan.append(LS.el("span", { class: "etiquette", text: n.tag }));
     if (n.d) pan.append(LS.el("div", { class: "definition", html: LS.texte(n.d) }));
     else pan.append(LS.el("p", { class: "vide", text: "Pas encore de définition pour cette notion." }));
     if (n.f) pan.append(LS.el("div", { class: "formule", html: LS.texte(n.f) }));

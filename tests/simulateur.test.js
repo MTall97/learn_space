@@ -1,4 +1,4 @@
-/* Tests du simulateur électrique : lancer avec `node --test tests/` */
+/* Tests du simulateur électrique : lancer avec `node --test tests/*.test.js` */
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert");
