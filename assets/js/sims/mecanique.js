@@ -162,8 +162,9 @@
 
   /* ---------- Moteur 4 temps ---------- */
   LS.sims.moteur4t = function (el, cfg) {
+    const etroit = window.innerWidth < 640;
     return LS.simAnimee(el, {
-      hauteur: 470,
+      hauteur: etroit ? 900 : 470,
       controles: [
         { k: "mode", nom: "Carburant", choix: [["essence", "Essence (allumage commandé)"], ["diesel", "Diesel (allumage par compression)"]], defaut: "essence" },
         { k: "vitAnim", nom: "Vitesse de l'animation", min: 10, max: 720, pas: 10, defaut: 90, unite: "°/s", aide: "Ralenti de l'animation : un vrai moteur tourne bien trop vite pour l'œil." },
@@ -192,14 +193,22 @@
       avancer(s, dt) { s.etat.th = (s.etat.th + s.p.vitAnim * dt) % 720; },
       dessiner(s, ctx, W, H, c) {
         const cyc = s.etat.cyc, th = s.etat.th;
-        const we = W > 720 ? W * 0.4 : W * 0.5;
-        dessinerCylindre(ctx, c, s.p, cyc, th, 0, 40, we, H - 40);
         const ph = LS.phaseMoteur(th);
+        if (W < 640) {
+          // Écran étroit : moteur en haut, roue des phases et diagramme en dessous.
+          dessinerCylindre(ctx, c, s.p, cyc, th, 0, 40, W, 400);
+          const R = Math.min(70, W / 5);
+          roueDesPhases(ctx, c, s.p, th, W / 2, 450 + R, R);
+          diagrammePV(ctx, c, cyc, th, 20, 660, W - 40, H - 690);
+        } else {
+          const we = W > 720 ? W * 0.4 : W * 0.5;
+          dessinerCylindre(ctx, c, s.p, cyc, th, 0, 40, we, H - 40);
+          const xr = we + 10, wr = W - xr - 10;
+          const R = Math.min(70, wr / 4.2, H / 6);
+          roueDesPhases(ctx, c, s.p, th, xr + wr / 2, 30 + R + 10, R);
+          diagrammePV(ctx, c, cyc, th, xr + 10, 2 * R + 90, wr - 20, H - 2 * R - 120);
+        }
         D().texte(ctx, "Temps " + ph.n + " : " + ph.nom, 12, 16, COUL_PHASE[ph.n - 1], 16, "left", true);
-        const xr = we + 10, wr = W - xr - 10;
-        const R = Math.min(70, wr / 4.2, H / 6);
-        roueDesPhases(ctx, c, s.p, th, xr + wr / 2, 30 + R + 10, R);
-        diagrammePV(ctx, c, cyc, th, xr + 10, 2 * R + 90, wr - 20, H - 2 * R - 120);
         if (!cyc.allume) D().texte(ctx, cyc.diesel ? "Pas d'auto-inflammation : air pas assez chaud (ε trop faible)" : "Allumage coupé : le moteur est entraîné sans produire de travail", xr + wr / 2, H - 10, c.alerte, 12, "center", true);
         else if (cyc.cliquetis) D().texte(ctx, "⚠ Cliquetis : le mélange s'enflamme tout seul avant l'étincelle", xr + wr / 2, H - 10, c.alerte, 12, "center", true);
       },

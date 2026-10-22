@@ -392,3 +392,10 @@ details.domaine[open] > summary header::before { transform: rotate(90deg); }
 .objectif.en-cours .etat { border-color: var(--accent); color: var(--accent-fort); font-weight: 700; }
 /* Les éléments décoratifs ne doivent jamais intercepter les clics. */
 .circuit-svg .electron, .circuit-svg .jonction, .circuit-svg .point-libre, .circuit-svg .apercu, .circuit-svg .cible, .circuit-svg .fumee, .circuit-svg .grille-pt { pointer-events: none; }
+@media (max-width: 600px) {
+  .entete { flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+  .entete .logo { font-size: 1.1rem; }
+  .entete nav { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; }
+  .entete nav a { white-space: nowrap; font-size: .9rem; }
+  .bouton-theme { margin-left: auto; }
+}
