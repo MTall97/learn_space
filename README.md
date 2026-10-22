@@ -32,7 +32,7 @@ La progression (notions comprises, objectifs atteints, montages) est gardée **d
 
 - **Cartes mentales** (`carte.html?id=…`) : arbre interactif à la XMind. Clic sur une notion → définition, formule, exemple, analogie, lien vers le TP ; « J'ai compris » pour suivre sa progression ; mode **Réviser** par fiches.
 - **TP** (`tp.html?id=…`) : une simulation, des **objectifs vérifiés en direct**, des questions et les notions liées (tirées des cartes).
-- **Simulateur de circuits** (`assets/js/circuit/`) : on pose les composants, on les relie, on règle leurs valeurs, on observe courant (points jaunes), potentiels (couleurs des fils), oscilloscope et **multimètre réaliste** (sélecteur, douilles, fusibles, continuité, test diode). Résolution par analyse nodale en régime transitoire (méthode de Newton pour les diodes, LED et transistors ; Euler implicite pour condensateurs et bobines). Les composants peuvent griller ; un contact qui coupe une bobine fait une étincelle.
+- **Simulateur de circuits** (`assets/js/circuit/`) : on pose les composants, on les relie, on règle leurs valeurs, on observe courant (points jaunes), potentiels (couleurs des fils), oscilloscope et **multimètre réaliste** (sélecteur, douilles, fusibles, continuité, test diode). Résolution par analyse nodale en régime transitoire (méthode de Newton pour les diodes, LED et transistors ; Euler implicite pour condensateurs et bobines). Résistances, lampes, LED et fusibles peuvent griller (les autres composants : voir les limites) ; un contact qui coupe une bobine fait une étincelle.
 - **Simulations animées** (`assets/js/sims/`) : moteur thermique (modèle thermodynamique : compression, combustion, détente, diagramme pression-volume, couple), transmissions (dynamique de l'embrayage, calage), machines électriques, télécoms, ESP32 (contraintes réelles des broches, ADC non linéaire, PWM), drones.
 
 ### Arborescence
@@ -58,4 +58,4 @@ tests/                               tests (node --test tests/*.test.js)
 
 ## Limites connues
 
-Les simulations sont pédagogiques : modèles simplifiés mais physiquement cohérents, avec des ordres de grandeur réalistes. Elles ne remplacent ni un logiciel de simulation professionnel (SPICE), ni la mesure sur un vrai montage. Voir `docs/AVIS_DU_JUGE.md` pour la revue critique indépendante et ce qui en a été fait.
+Les simulations sont pédagogiques : modèles simplifiés mais physiquement cohérents, avec des ordres de grandeur réalistes. Elles ne remplacent ni un logiciel de simulation professionnel (SPICE), ni la mesure sur un vrai montage. Voir `docs/AVIS_DU_JUGE.md` : rapport du juge indépendant (22/10/2026), suites données et limites connues de chaque modèle.

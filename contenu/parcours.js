@@ -26,12 +26,12 @@
       C("elec-composants", "Carte : les composants", "Passifs, semi-conducteurs, commande, capteurs."),
       T("elec-06-led", "Allumer une LED sans la griller", "Calculer la résistance de protection."),
       T("elec-07-kirchhoff", "Les lois de Kirchhoff", "Lois des nœuds et des mailles sur un circuit à deux sources."),
-      T("elec-08-va-et-vient", "Le va-et-vient de la maison", "Allumer une lampe depuis deux endroits."),
       T("elec-09-condensateur", "Charge et décharge d'un condensateur", "Constante de temps τ = RC à l'oscilloscope."),
       T("elec-10-bobine", "La bobine et la diode de roue libre", "Le courant ne s'arrête pas d'un coup."),
       T("elec-11-panne", "Recherche de panne", "Trouver au multimètre le fil coupé et la lampe grillée."),
       C("elec-alternatif", "Carte : le courant alternatif", "Sinusoïde, valeur efficace, impédance, puissances, triphasé."),
       T("elec-12-alternatif", "Courant alternatif à l'oscilloscope", "Amplitude, période, fréquence, valeur efficace."),
+      T("elec-08-va-et-vient", "Le va-et-vient de la maison", "Allumer une lampe depuis deux endroits."),
       T("elec-13-filtre", "Filtre RC passe-bas", "La fréquence de coupure fc = 1/(2πRC)."),
       T("elec-bac-a-sable", "Bac à sable", "Tous les composants, montage libre.")
     ] },
