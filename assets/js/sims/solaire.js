@@ -289,8 +289,8 @@
         D().graphe(ctx, gx, gy2, gw, gh, { c, xlim: [0, xmax], ylim: [0, 360], titre: "Puissance selon la tension", xlab: xmax + " V", ylab: "360 W",
           series: [{ pts: k.ref.pts.map(([v, i]) => [v, v * i]), coul: c.bordure, ep: 1 }, { pts: k.iv.pts.map(([v, i]) => [v, v * i]), coul: c.accent, ep: 2.5 }],
           points: [{ x: k.iv.Vmp, y: k.iv.Pmp, coul: c.ok }, { x: k.op.V, y: k.op.P, coul: c.accentFort, r: 6 }] });
-        D().texte(ctx, "● orange : point de fonctionnement · ● vert : puissance maximale (MPP)", gx, gy2 + gh + 16, c.doux, 11, "left");
-        D().texte(ctx, "trait fin : droite de charge V = R·I · gris : conditions standard", gx, gy2 + gh + 30, c.doux, 11, "left");
+        D().texte(ctx, st ? "orange : fonctionnement · vert : maximum (MPP)" : "● orange : point de fonctionnement · ● vert : puissance maximale (MPP)", gx, gy2 + gh + 16, c.doux, 11, "left");
+        D().texte(ctx, st ? "trait fin : V = R·I · gris : conditions standard" : "trait fin : droite de charge V = R·I · gris : conditions standard", gx, gy2 + gh + 30, c.doux, 11, "left");
         void g1;
       },
       mesures(s) {
@@ -425,21 +425,21 @@
       dessiner(s, ctx, W, H, c) {
         const k = this.calcul(s), r = s.p.type === "pwm" ? k.pwm : k.mppt, st = empile(W);
         const iv = k.mppt.iv, xmax = Math.max(25, iv.Voc * 1.1), ymax = LS.MODULES_PV[s.p.module].Isc * 1.25;
-        const gw = st ? W - 32 : W * 0.58, gh = st ? 190 : H - 80;
+        const gw = st ? W - 32 : W * 0.58, gh = st ? 170 : H - 80;
         D().graphe(ctx, 16, 30, gw, gh, { c, xlim: [0, xmax], ylim: [0, ymax], titre: "Courbe I-V du panneau et point imposé par le régulateur", xlab: LS.nombre(xmax, 0) + " V", ylab: LS.nombre(ymax, 1) + " A",
           series: [{ pts: iv.pts, coul: c.info, ep: 2.5 }, { pts: [[s.p.Vbat + 0.3, 0], [s.p.Vbat + 0.3, ymax]], coul: c.doux, ep: 1 }],
           points: [{ x: iv.Vmp, y: iv.Imp, coul: c.ok }, { x: r.Vpanneau, y: r.Ipanneau, coul: c.accentFort, r: 6 }] });
         D().texte(ctx, "trait gris : tension batterie · ● MPP · ● point de fonctionnement", 16, 30 + gh + 14, c.doux, 11, "left");
         // Énergie sur une journée claire
-        const bx = st ? 16 : 16 + gw + 30, by = st ? 30 + gh + 60 : 50, bw = W - bx - 16;
+        const bx = st ? 16 : 16 + gw + 30, by = st ? 30 + gh + 50 : 50, bw = W - bx - 16, pasB = st ? 42 : 50;
         const Em = Math.max(1, k.jour.Edispo);
         [["Disponible (MPP)", k.jour.Edispo, c.bordure], ["Régulateur PWM", k.jour.Epwm, c.accent], ["Régulateur MPPT", k.jour.Emppt, c.ok]].forEach(([n, v, col], i) => {
-          const y = by + i * 50;
+          const y = by + i * pasB;
           D().texte(ctx, n + " : " + LS.nombre(v, 0) + " Wh / jour", bx, y, c.texte, 12, "left", true);
           ctx.fillStyle = col; ctx.fillRect(bx, y + 10, bw * v / Em, 18);
         });
-        D().texte(ctx, "Journée claire, crête " + s.p.G + " W/m²,", bx, by + 160, c.doux, 11, "left");
-        D().texte(ctx, "batterie à " + LS.nombre(s.p.Vbat, 1) + " V", bx, by + 175, c.doux, 11, "left");
+        D().texte(ctx, "Journée claire, crête " + s.p.G + " W/m²,", bx, by + 3 * pasB + 4, c.doux, 11, "left");
+        D().texte(ctx, "batterie à " + LS.nombre(s.p.Vbat, 1) + " V", bx, by + 3 * pasB + 19, c.doux, 11, "left");
       },
       mesures(s) {
         const k = this.calcul(s), r = s.p.type === "pwm" ? k.pwm : k.mppt;
@@ -493,10 +493,10 @@
         const pmax = Math.max(100, ...r.h.map(q => Math.max(q.prod, q.besoin))) * 1.1;
         // Bandes des jours couverts
         r.h.forEach((q, i) => { if (q.couvert && i % 24 === 0) { ctx.fillStyle = "rgba(120,130,150,.18)"; ctx.fillRect(gx + gw * i / n, gy1, gw * 24 / n, gh1); ctx.fillRect(gx + gw * i / n, gy2, gw * 24 / n, gh2); } });
-        D().graphe(ctx, gx, gy1, gw, gh1, { c, xlim: [0, n], ylim: [0, pmax], titre: "Production (jaune) et consommation (orange) sur 7 jours", xlab: "heures", ylab: LS.nombre(pmax, 0) + " W",
+        D().graphe(ctx, gx, gy1, gw, gh1, { c, xlim: [0, n], ylim: [0, pmax], titre: st ? "Production (jaune), consommation (orange)" : "Production (jaune) et consommation (orange) sur 7 jours", xlab: "heures", ylab: LS.nombre(pmax, 0) + " W",
           series: [{ pts: r.h.map((q, i) => [i + 0.5, q.prod]), coul: "#e0b000", ep: 2 }, { pts: r.h.map((q, i) => [i + 0.5, q.besoin]), coul: c.accentFort, ep: 1.5 }] });
         r.h.forEach((q, i) => { if (q.coupe > 0) { ctx.fillStyle = c.alerte; ctx.fillRect(gx + gw * i / n, gy1 + gh1 - 6, Math.max(2, gw / n), 6); } });
-        const g = D().graphe(ctx, gx, gy2, gw, gh2, { c, xlim: [0, n], ylim: [0, 1], titre: "État de charge de la batterie (0-100 %) · rouge : limite de décharge", xlab: "jours 1 à 7",
+        const g = D().graphe(ctx, gx, gy2, gw, gh2, { c, xlim: [0, n], ylim: [0, 1], titre: st ? "Charge de la batterie (0-100 %)" : "État de charge de la batterie (0-100 %) · rouge : limite de décharge", xlab: "jours 1 à 7",
           series: [{ pts: [[0, r.socLimite], [n, r.socLimite]], coul: c.alerte, ep: 1 }, { pts: r.h.map((q, i) => [i + 1, q.soc]), coul: c.info, ep: 2.5 }] });
         const i = Math.floor(s.etat.curseur), q = r.h[i];
         ctx.strokeStyle = c.doux; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(g.X(i + 0.5), gy1); ctx.lineTo(g.X(i + 0.5), gy2 + gh2); ctx.stroke(); ctx.setLineDash([]);

@@ -8,6 +8,16 @@
   const D = () => LS.dessin;
   const G = 9.81, DEG = Math.PI / 180;
   const n = (v, d) => LS.nombre ? LS.nombre(v, d) : Number(v).toFixed(d);
+  /* Légende d'un graphe : [[texte, couleur]], passe à la ligne si la largeur manque. */
+  function legende(ctx, items, x, y, W, c) {
+    let lx = x, ly = y;
+    items.forEach(([t, col]) => {
+      ctx.font = "500 11px Nunito, Segoe UI, sans-serif";
+      const lw = 30 + ctx.measureText(t).width;
+      if (lx + lw > W - 10 && lx > x) { lx = x; ly += 18; }
+      ctx.fillStyle = col; ctx.fillRect(lx, ly - 2, 14, 4); D().texte(ctx, t, lx + 18, ly, c.texte, 11, "left"); lx += lw;
+    });
+  }
 
   /* Tirage gaussien (Box-Muller) ; rnd est une fonction uniforme sur [0, 1[. */
   const gauss = function (rnd) {
@@ -326,17 +336,20 @@
       init(s) { Object.assign(s.etat, { theta: 0, omega: 0, aLin: 0, gyroInt: 0, fusion: 0, angleAccel: 0, h: [], tRecal: 0, tEch: 0, maxErrAcc: 0 }); },
       changement(s, k) { if (k !== "consigne" && k !== "alpha") s.etat.tRecal = s.t; if (k === "alpha") s.etat.tAlpha = s.t; s.etat.maxErrAcc = 0; },
       avancer(s, dt) {
-        const e = s.etat, p = s.p, nb = Math.max(1, Math.round(dt / DT));
-        for (let q = 0; q < nb; q++) {
-          const t = s.t - dt + (q + 1) * DT;
+        // Pas fixe de 5 ms (200 Hz), comme la boucle d'un contrôleur de vol, quel que soit le rythme d'affichage.
+        const e = s.etat, p = s.p, h = DT;
+        e.acc = (e.acc || 0) + dt;
+        while (e.acc >= DT) {
+          e.acc -= DT; e.tSim = (e.tSim || 0) + DT;
+          const t = e.tSim;
           let th;
           if (p.mode === "auto") th = 30 * Math.sin(0.5 * t) + 10 * Math.sin(1.3 * t);
-          else { e.omegaM = (e.omegaM || 0) + ((p.consigne - e.theta) * 20 - (e.omegaM || 0) * 7) * DT; th = e.theta + e.omegaM * DT; }
-          e.omega = (th - e.theta) / DT; e.theta = th;
+          else { e.omegaM = (e.omegaM || 0) + ((p.consigne - e.theta) * 20 - (e.omegaM || 0) * 7) * h; th = e.theta + e.omegaM * h; }
+          e.omega = (th - e.theta) / h; e.theta = th;
           e.aLin = p.chariot ? (Math.floor(t / 2.5) % 2 ? -4 : 3) : 0;
           const l = LS.lectureIMU(e, p);
-          e.gyroInt += l.gyro * DT;
-          e.fusion = LS.filtreComplementaire(e.fusion, l.gyro, l.angleAccel, p.alpha, DT);
+          e.gyroInt += l.gyro * h;
+          e.fusion = LS.filtreComplementaire(e.fusion, l.gyro, l.angleAccel, p.alpha, h);
           e.angleAccel = l.angleAccel;
           if (Math.abs(e.theta) < 3) e.maxErrAcc = Math.max(e.maxErrAcc, Math.abs(l.angleAccel - e.theta));
         }
@@ -368,13 +381,7 @@
           { pts: h.map(r => [r[0], r[1]]), coul: c.texte, ep: 3 },
           { pts: h.map(r => [r[0], r[4]]), coul: c.ok, ep: 2 }], titre: "Angle sur les 10 dernières secondes (± " + n(lim, 0) + "°)" });
         const leg = [["vrai", c.texte], ["gyro intégré", c.info], ["accéléromètre", c.alerte], ["fusion", c.ok]];
-        let lx = gx + 4, ly = gy + gh + 16;
-        leg.forEach(([t, col]) => {
-          ctx.font = "500 11px Nunito, Segoe UI, sans-serif";
-          const lw = 30 + ctx.measureText(t).width;
-          if (lx + lw > W - 10) { lx = gx + 4; ly += 18; }
-          ctx.fillStyle = col; ctx.fillRect(lx, ly - 2, 14, 4); D().texte(ctx, t, lx + 18, ly, c.texte, 11, "left"); lx += lw;
-        });
+        legende(ctx, leg, gx + 4, gy + gh + 16, W, c);
       },
       mesures(s) {
         const e = s.etat, h = e.h.filter(r => r[0] > Math.max(e.tRecal || 0, e.tAlpha || 0) + 1);
@@ -464,22 +471,23 @@
       dessiner(s, ctx, W, H, c) {
         const e = s.etat, etroit = W < 640;
         // Balance
-        const bx = etroit ? W / 2 : 110, by = etroit ? 70 : 150;
+        const bx = etroit ? W / 2 : 120, by = etroit ? 70 : 150;
         ctx.fillStyle = c.doux; ctx.fillRect(bx - 70, by + 30, 140, 14);
         ctx.fillStyle = "#90a4ae"; ctx.fillRect(bx - 18, by + 8, 36, 22);
         ctx.fillStyle = c.texte; ctx.fillRect(bx - 60, by, 120, 8);
         if (s.p.masse > 0) { const hM = 10 + 30 * Math.sqrt(s.p.masse / 1000); ctx.fillStyle = "#b0bec5"; ctx.fillRect(bx - 20, by - hM, 40, hM); D().texte(ctx, s.p.masse + " g", bx, by - hM / 2, "#263238", 11, "center", true); }
         ctx.fillStyle = "#1b2a1b"; ctx.fillRect(bx - 56, by + 56, 112, 34);
         D().texte(ctx, e.filt === null ? "----" : n(e.filt, 1) + " g", bx, by + 73, "#7CFC7C", 17, "center", true);
-        D().texte(ctx, cal(s) ? "étalonnée" : "non étalonnée (gain de la fiche technique)", bx, by + 104, cal(s) ? c.ok : c.alerte, 11, "center", true);
+        D().texte(ctx, cal(s) ? "étalonnée" : "non étalonnée", bx, by + 104, cal(s) ? c.ok : c.alerte, 11, "center", true);
         // Graphe 15 s
-        const gx = etroit ? 40 : 250, gy = etroit ? 200 : 40, gw = W - gx - 16, gh = H - gy - 40;
+        const gx = etroit ? 40 : 250, gy = etroit ? 200 : 40, gw = W - gx - 16, gh = H - gy - (etroit ? 60 : 40);
         const h = e.h, vals = h.map(r => r[2]).concat(h.map(r => r[3]));
         const ymin = Math.min(-20, ...vals) - 10, ymax = Math.max(100, ...vals) + 20;
         D().graphe(ctx, gx, gy, gw, gh, { c, xlim: [s.t - 15, s.t], ylim: [ymin, ymax], series: [
           { pts: h.map(r => [r[0], r[1]]), coul: c.sombre ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.25)", ep: 1 },
           { pts: h.map(r => [r[0], r[3]]), coul: c.ok, ep: 1.5 },
-          { pts: h.map(r => [r[0], r[2]]), coul: c.accentFort, ep: 2.5 }], titre: "Masse vraie (vert), lecture brute (gris), affichée après filtre (orange), en g", xlab: "15 s" });
+          { pts: h.map(r => [r[0], r[2]]), coul: c.accentFort, ep: 2.5 }], titre: "Masse sur 15 s (de " + n(ymin, 0) + " à " + n(ymax, 0) + " g)" });
+        legende(ctx, [["masse vraie", c.ok], ["lecture brute", c.doux], ["affichée (après filtre)", c.accentFort]], gx + 4, gy + gh + 16, W, c);
       },
       mesures(s) {
         const e = s.etat;

@@ -12,7 +12,7 @@ LS.ajouterTP({
       verif: s => { const e = s.etat; return s.p.chimie === "lifepo4" && e.coupure && e.socDepart >= 0.99 && s.p.Id >= 40 && e.ahOut > 0.9 * s.p.C; },
       bravo: "Le lithium supporte bien les forts courants. Remarque aussi sa tension presque plate pendant toute la décharge." },
     { texte: "Batterie plomb à 40 %, mets-la en **charge** : attends la phase **CV** et vois le courant tomber sous **30 %** du courant maximal.",
-      verif: s => { const e = s.etat; return s.p.chimie === "plomb" && s.p.mode === "charge" && e.phases.cv && Math.abs(e.I) < 0.3 * s.p.Ic && e.b.soc < 0.999; },
+      verif: s => { const e = s.etat; return s.p.chimie === "plomb" && s.p.mode === "charge" && e.phases.cv && Math.abs(e.I) < 0.3 * s.p.Ic; },
       bravo: "La batterie n'accepte plus tout le courant : le chargeur tient 14,4 V et le courant décroît pendant des heures. Les derniers 20 % d'une batterie plomb sont longs à remplir, ce que le soleil ne permet pas toujours." },
     { texte: "Batterie plomb : choisis une profondeur de décharge quotidienne qui donne **au moins 4 ans** de vie (1 460 cycles).",
       verif: s => s.p.chimie === "plomb" && LS.BATTERIES.plomb.cycles(s.p.dod / 100) >= 1460,
