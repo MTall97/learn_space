@@ -405,3 +405,13 @@ details.domaine[open] > summary header::before { transform: rotate(90deg); }
 #ls-avis { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; width: min(92vw, 460px); pointer-events: none; }
 #ls-avis .avis { pointer-events: auto; background: var(--carte); color: var(--texte); border: 1px solid var(--accent); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 10px 14px; cursor: pointer; }
 button[data-confirme] { border-color: var(--alerte); color: var(--alerte); }
+
+/* Objectifs à réponse saisie, objectifs verrouillés, essais */
+.objectif .corps-objectif { min-width: 0; flex: 1; }
+.objectif .saisie { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 2px; }
+.objectif .saisie input { flex: 1 1 140px; min-width: 0; font: inherit; padding: 6px 8px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--carte); color: var(--texte); }
+.objectif .saisie input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.objectif .saisie input:disabled { opacity: .7; }
+.essais { font-size: .8rem; color: var(--texte-doux); }
+.objectif.verrouille { opacity: .55; }
+.question .choix button:disabled { cursor: default; }

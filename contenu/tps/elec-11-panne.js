@@ -1,4 +1,24 @@
-LS.ajouterTP({
+(function () {
+  // On ne signale pas au hasard : il faut avoir posé les pointes du multimètre, et au plus un faux signalement.
+  // Mesure = multimètre allumé et pointe rouge déplacée depuis sa position de départ (hors de la plaque).
+  function aMesure(s) {
+    if (!s.sondes) return !!s._aMesure;
+    const rouge = JSON.stringify(s.sondes.rouge);
+    if (s._sondeDepart === undefined) s._sondeDepart = rouge;
+    const l = s.lectureMultimetre && s.lectureMultimetre();
+    if (l && l.sel !== "OFF" && rouge !== s._sondeDepart) s._aMesure = true;
+    return !!s._aMesure;
+  }
+  const enPanne = x => !!(x.coupe || (x.etat && x.etat.grille));
+  function signaler(s, cible) {
+    const mesure = aMesure(s);
+    const faux = new Set((s.signalements || []).filter(x => !enPanne(x))).size;
+    if (faux > 1) return { ok: false, msg: "Tu as signalé " + faux + " éléments sains : on ne remplace pas des pièces au hasard. Recharge la page et **mesure avant de signaler**." };
+    if (!(s.signalements || []).some(cible)) return false;
+    if (!mesure) return { ok: false, msg: "Tu as signalé le bon élément, mais sans aucune mesure : pose d'abord les pointes du multimètre." };
+    return true;
+  }
+  LS.ajouterTP({
   id: "elec-11-panne",
   titre: "Recherche de panne",
   domaine: "electricite", niveau: 3, duree: "30 min",
@@ -27,13 +47,20 @@ LS.ajouterTP({
       ]
     }
   },
+  ordre: true,
   objectifs: [
-    { texte: "Repère, avec le multimètre, le **fil coupé** et signale-le.",
+    { texte: "Repère, **avec le multimètre**, le **fil coupé** et signale-le.",
       indice: "En V⎓, pointe noire sur le − de la pile ; promène la pointe rouge le long des fils du haut. La tension est là jusqu'à un point, puis disparaît.",
-      verif: s => (s.signalements || []).some(x => x.coupe) },
-    { texte: "Repère la **lampe grillée** et signale-la.",
+      verif: s => signaler(s, x => x.coupe) },
+    { texte: "Entre quelles lampes se trouvait le fil coupé ? (écris leurs repères, par exemple « L1 et L2 »)",
+      saisie: v => { const n = LS.normaliserReponse(v); return /l2/.test(n) && /l3/.test(n) && !/l1/.test(n); },
+      aide: "Regarde les repères des lampes de part et d'autre du fil que tu as signalé." },
+    { texte: "Repère la **lampe grillée**, vérifie-la au multimètre, puis signale-la.",
       indice: "Une lampe qui a 12 V à ses bornes mais reste éteinte est grillée. Vérifie hors tension en Ω : OL.",
-      verif: s => (s.signalements || []).some(x => x.etat && x.etat.grille) },
+      verif: s => signaler(s, x => x.etat && x.etat.grille) },
+    { texte: "Quel est le **repère** de la lampe grillée, et qu'affichait le multimètre en Ω à ses bornes, hors tension ?",
+      saisie: v => { const n = LS.normaliserReponse(v); return /l2/.test(n) && /ol|infini|∞|ouvert/.test(n); },
+      aide: "Réponds par exemple « L5, OL ». Une lampe saine affiche quelques dizaines d'ohms." },
     { texte: "**Répare** : remplace le fil coupé (supprime-le et trace-en un neuf) et la lampe (🛠 Réparer). Les trois lampes doivent briller.",
       verif: s => s.liste("lampe").filter(l => (l._ueff || 0) > 11).length >= 3 && !s.schema.fils.some(f => f.coupe) }
   ],
@@ -43,3 +70,4 @@ LS.ajouterTP({
   ],
   notions: [["elec-bases", "Continuité"], ["elec-bases", "Circuit ouvert"], ["elec-bases", "Multimètre"], ["elec-bases", "En parallèle (dérivation)"]]
 });
+})();

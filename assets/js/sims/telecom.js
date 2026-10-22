@@ -219,6 +219,17 @@
   };
 
   /* ---------- Encapsulation ---------- */
+  // Taille des trames pour « taille » octets de données (en-têtes TCP 20 / UDP 8, IP 20, Ethernet 14 + CRC 4,
+  // trame minimale 64 octets, MTU 1 500 ; préambule 8 et silence 12 comptés sur le câble).
+  LS.calculEncapsulation = function (taille, proto) {
+    const ht = proto === "TCP" ? 20 : 8, mss = 1500 - 20 - ht;
+    const nb = Math.max(1, Math.ceil(taille / mss));
+    const charge = Math.min(taille, mss);
+    const trameMin = 64, trame = Math.max(trameMin, charge + ht + 20 + 18);
+    const bourrage = trame - (charge + ht + 20 + 18);
+    const surFil = nb * 20 + (taille + nb * (ht + 20 + 18)) + nb * Math.max(0, bourrage);
+    return { ht, nb, charge, trame, bourrage, eff: taille / surFil };
+  };
   LS.sims.encapsulation = function (el, cfg) {
     const COUCHES = [
       { n: 7, nom: "Application", unite: "donnée", ex: "HTTP, DNS, SMTP", role: "le programme produit les données (une page web, un e-mail…)" },
@@ -238,15 +249,7 @@
       ],
       init(s) { s.etat.k = 0; },
       avancer(s, dt) { s.etat.k = (s.etat.k + dt * s.p.vit) % 7; },
-      calc(s) {
-        const ht = s.p.proto === "TCP" ? 20 : 8, mss = 1500 - 20 - ht;
-        const nb = Math.max(1, Math.ceil(s.p.taille / mss));
-        const charge = Math.min(s.p.taille, mss);
-        const trameMin = 64, trame = Math.max(trameMin, charge + ht + 20 + 18);
-        const bourrage = trame - (charge + ht + 20 + 18);
-        const surFil = nb * 20 + (s.p.taille + nb * (ht + 20 + 18)) + nb * Math.max(0, bourrage);   // + préambule 8 et silence 12
-        return { ht, nb, charge, trame, bourrage, eff: s.p.taille / surFil };
-      },
+      calc(s) { return LS.calculEncapsulation(s.p.taille, s.p.proto); },
       dessiner(s, ctx, W, H, c) {
         const k = this.calc(s), actif = Math.floor(s.etat.k);
         const x0 = 20, wl = Math.min(220, W * 0.32), h = (H - 30) / 7;
@@ -293,6 +296,14 @@
   };
 
   /* ---------- Adressage IPv4 ---------- */
+  LS.ipEnTexte = v => [24, 16, 8, 0].map(d => (v >>> d) & 255).join(".");
+  LS.calculIPv4 = function (a, cidr, b) {
+    const ip = ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3]) >>> 0;
+    const masque = cidr === 0 ? 0 : (0xffffffff << (32 - cidr)) >>> 0;
+    const reseau = (ip & masque) >>> 0, diffusion = (reseau | (~masque >>> 0)) >>> 0;
+    const ipb = b ? ((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]) >>> 0 : ip;
+    return { ip, masque, reseau, diffusion, ipb, meme: ((ipb & masque) >>> 0) === reseau, hotes: Math.max(0, Math.pow(2, 32 - cidr) - 2) };
+  };
   LS.sims.ipv4 = function (el, cfg) {
     return LS.simAnimee(el, {
       hauteur: 330,
@@ -300,15 +311,10 @@
         { k: "o1", nom: "Adresse A : 1er octet", min: 0, max: 255, defaut: 192 }, { k: "o2", nom: "2e octet", min: 0, max: 255, defaut: 168 },
         { k: "o3", nom: "3e octet", min: 0, max: 255, defaut: 1 }, { k: "o4", nom: "4e octet", min: 0, max: 255, defaut: 10 },
         { k: "cidr", nom: "Longueur du préfixe /n", min: 8, max: 30, defaut: 24 },
-        { k: "b3", nom: "Machine B : 3e octet", min: 0, max: 255, defaut: 1 }, { k: "b4", nom: "Machine B : 4e octet", min: 0, max: 255, defaut: 200 }
+        { k: "b3", nom: "Machine B : 3e octet", min: 0, max: 255, defaut: 1 }, { k: "b4", nom: "Machine B : 4e octet", min: 0, max: 255, defaut: 200 },
+        { k: "masquerRes", nom: "Cacher les résultats (s'entraîner au calcul)", bool: true, defaut: false }
       ],
-      calc(s) {
-        const ip = ((s.p.o1 << 24) | (s.p.o2 << 16) | (s.p.o3 << 8) | s.p.o4) >>> 0;
-        const masque = s.p.cidr === 0 ? 0 : (0xffffffff << (32 - s.p.cidr)) >>> 0;
-        const reseau = (ip & masque) >>> 0, diffusion = (reseau | (~masque >>> 0)) >>> 0;
-        const ipb = ((s.p.o1 << 24) | (s.p.o2 << 16) | (s.p.b3 << 8) | s.p.b4) >>> 0;
-        return { ip, masque, reseau, diffusion, ipb, meme: ((ipb & masque) >>> 0) === reseau, hotes: Math.max(0, Math.pow(2, 32 - s.p.cidr) - 2) };
-      },
+      calc(s) { return LS.calculIPv4([s.p.o1, s.p.o2, s.p.o3, s.p.o4], s.p.cidr, [s.p.o1, s.p.o2, s.p.b3, s.p.b4]); },
       dessiner(s, ctx, W, H, c) {
         const k = this.calc(s);
         const txt = v => [24, 16, 8, 0].map(d => (v >>> d) & 255).join(".");
@@ -317,9 +323,10 @@
         const cw = Math.min(14, (W - 330) / 36);
         lignes.forEach(([n, v], i) => {
           const y = 30 + i * 46;
+          const masque = s.p.masquerRes && (n === "Réseau" || n === "Diffusion");
           D().texte(ctx, n, 16, y, c.texte, 13, "left", true);
-          D().texte(ctx, txt(v), 130, y, c.accentFort, 14, "left", true);
-          const b = bin(v);
+          D().texte(ctx, masque ? "?.?.?.?" : txt(v), 130, y, c.accentFort, 14, "left", true);
+          const b = masque ? "???????? ???????? ???????? ????????" : bin(v);
           let x = 300, idx = 0;
           for (const ch of b) {
             if (ch === " ") { x += cw * 0.6; continue; }
@@ -330,10 +337,11 @@
           }
         });
         D().texte(ctx, "bleu : partie réseau (" + s.p.cidr + " bits) · vert : partie hôte (" + (32 - s.p.cidr) + " bits)", 300, H - 40, c.doux, 11);
-        D().texte(ctx, k.meme ? "A et B sont sur le même réseau : ils se parlent directement (ARP puis trame Ethernet)." : "A et B sont sur des réseaux différents : il faut passer par un routeur (passerelle).", 16, H - 14, k.meme ? c.ok : c.alerte, 13, "left", true);
+        if (!s.p.masquerRes) D().texte(ctx, k.meme ? "A et B sont sur le même réseau : ils se parlent directement (ARP puis trame Ethernet)." : "A et B sont sur des réseaux différents : il faut passer par un routeur (passerelle).", 16, H - 14, k.meme ? c.ok : c.alerte, 13, "left", true);
       },
       mesures(s) {
         const k = this.calc(s), txt = v => [24, 16, 8, 0].map(d => (v >>> d) & 255).join(".");
+        if (s.p.masquerRes) return [["Masque", txt(k.masque)], ["Résultats", "cachés : calcule-les"]];
         return [["Masque", txt(k.masque)], ["Adresse du réseau", txt(k.reseau)], ["Première machine", txt(k.reseau + 1)], ["Dernière machine", txt(k.diffusion - 1)], ["Diffusion", txt(k.diffusion)], ["Nombre de machines", String(k.hotes)]];
       },
       explication() { return "Une adresse **IPv4** fait 32 bits, écrits en 4 octets décimaux. Le **masque** (ou préfixe /n) indique combien de bits de gauche désignent le **réseau** ; les bits restants désignent la **machine** (hôte). Tous bits d'hôte à 0 : adresse du réseau ; tous à 1 : **diffusion** (broadcast). Deux machines communiquent directement seulement si elles ont la même partie réseau."; }

@@ -68,7 +68,10 @@ test("notions des TP présentes dans les cartes, simulations existantes", () => 
       else if (!noeuds(cartes[c]).some(([x]) => slug(x.t) === slug(n))) pb.push(`${t.id} : notion « ${n} » absente de ${c}`);
     });
     (t.questions || []).forEach((q, i) => { if (!(q.bonne >= 0 && q.bonne < q.choix.length)) pb.push(`${t.id} : question ${i + 1} sans bonne réponse valide`); });
-    (t.objectifs || []).forEach((o, i) => { if (typeof o.verif !== "function") pb.push(`${t.id} : objectif ${i + 1} sans vérification`); });
+    (t.objectifs || []).forEach((o, i) => {
+      const reponse = typeof o.saisie === "function" || (o.reponse && o.reponse.valeur !== undefined);
+      if (typeof o.verif !== "function" && !reponse) pb.push(`${t.id} : objectif ${i + 1} sans vérification ni réponse attendue`);
+    });
   }
   assert.deepStrictEqual(pb, []);
 });
