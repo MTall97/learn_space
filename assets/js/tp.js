@@ -64,6 +64,7 @@
     consignes.append(bravo);
     function verifier() {
       let tous = true;
+      const courant = (tp.objectifs || []).findIndex((o, i) => !etat.objectifs[i]);
       (tp.objectifs || []).forEach((o, i) => {
         if (etat.objectifs[i]) return;
         let ok = false, msg = "";
@@ -72,7 +73,8 @@
           ok = r === true || (r && r.ok);
           if (r && r.msg) msg = r.msg;
         } catch (e) { ok = false; }
-        blocs[i].querySelector(".retour").innerHTML = msg ? LS.texte(msg) : "";
+        blocs[i].querySelector(".retour").innerHTML = msg && i === courant ? LS.texte(msg) : "";
+        blocs[i].classList.toggle("en-cours", i === courant);
         if (ok) {
           etat.objectifs[i] = true;
           blocs[i].classList.add("reussi");

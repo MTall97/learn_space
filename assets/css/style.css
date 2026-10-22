@@ -384,3 +384,8 @@ details.domaine[open] > summary header::before { transform: rotate(90deg); }
 .intro-tp { max-width: 900px; margin-bottom: 12px; }
 .objectif details.indice summary { cursor: pointer; font-size: .85rem; color: var(--accent-fort); }
 .circuit-svg .etincelle { stroke: #ffb300; stroke-width: 2.5; fill: none; filter: drop-shadow(0 0 3px #ffd54f); }
+.circuit-svg .segment { stroke: rgba(120,120,120,.25); stroke-width: 5; stroke-linecap: round; }
+.circuit-svg .segment.allume { stroke: #ff3b30; }
+.circuit-svg .etat-logique { stroke: none; }
+.objectif.en-cours { background: linear-gradient(90deg, rgba(247,147,30,.12), transparent); border-radius: 8px; }
+.objectif.en-cours .etat { border-color: var(--accent); color: var(--accent-fort); font-weight: 700; }
