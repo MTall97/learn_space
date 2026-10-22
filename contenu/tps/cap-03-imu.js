@@ -7,7 +7,7 @@ LS.ajouterTP({
   objectifs: [
     { texte: "Règle un biais d'au moins **1 °/s** : l'angle du gyroscope intégré **dérive** de plus de **10°**.", verif: s => s.p.biais >= 1 && Math.abs(s.etat.gyroInt - s.etat.theta) > 10, bravo: "1 °/s de biais, c'est 60° de dérive par minute : l'intégration accumule toutes les erreurs." },
     { texte: "Active les **vibrations** : l'erreur efficace de l'accéléromètre seul dépasse **3°**.", verif: s => s.p.vibrations && s.etat.nbMesures > 100 && s.etat.rmsAccel > 3 },
-    { texte: "Avec vibrations et un biais d'au moins 0,5 °/s, trouve un **α** qui ramène l'erreur de la fusion sous **1°**.", verif: s => s.p.vibrations && s.p.biais >= 0.5 && s.etat.nbMesures > 200 && s.etat.rmsFusion < 1, bravo: "Le gyroscope suit les mouvements rapides, l'accéléromètre empêche la dérive : chacun corrige le défaut de l'autre." },
+    { texte: "Avec vibrations et un biais d'au moins 0,5 °/s, trouve un **α** qui ramène l'erreur de la fusion sous **1°**.", verif: s => s.p.vibrations && s.p.biais >= 0.5 && s.etat.nbMesures > 150 && s.etat.rmsFusion < 1, bravo: "Le gyroscope suit les mouvements rapides, l'accéléromètre empêche la dérive : chacun corrige le défaut de l'autre." },
     { texte: "Sans vibrations, mets la plateforme sur le **chariot** : quand elle passe à plat, l'accéléromètre croit qu'elle penche de plus de **10°**.", verif: s => s.p.chariot && !s.p.vibrations && s.etat.maxErrAcc > 10 }
   ],
   questions: [

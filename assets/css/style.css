@@ -258,7 +258,8 @@ select, input[type="text"], input[type="number"] {
 
 /* ---------- TP ---------- */
 .tp-grille { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
-@media (max-width: 1000px) { .tp-grille { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .tp-grille { grid-template-columns: minmax(0, 1fr); } }
+.tp-grille > * { min-width: 0; }
 .tp-consignes h2 { margin-top: 0; }
 .objectif { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--bordure); }
 .objectif:last-child { border-bottom: none; }

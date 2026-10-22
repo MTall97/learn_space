@@ -4,16 +4,21 @@ Espace d'apprentissage interactif, en français, pour comprendre **et pratiquer*
 
 | Domaine | Cartes mentales | TP simulés |
 |---|---|---|
+| 📐 Maths utiles (le socle) | maths | cercle trigonométrique, complexes et impédance, dérivée et intégrale, exponentielle et décibels, statistiques |
 | ⚡ Électricité : bases et composants | bases, composants, courant alternatif | 14 TP : premier circuit → loi d'Ohm → multimètre → série/parallèle → diviseur → LED → Kirchhoff → va-et-vient 230 V → condensateur → bobine → recherche de panne → alternatif → filtre → bac à sable |
 | 🔬 Électronique | électronique | redressement et lissage, Zener, transistor, veilleuse automatique |
+| ☀️ Solaire et batteries | solaire | courbe d'un panneau, batterie plomb/LiFePO4, régulateur PWM ou MPPT, dimensionnement d'un kit autonome |
+| 🏠 Électricité du bâtiment | bâtiment | disjoncteur et section des câbles, différentiel 30 mA (schéma TT), chute de tension |
 | 🔢 Numérique | numérique | binaire, portes logiques, additionneur, bascules et compteur, échantillonnage |
 | 🧲 Électromécanique | électromécanique | relais et moteur, moteur CC, alternateur, transformateur, asynchrone triphasé, pas à pas et servo |
 | 📡 Télécommunications | télécommunication, transmission, OSI (reprises des cartes XMind) | signal et spectre, modulation, bande passante et débit, UART, encapsulation, IPv4, commutation |
 | 🏍️ Moteurs (voitures, motos) | moteur thermique | 4 temps, essence/diesel, 2 temps, multicylindre, couple et puissance |
 | ⚙️ Transmissions | transmission | engrenages, chaîne de moto, embrayage, boîte de vitesses, différentiel |
 | 📟 ESP32 / ESP8266 | ESP32 et connectique | LED, bouton (pull-up, rebonds), PWM, ADC, bus UART/I2C/SPI, alimentation et niveaux 3,3 V |
+| 🌡️ Capteurs | capteurs | thermistance, ultrasons, gyroscope et accéléromètre, bruit et étalonnage |
 | 🚁 Drones | drone multirotor | propulsion et autonomie, PID d'altitude, mixage des moteurs |
-| 🐍 Python, 🎧 ML et audio, 📈 Finance, 🌿 Git | une carte chacun | — |
+| 🎧 ML et audio | machine learning et audio | neurone et descente de gradient, surapprentissage, spectrogramme, WER/BLEU, fuite de données |
+| 🐍 Python, 📈 Finance, 🌿 Git | une carte chacun | — |
 
 ## Ouvrir l'espace
 
