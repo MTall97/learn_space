@@ -154,7 +154,8 @@
     modele: avecApres(dipole(c => [1 / c.p.r, -c.p.U / c.p.r]), (c, V, ctx) => {
       const i = c._G * u(c, V) + c._J;
       c.etat = c.etat || {};
-      c.etat.alerte = Math.abs(i) > 3 ? "Court-circuit : courant énorme !" : "";
+      // Court-circuit : la tension s'effondre (presque toute la tension se perd dans la résistance interne).
+      c.etat.alerte = Math.abs(i) > 1 && Math.abs(u(c, V)) < 0.3 * c.p.U ? "Court-circuit : courant énorme, la pile chauffe !" : "";
     }),
     mesures(c, V) { const i = -(c._G * u(c, V) + c._J); return [["Tension aux bornes", LS.si(u(c, V), "V")], ["Courant débité", LS.si(i, "A")], ["Puissance fournie", LS.si(u(c, V) * i, "W")]]; }
   };
@@ -269,7 +270,8 @@
       else d.p("M30,-10 L50,10 M30,10 L50,-10");
       d.t(40, 32, c.p.Un + " V · " + c.p.Pn + " W", "valeur");
       return c2 => {
-        const P = Math.abs((c2._i ? c2._i[0] : 0) * (c2._u || 0));
+        // Le filament a une inertie thermique : son éclat suit la tension efficace, pas la valeur instantanée.
+        const ue = c2._ueff || 0, P = ue * ue * c2.p.Pn / (c2.p.Un * c2.p.Un);
         const e = c2.etat && c2.etat.grille ? 0 : Math.min(1, Math.sqrt(P / c2.p.Pn));
         halo.setAttribute("opacity", e < 0.05 ? 0 : 0.15 + 0.85 * e);
         halo.setAttribute("r", 16 + 14 * e);
@@ -278,6 +280,8 @@
     modele: avecApres(dipole(c => (c.etat && c.etat.grille) ? null : [c.p.Pn / (c.p.Un * c.p.Un), 0]), (c, V, ctx) => {
       const U = u(c, V), P = U * U * c.p.Pn / (c.p.Un * c.p.Un);
       c._u = U;
+      const a = Math.min(1, ctx.dt / 0.1);
+      c._ueff = Math.sqrt((c._ueff || 0) ** 2 * (1 - a) + U * U * a); // tension efficace (lissée sur 0,1 s)
       surchauffe(c, P > 2 * c.p.Pn, ctx.dt, 0.15);
       c.etat.alerte = c.etat.grille ? "Filament grillé : la tension était trop forte" : P > 1.3 * c.p.Pn ? "Surtension : la lampe va griller" : P < 0.05 * c.p.Pn && P > 1e-6 ? "Tension trop faible : le filament ne rougit pas" : "";
     }),
@@ -397,17 +401,43 @@
     mesures(c, V) { return [["Tension", LS.si(u(c, V), "V")], ["Courant", LS.si(c._il || 0, "A")], ["Énergie ½LI²", LS.si(0.5 * c.p.L * (c._il || 0) ** 2, "J")]]; }
   };
 
-  /* Contact mécanique ouvert : si la tension entre les contacts dépasse ~500 V (ouverture d'un
-     circuit inductif), l'air s'ionise et un arc électrique se forme jusqu'à ce que le courant retombe. */
+  /* Contact mécanique. Fermé : 10 mΩ. Ouvert : isolant, sauf si la tension entre les contacts
+     dépasse ~500 V (ouverture d'un circuit inductif) : l'air s'ionise et un arc conduit le courant.
+     Modèle non linéaire résolu par Newton : i = G0·u + signe(u)·I0·exp((|u| − 500) / 20). */
   function contact(estFerme) {
-    return avecApres(dipole(c => estFerme(c) ? [100, 0] : (c.etat && c.etat.arc) ? [0.01, 0] : [1e-9, 0]), (c, V) => {
-      c.etat = c.etat || {};
-      const x = u(c, V);
-      if (estFerme(c)) { c.etat.arc = false; return; }
-      if (!c.etat.arc && Math.abs(x) > 500) { c.etat.arc = true; c.etat.change = true; c.etat.etincelles = (c.etat.etincelles || 0) + 1; }
-      else if (c.etat.arc && Math.abs(0.01 * x) < 1e-3) { c.etat.arc = false; c.etat.change = true; }
-      c.etat.alerte = c.etat.arc ? "Étincelle entre les contacts : l'énergie de la bobine s'évacue dans un arc" : "";
-    });
+    const UA = 500, VA = 20, I0 = 1e-3, G0 = 1e-9;
+    const vcrit = VA * Math.log(VA / (Math.SQRT2 * I0));
+    return {
+      init(c) { c._ua = 0; },
+      stamp(m, c, V, ctx) {
+        if (ouvert(c)) return;
+        if (estFerme(c)) { c._G = 100; c._J = 0; m.g(c._nets[0], c._nets[1], 100); return; }
+        ctx.nonLineaire = true;
+        const brut = u(c, V), sg = brut >= 0 ? 1 : -1;
+        const w = LS.pnjlim(Math.abs(brut) - UA, Math.abs(c._ua) - UA, VA, vcrit);
+        const x = sg * (w + UA);
+        if (Math.abs(x - brut) > 1e-6 * (1 + Math.abs(brut))) ctx.nonConverge = true;
+        c._ua = x;
+        const e = I0 * Math.exp(Math.min((Math.abs(x) - UA) / VA, 60));
+        const i = G0 * x + sg * e, g = G0 + e / VA;
+        c._G = g; c._J = i - g * x;
+        m.g(c._nets[0], c._nets[1], g); m.j(c._nets[0], c._nets[1], c._J);
+      },
+      apres(c, V) {
+        c.etat = c.etat || {};
+        const i = ouvert(c) || c._G === undefined ? 0 : c._G * u(c, V) + c._J;
+        const arc = !estFerme(c) && Math.abs(i) > 1e-3;
+        if (arc && !c.etat.arc) { c.etat.etincelles = (c.etat.etincelles || 0) + 1; c.etat.change = true; }
+        if (!arc && c.etat.arc) c.etat.change = true;
+        c.etat.arc = arc;
+        c.etat.alerte = arc ? "Étincelle entre les contacts : l'énergie de la bobine s'évacue dans un arc" : "";
+      },
+      courants(c, V) {
+        if (ouvert(c) || c._G === undefined) return [0, 0];
+        const i = c._G * u(c, V) + c._J;
+        return [i, -i];
+      }
+    };
   }
   const etincelle = (d, c) => { if (c.etat && c.etat.arc) d.p("M36,-14 L42,-6 L38,-6 L44,4", "etincelle"); };
 
