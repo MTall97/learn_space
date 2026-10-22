@@ -10,9 +10,10 @@ require(path.join(__dirname, "..", "assets", "js", "sims", "batiment.js"));
 const LS = global.LS;
 const proche = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg || ""} attendu ${b}, obtenu ${a}`);
 
-test("chute de tension : 2 000 W à 50 m en 1,5 mm² cuivre ≈ 12,6 V (5,5 %)", () => {
+test("chute de tension : 2 000 W à 50 m en 1,5 mm² cuivre ≈ 13,0 V (5,7 %)", () => {
   const r = LS.chuteTension({ I: 2000 / 230, longueur: 50, section: 1.5, matiere: "cuivre", cosphi: 1 });
   proche(r.dU, 2 * 0.0225 * 50 / 1.5 * 2000 / 230, 1e-9, "ΔU");
+  proche(r.dU, 13.04, 0.01, "ΔU en V");
   proche(r.pourcent, 5.67, 0.05, "%");
   // L'aluminium chute 1,6 fois plus à section égale.
   const a = LS.chuteTension({ I: 2000 / 230, longueur: 50, section: 1.5, matiere: "alu", cosphi: 1 });
@@ -56,4 +57,23 @@ test("différentiel et zones d'effets du courant", () => {
   assert.strictEqual(LS.zoneCourant(5, 10), "AC-2");
   assert.strictEqual(LS.zoneCourant(80, 10), "AC-4");   // 80 mA pendant 10 s
   assert.strictEqual(LS.zoneCourant(230, 0.04), "AC-3"); // 230 mA coupés en 40 ms
+});
+
+test("surcharge : In ≤ Iz et I2 ≤ 1,45 Iz, et ce qu'elles tolèrent", () => {
+  // Associations usuelles de la NF C 15-100 (disjoncteurs) : toutes conformes.
+  [[1.5, 16], [1.5, 10], [2.5, 20], [6, 32]].forEach(([S, In]) => assert.ok(LS.conditionSurcharge(In, S).ok, S + " mm² en " + In + " A"));
+  assert.ok(!LS.conditionSurcharge(32, 1.5).ok, "32 A sur 1,5 mm² non conforme");
+  // Un fusible gG (I2 ≈ 1,6 In) de 16 A sur 1,5 mm² ne respecte pas la seconde condition.
+  assert.ok(!LS.conditionSurcharge(16, 1.5, 1.6).c2, "fusible gG 16 A sur 1,5 mm²");
+  // Conforme ne veut pas dire « jamais au-dessus de 70 °C » : 18,3 A sur 1,5 mm² protégé en 16 A.
+  const I = 4200 / 230;
+  assert.ok(LS.temperatureCable(I, 1.5) > 70, "le câble dépasse 70 °C");
+  assert.ok(LS.tempsThermique(I, 16) > 86400, "et le disjoncteur met plus d'un jour à couper");
+  // À I2 = 1,45 In, la coupure est garantie en moins d'1 h.
+  assert.ok(LS.tempsThermique(1.45 * 16, 16) < 3600);
+});
+
+test("tension limite : 50 V en local sec, 25 V en milieu mouillé", () => {
+  assert.strictEqual(LS.tensionLimite(1300), 50);
+  assert.strictEqual(LS.tensionLimite(500), 25);
 });

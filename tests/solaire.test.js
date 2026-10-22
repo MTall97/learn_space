@@ -73,3 +73,39 @@ test("installation : bilan d'énergie cohérent heure par heure", () => {
   const pa = LS.simulerInstallation(Object.assign({}, base, { site: "paris", mois: 11 }));
   assert.ok(pa.prodJour < 0.3 * r2.prodJour, "Paris en décembre produit beaucoup moins que Bamako en juillet");
 });
+
+test("limites de courant : BMS du LiFePO4, alertes du plomb, charge sous 0 °C", () => {
+  // LiFePO4 20 Ah déchargée à 150 A (7,5 C) : le BMS coupe.
+  const b = { chimie: "lifepo4", C: 20, soc: 1 };
+  const r = LS.pasBatterie(b, 150, 0.01);
+  assert.ok(r.coupure && r.I === 0 && /surintensité/.test(r.bms), "coupure BMS en décharge");
+  assert.strictEqual(b.soc, 1, "rien n'est prélevé");
+  // Charge à 3 C refusée, à 0,75 C acceptée avec alerte.
+  assert.strictEqual(LS.pasBatterie({ chimie: "lifepo4", C: 20, soc: 0.5 }, -60, 0.01).I, 0);
+  assert.strictEqual(LS.limitesBatterie("lifepo4", 20, -15).niveau, "alerte");
+  // Sous 0 °C, pas de charge du lithium ; la décharge reste possible.
+  assert.strictEqual(LS.pasBatterie({ chimie: "lifepo4", C: 100, soc: 0.5, T: -5 }, -10, 0.01).I, 0);
+  assert.ok(LS.pasBatterie({ chimie: "lifepo4", C: 100, soc: 0.5, T: -5 }, 10, 0.01).I > 0);
+  // Plomb : pas de BMS, mais alerte au-delà de 0,3 C en charge et 0,5 C en décharge.
+  assert.strictEqual(LS.limitesBatterie("plomb", 100, -40).niveau, "alerte");
+  assert.strictEqual(LS.limitesBatterie("plomb", 100, -15).niveau, "ok");
+  assert.strictEqual(LS.limitesBatterie("plomb", 100, 50).niveau, "ok");
+  assert.ok(LS.pasBatterie({ chimie: "plomb", C: 100, soc: 0.5 }, -40, 0.01).I < 0, "le plomb accepte quand même");
+});
+
+test("la chaleur use la batterie plomb : durée de vie divisée par 2 tous les 10 °C", () => {
+  assert.strictEqual(LS.facteurVieTemperature("plomb", 20), 1);
+  dans(LS.facteurVieTemperature("plomb", 35), 0.49, 0.51, "plomb à 35 °C");
+  assert.ok(LS.facteurVieTemperature("lifepo4", 35) > LS.facteurVieTemperature("plomb", 35), "lithium moins sensible");
+  const base = { site: "bamako", mois: 6, panneaux: 2, wc: 400, regulateur: "mppt", chimie: "plomb", tension: 12, capacite: 200, couverts: 0, lampes: 6, telephones: 3, ventilateur: 6, tv: 4, ordinateur: 0, frigo: true, pompe: false };
+  const bk = LS.simulerInstallation(base), pa = LS.simulerInstallation(Object.assign({}, base, { site: "paris" }));
+  dans(bk.Tbat, 30, 36, "température moyenne de Bamako");
+  assert.ok(bk.fT < 0.65 && pa.fT === 1, "facteur de température");
+});
+
+test("régulateur PWM : la tension d'entrée maximale est signalée", () => {
+  const voc3 = LS.ivPanneau({ module: "m60", serie: 3, G: 1000, Tc: -10 }, 40).Voc;
+  const voc1 = LS.ivPanneau({ module: "m36", serie: 1, G: 1000, Tc: -10 }, 40).Voc;
+  assert.ok(voc3 > LS.VMAX_PWM, "3 × 60 cellules : " + voc3 + " V dépasse le maximum d'un PWM");
+  assert.ok(voc1 < LS.VMAX_PWM, "un panneau 12 V reste dans la plage");
+});

@@ -34,6 +34,16 @@
   // Température d'équilibre d'un câble (°C) : échauffement ∝ I², 70 °C atteints à Iz (PVC).
   LS.temperatureCable = (I, section, Tamb) => (Tamb === undefined ? 30 : Tamb) + 40 * Math.pow(I / IZ[section], 2);
   LS.courantAdmissible = section => IZ[section];
+  /* Protection contre les surcharges (CEI 60364-4-43, NF C 15-100) : deux conditions.
+     1) In ≤ Iz : le calibre ne dépasse pas le courant admissible du câble ;
+     2) I2 ≤ 1,45 Iz, où I2 est le courant qui fait sûrement déclencher en 1 h (1,45 In pour un disjoncteur
+        domestique CEI 60898, d'où la condition 1 suffit ; ≈ 1,6 à 2,1 In pour un fusible gG).
+     Entre Iz et 1,45 Iz, la norme admet que le câble dépasse sa température de service pendant la durée
+     de la surcharge : l'isolant le supporte temporairement, au prix d'un vieillissement. */
+  LS.conditionSurcharge = function (In, section, k2) {
+    const Iz = IZ[section], I2 = (k2 || 1.45) * In;
+    return { Iz, I2, c1: In <= Iz, c2: I2 <= 1.45 * Iz + 1e-9, ok: In <= Iz && I2 <= 1.45 * Iz + 1e-9 };
+  };
   // Résistance d'une ligne monophasée (aller et retour).
   LS.resistanceLigne = (longueur, section, matiere, froid) => (froid ? RHO_FROID : RHO)[matiere || "cuivre"] * 2 * longueur / section;
   // Chute de tension (formule NF C 15-100) : u = b (ρ L / S cos φ + λ L sin φ) I, b = 2 en monophasé, λ = 0,08 mΩ/m.
@@ -92,6 +102,8 @@
     "AC-4": "risque de fibrillation cardiaque, arrêt respiratoire, brûlures : danger de mort"
   };
   LS.ZONES_COURANT = ZONES;
+  // Tension limite conventionnelle de contact : 50 V en local sec, 25 V en milieu mouillé.
+  LS.tensionLimite = Rh => Rh <= 500 ? 25 : 50;
 
   // Petit graphe en échelles logarithmiques : x et y en décades.
   function grapheLog(ctx, x, y, w, h, o) {
@@ -110,6 +122,8 @@
     };
     return { X, Y, trace };
   }
+  const dureeLisible = t => t < 120 ? LS.nombre(t, 0) + " s" : t < 7200 ? LS.nombre(t / 60, 0) + " min" : t < 172800 ? LS.nombre(t / 3600, 1) + " h" : LS.nombre(t / 86400, 0) + " jours";
+  LS.dureeLisible = dureeLisible;
   const couleurTemp = T => T < 50 ? "#43a047" : T < 70 ? "#f9a825" : T < 100 ? "#fb8c00" : "#e53935";
 
   /* ---------- 1. Disjoncteur et section des câbles ---------- */
@@ -220,7 +234,8 @@
       },
       explication(s) {
         const e = s.etat, p = s.p, k = calc(s);
-        let t = "Le disjoncteur a deux déclencheurs :\n- **thermique** (un bilame qui chauffe) : il coupe une **surcharge** d'autant plus vite qu'elle est forte : rien à 1,13 In pendant 1 h, en moins d'1 h à 1,45 In, en quelques secondes à 5 In ;\n- **magnétique** (une bobine) : il coupe un **court-circuit** en quelques millisecondes, au-delà de 3-5 In (courbe B), 5-10 In (C) ou 10-20 In (D).\nLe disjoncteur protège le **câble**, pas l'appareil : son calibre doit être inférieur ou égal au courant admissible du câble (Iz). Usage courant : 1,5 mm² → 16 A (10 A en éclairage) ; 2,5 mm² → 20 A ; 6 mm² → 32 A.";
+        let t = "Le disjoncteur a deux déclencheurs :\n- **thermique** (un bilame qui chauffe) : il coupe une **surcharge** d'autant plus vite qu'elle est forte : rien à 1,13 In pendant 1 h, en moins d'1 h à 1,45 In, en quelques secondes à 5 In ;\n- **magnétique** (une bobine) : il coupe un **court-circuit** en quelques millisecondes, au-delà de 3-5 In (courbe B), 5-10 In (C) ou 10-20 In (D).\nLe disjoncteur protège le **câble**, pas l'appareil : son calibre doit être inférieur ou égal au courant admissible du câble (Iz). Usage courant : 1,5 mm² → 16 A (10 A en éclairage) ; 2,5 mm² → 20 A ; 6 mm² → 32 A.\n\nLa norme demande **deux** conditions : **In ≤ Iz**, et **I2 ≤ 1,45 Iz**, I2 étant le courant qui fait sûrement déclencher en 1 h (1,45 In pour un disjoncteur domestique). Elle **accepte** donc qu'entre Iz et 1,45 Iz le câble dépasse 70 °C pendant une surcharge qui peut durer longtemps (des heures, voire plus juste au-dessus de 1,13 In) : l'isolant le supporte temporairement, mais il vieillit. Une surcharge permanente reste à éviter : c'est pourquoi on limite le nombre de prises par circuit.";
+        if (p.calibre <= k.Iz && k.I > k.Iz && !e.ouvert) t += "\n\nℹ Surcharge modérée (" + LS.nombre(k.I, 1) + " A, soit " + LS.nombre(k.I / p.calibre, 2) + " In) : le circuit est bien protégé au sens de la norme, mais le câble monte vers **" + LS.nombre(k.Tfin, 0) + " °C** et le disjoncteur peut mettre très longtemps à couper" + (isFinite(LS.tempsThermique(k.I, p.calibre)) ? " (≈ " + dureeLisible(LS.tempsThermique(k.I, p.calibre)) + ")" : " (jamais à moins de 1,13 In)") + ". Toléré temporairement, pas en permanence.";
         if (p.calibre > k.Iz) t += "\n\n⚠ **Calibre trop fort pour ce câble** (" + p.calibre + " A > Iz = " + k.Iz + " A) : le câble peut dépasser 70 °C sans que le disjoncteur réagisse. L'isolant vieillit, durcit, puis peut fondre : c'est un départ de feu classique.";
         if (LS.declenchementMagnetique(k.Icc, p.calibre, p.courbe) !== "certain") t += "\n\n⚠ Avec cette longueur, le courant de court-circuit (" + LS.nombre(k.Icc, 0) + " A) n'est pas assez fort pour un déclenchement magnétique **certain** : c'est le thermique qui coupera, plus lentement. La norme limite la longueur des circuits pour cette raison.";
         if (e.abime) t += "\n\n⚠ L'énergie du court-circuit (I²t) a dépassé ce que l'isolant supporte (k²S² avec k = 115) : il faudrait remplacer le câble.";
@@ -250,7 +265,7 @@
         { k: "Rd", nom: "Résistance du défaut", min: 0.1, max: 100000, log: true, defaut: 1, format: v => LS.si(v, "Ω") },
         { k: "RA", nom: "Prise de terre de la maison RA", choix: [[10, "10 Ω"], [30, "30 Ω"], [100, "100 Ω"], [500, "500 Ω"], [1500, "1 500 Ω"], [Infinity, "absente"]], nombres: true, defaut: 30 },
         { k: "touche", nom: "Une personne touche la carcasse", bool: true, defaut: false },
-        { k: "Rh", nom: "Résistance de la personne", aide: "Sèche : mains sèches, chaussures. Humide : mains humides. Mouillée : pieds nus sur sol mouillé.", choix: [[2000, "sèche : 2 000 Ω"], [1000, "humide : 1 000 Ω"], [500, "mouillée : 500 Ω"]], nombres: true, defaut: 2000 }
+        { k: "Rh", nom: "Résistance de la personne", aide: "Ordres de grandeur sous 230 V (CEI 60479-1) : peau sèche, environ 1 000 à 2 100 Ω selon les personnes, médiane vers 1 300-1 400 Ω ; on prend une valeur prudente. Humide : mains humides. Mouillée : pieds nus sur sol mouillé.", choix: [[1300, "sèche : 1 300 Ω (valeur prudente)"], [1000, "humide : 1 000 Ω"], [500, "mouillée : 500 Ω"]], nombres: true, defaut: 1300 }
       ],
       boutons: [
         { k: "rearmer", texte: "↺ Réarmer", action: s => { s.etat.ouvert = false; s.etat.cause = null; s.etat.t0 = s.t; } },
@@ -322,11 +337,11 @@
       },
       mesures(s) {
         const e = s.etat, p = s.p, k = calc(s);
-        const UL = p.Rh <= 500 ? 25 : 50;
+        const UL = LS.tensionLimite(p.Rh);
         return [["Courant de défaut Id", LS.si(k.brut.Id, "A")], ["Tension de contact Uc", LS.nombre(k.brut.Uc, 0) + " V", k.brut.Uc > UL ? "alerte" : ""],
           ["Courant dans le corps", p.touche ? LS.si(k.brut.Ib, "A") : "personne ne touche", k.brut.Ib > 0.03 ? "alerte" : ""],
           ["Coupure", isFinite(k.tcoupure) ? LS.nombre(k.tcoupure * 1000, 0) + " ms (" + (k.tdiff <= k.tdisj ? "différentiel" : "disjoncteur 16 A") + ")" : "rien ne coupe", isFinite(k.tcoupure) ? "" : "alerte"],
-          ["Zone d'effets", p.touche && k.brut.Ib > 0 ? k.zone : "—", k.zone === "AC-4" && p.touche ? "alerte" : ""], ["Condition RA × IΔn ≤ 50 V", p.IDn && isFinite(p.RA) ? LS.nombre(p.RA * p.IDn, 1) + " V" : "—", p.IDn && p.RA * p.IDn > 50 ? "alerte" : ""],
+          ["Zone d'effets", p.touche && k.brut.Ib > 0 ? k.zone : "—", k.zone === "AC-4" && p.touche ? "alerte" : ""], ["Condition RA × IΔn ≤ " + UL + " V" + (UL === 25 ? " (milieu mouillé)" : ""), p.IDn && isFinite(p.RA) ? LS.nombre(p.RA * p.IDn, 1) + " V" : "—", p.IDn && p.RA * p.IDn > UL ? "alerte" : ""],
           ["État", e.ouvert ? "coupé (" + e.cause + ")" : "sous tension"]];
       },
       explication(s) {

@@ -108,12 +108,35 @@
       rendement: () => 0.99,
       cycles: dod => Math.min(10000, 4000 * Math.pow(Math.max(0.05, dod) / 0.8, -1.1)) }
   };
+  /* Limites de courant (ordres de grandeur de fiches techniques ; C = capacité en Ah, « 1 C » = C ampères).
+     LiFePO4 avec BMS : décharge continue ≈ 1 C, au-delà le BMS coupe ; charge recommandée ≤ 0,5 C, coupée au-delà
+     de 1 C ; charge interdite sous 0 °C (le BMS la bloque). Plomb AGM : charge recommandée 0,1 à 0,2 C (au-delà de
+     0,3 C, échauffement et dégagement gazeux) ; décharge au-delà de 0,5 C possible mais avec forte perte (Peukert)
+     et échauffement. Le plomb n'a pas de BMS : rien ne coupe, c'est à l'utilisateur de respecter les limites. */
+  LS.limitesBatterie = function (chimie, C, I, T) {
+    const x = Math.abs(I) / C, charge = I < 0, temp = T === undefined ? 25 : T;
+    if (chimie === "lifepo4") {
+      if (charge && temp < 0) return { niveau: "coupure", msg: "BMS : charge bloquée sous 0 °C (le lithium se déposerait en métal sur l'anode)" };
+      if (x > 1) return { niveau: "coupure", msg: "BMS : surintensité (" + (charge ? "charge" : "décharge") + " à " + x.toFixed(1).replace(".", ",") + " C, maximum ≈ 1 C)" };
+      if (charge && x > 0.5) return { niveau: "alerte", msg: "charge à " + x.toFixed(2).replace(".", ",") + " C : accepté, mais au-dessus des 0,5 C recommandés" };
+      return { niveau: "ok", msg: "" };
+    }
+    if (charge && x > 0.3) return { niveau: "alerte", msg: "charge à " + x.toFixed(2).replace(".", ",") + " C : trop fort pour du plomb (0,1 à 0,2 C conseillés) : il chauffe et dégaze" };
+    if (!charge && x > 0.5) return { niveau: "alerte", msg: "décharge à " + x.toFixed(2).replace(".", ",") + " C : très forte pour du plomb (capacité réduite, échauffement)" };
+    return { niveau: "ok", msg: "" };
+  };
+  /* Effet de la température moyenne sur la durée de vie. Plomb : règle usuelle des fabricants, durée de vie
+     divisée par 2 tous les 10 °C au-dessus de 25 °C. LiFePO4 : moins sensible ; on applique un effet deux fois
+     plus faible (division par 2 tous les 20 °C au-dessus de 25 °C), ordre de grandeur seulement. */
+  LS.facteurVieTemperature = (chimie, T) => T <= 25 ? 1 : Math.pow(0.5, (T - 25) / (chimie === "plomb" ? 10 : 20));
   // Capacité réellement disponible à courant constant (loi de Peukert, capacité nominale donnée en 20 h).
   LS.capaciteEffective = (chimie, C, I) => I <= 0 ? C : C * Math.pow(C / (20 * I), LS.BATTERIES[chimie].peukert - 1);
   /* Un pas de simulation. b : { chimie, C (Ah), soc }. I > 0 : décharge ; I < 0 : charge (courant proposé).
      Renvoie la tension aux bornes et le courant réellement accepté (limité par la tension de charge : CC puis CV). */
   LS.pasBatterie = function (b, I, h, vCharge) {
     const k = LS.BATTERIES[b.chimie], C = b.C, ocv = k.ocv(b.soc);
+    const lim = LS.limitesBatterie(b.chimie, C, I, b.T);
+    if (lim.niveau === "coupure") return { V: ocv, I: 0, coupure: I > 0, bms: lim.msg, phase: "coupée (" + lim.msg + ")" };
     if (I > 0) {
       const V = ocv - I * k.r(b.soc, C);
       if (V < k.vMin || b.soc <= 0) return { V: Math.max(V, 0), I: 0, coupure: true, phase: "coupure" };
@@ -131,6 +154,7 @@
   };
 
   /* ---------- Régulateur : PWM ou MPPT ---------- */
+  LS.VMAX_PWM = 50;   // tension d'entrée maximale d'un régulateur PWM 12/24 V courant (V), ordre de grandeur
   // Puissance livrée à la batterie (tension Vbat) par un panneau ou une chaîne.
   LS.regulateur = function (p, type, Vbat, opts) {
     opts = opts || {};
@@ -226,11 +250,16 @@
     // Coût indicatif (prix d'ordre de grandeur en Afrique de l'Ouest, 2025, à vérifier localement).
     const prixBatWh = p.chimie === "plomb" ? 60 : 250;
     const dodMoy = Math.min(1, cyclage / jours / Eb), vieCycles = bat.cycles(Math.max(0.1, dodMoy));
-    const vieBat = Math.min(vieCycles / 365, p.chimie === "plomb" ? 5 : 12);
+    // Température moyenne annuelle du lieu (batterie à l'abri, à l'air ambiant) : la chaleur use le plomb.
+    const Tbat = site.T.reduce((a, b) => a + b, 0) / 12, fT = LS.facteurVieTemperature(p.chimie, Tbat);
+    const vieBat = Math.min(vieCycles / 365, p.chimie === "plomb" ? 5 : 12) * fT;
+    // Courants extrêmes vus par la batterie (heure la plus chargée, heure la plus productive).
+    const Idech = Math.max(...conso) / p.tension, Ich = Math.max(...h.map(q => q.prod)) / p.tension;
+    const limD = LS.limitesBatterie(p.chimie, p.capacite, Idech), limC = LS.limitesBatterie(p.chimie, p.capacite, -Ich, Tbat);
     const cPanneaux = 250 * p.panneaux * p.wc, cBat = prixBatWh * Eb, cAutres = 0.25 * (cPanneaux + cBat) + 150 * Math.max(...conso);
     const cout10 = cPanneaux + cBat * Math.ceil(10 / vieBat) + cAutres;
     return { h, consoJour, nuit, prodJour: prodTot / jours, autonomie, socMin: sMin, socLimite: socMin, deleste, heuresCoupees, perdu, servi,
-      Eb, pr, cout: cPanneaux + cBat + cAutres, cout10, vieBat, kwh10: consoJour * 365 * 10 / 1000, lever, duree, H, Ta };
+      Eb, pr, cout: cPanneaux + cBat + cAutres, cout10, vieBat, kwh10: consoJour * 365 * 10 / 1000, lever, duree, H, Ta, Tbat, fT, Idech, Ich, limD, limC };
   };
 
   /* ====================== Simulations animées ====================== */
@@ -324,7 +353,8 @@
         { k: "Id", nom: "Courant de décharge", min: 1, max: 150, pas: 1, defaut: 5, unite: "A" },
         { k: "Ic", nom: "Courant de charge maximal", min: 2, max: 60, pas: 1, defaut: 15, unite: "A" },
         { k: "vitesse", nom: "Accélération (heures simulées par seconde)", min: 0.05, max: 4, log: true, defaut: 1, format: v => LS.nombre(v, 2) + " h/s" },
-        { k: "dod", nom: "Profondeur de décharge quotidienne (pour la durée de vie)", min: 10, max: 100, pas: 5, defaut: 50, unite: "%" }
+        { k: "dod", nom: "Profondeur de décharge quotidienne (pour la durée de vie)", min: 10, max: 100, pas: 5, defaut: 50, unite: "%" },
+        { k: "T", nom: "Température de la batterie", min: -10, max: 45, pas: 1, defaut: 25, unite: "°C" }
       ],
       boutons: [
         { k: "pleine", texte: "🔋 Batterie pleine", action: s => { s.etat.b.soc = 1; s.raz(s); } },
@@ -332,23 +362,26 @@
       ],
       changement(s, k) { if (k === "chimie" || k === "C" || k === "mode") s.raz(s); },
       init(s) {
-        s.raz = sim => { const e = sim.etat; e.b.chimie = sim.p.chimie; e.b.C = sim.p.C; Object.assign(e, { th: 0, h: [], ahOut: 0, ahIn: 0, whOut: 0, whIn: 0, coupure: false, socDepart: e.b.soc, phase: "repos", V: LS.BATTERIES[sim.p.chimie].ocv(e.b.soc), I: 0, phases: {} }); };
+        s.raz = sim => { const e = sim.etat; e.b.chimie = sim.p.chimie; e.b.C = sim.p.C; Object.assign(e, { th: 0, h: [], ahOut: 0, ahIn: 0, whOut: 0, whIn: 0, coupure: false, motif: "", dernierAvis: null, socDepart: e.b.soc, phase: "repos", V: LS.BATTERIES[sim.p.chimie].ocv(e.b.soc), I: 0, phases: {} }); };
         s.etat.b = { chimie: s.p.chimie, C: s.p.C, soc: 1 };
         s.raz(s);
       },
       avancer(s, dt) {
         const e = s.etat, hTot = dt * s.p.vitesse, n = Math.max(1, Math.ceil(hTot / 0.01)), h = hTot / n;
+        e.b.T = s.p.T;
+        const signaler = msg => { if (e.dernierAvis !== msg) { e.dernierAvis = msg; if (LS.avis) LS.avis(msg); } };
         for (let q = 0; q < n; q++) {
           let r;
           if (s.p.mode === "decharge") {
             if (e.coupure) { r = LS.pasBatterie(e.b, 0, h); r.phase = "coupée (tension mini)"; }
-            else { r = LS.pasBatterie(e.b, s.p.Id, h); if (r.coupure) { e.coupure = true; if (LS.avis) LS.avis(s.p.chimie === "lifepo4" ? "Le BMS coupe la batterie : tension mini atteinte." : "Tension mini (10,5 V) atteinte : il faut arrêter de décharger."); } else { e.ahOut += r.I * h; e.whOut += r.V * r.I * h; } }
+            else { r = LS.pasBatterie(e.b, s.p.Id, h); if (r.coupure) { e.coupure = true; e.motif = r.bms || ""; signaler(r.bms ? "Le " + r.bms.replace("BMS : ", "BMS coupe la sortie : ") + "." : s.p.chimie === "lifepo4" ? "Le BMS coupe la batterie : tension mini atteinte." : "Tension mini (10,5 V) atteinte : il faut arrêter de décharger."); } else { e.ahOut += r.I * h; e.whOut += r.V * r.I * h; } }
           } else if (s.p.mode === "charge") {
             const k = LS.BATTERIES[s.p.chimie];
             const plein = e.b.soc >= 0.999 || (e.phases.cv && Math.abs(e.I) < 0.02 * s.p.C);
             r = LS.pasBatterie(e.b, -s.p.Ic, h, plein && s.p.chimie === "plomb" ? k.vFloat : k.vAbs);
             if (plein && s.p.chimie === "lifepo4") { r = LS.pasBatterie(e.b, 0, h); r.phase = "pleine : charge arrêtée"; }
             else if (plein) r.phase = "floating (entretien " + LS.nombre(k.vFloat, 1) + " V)";
+            if (r.bms) signaler("Le " + r.bms.replace("BMS : ", "BMS refuse la charge : ") + ".");
             if (r.phase.startsWith("CV")) e.phases.cv = true;
             e.ahIn += -r.I * h; e.whIn += r.V * -r.I * h;
           } else r = LS.pasBatterie(e.b, 0, h);
@@ -380,12 +413,14 @@
       },
       mesures(s) {
         const e = s.etat, k = LS.BATTERIES[s.p.chimie], Ceff = LS.capaciteEffective(s.p.chimie, s.p.C, s.p.Id);
-        const N = k.cycles(s.p.dod / 100), rend = e.whIn > 0 && e.whOut > 0 ? e.whOut / e.whIn : null;
+        const fT = LS.facteurVieTemperature(s.p.chimie, s.p.T), N = k.cycles(s.p.dod / 100) * fT, rend = e.whIn > 0 && e.whOut > 0 ? e.whOut / e.whIn : null;
+        const I = s.p.mode === "decharge" ? s.p.Id : s.p.mode === "charge" ? -s.p.Ic : 0, lim = LS.limitesBatterie(s.p.chimie, s.p.C, I, s.p.T);
         return [["Phase", e.phase], ["Courant", LS.nombre(Math.abs(e.I), 1) + " A " + (e.I > 0 ? "(décharge)" : e.I < 0 ? "(charge)" : "")],
           ["Capacité réelle à " + s.p.Id + " A (Peukert)", LS.nombre(Ceff, 0) + " Ah sur " + s.p.C, Ceff < 0.8 * s.p.C ? "alerte" : ""],
           ["Fourni / reçu", LS.nombre(e.ahOut, 1) + " Ah · " + LS.nombre(e.whOut, 0) + " Wh / " + LS.nombre(e.ahIn, 1) + " Ah · " + LS.nombre(e.whIn, 0) + " Wh"],
           ["Énergie stockée (pleine)", LS.nombre(s.p.C * (s.p.chimie === "plomb" ? 12 : 12.8), 0) + " Wh · ≈ " + LS.nombre(s.p.C * 12.5 / k.whKg, 0) + " kg"],
-          ["Durée de vie à " + s.p.dod + " % par jour", "≈ " + LS.nombre(N, 0) + " cycles (" + LS.nombre(N / 365, 1) + " ans)", s.p.dod / 100 > k.dodConseil ? "alerte" : ""]]
+          ["Courant demandé", LS.nombre(Math.abs(I) / s.p.C, 2) + " C" + (lim.msg ? " : " + lim.msg : " : dans les limites"), lim.niveau === "ok" ? "" : "alerte"],
+          ["Durée de vie à " + s.p.dod + " % par jour, " + s.p.T + " °C", "≈ " + LS.nombre(N, 0) + " cycles (" + LS.nombre(N / 365, 1) + " ans)" + (fT < 1 ? ", × " + LS.nombre(fT, 2) + " à cause de la chaleur" : ""), s.p.dod / 100 > k.dodConseil || fT < 0.6 ? "alerte" : ""]]
           .concat(rend ? [["Rendement énergétique mesuré", LS.nombre(100 * rend, 0) + " %"]] : []);
       },
       explication(s) {
@@ -394,7 +429,9 @@
           ? "Une batterie **plomb** voit sa tension baisser régulièrement quand elle se vide (12,7 V pleine, 12,2 V à 50 % au repos) : la tension renseigne sur la charge. Elle donne **moins d'Ah si on la décharge vite** (loi de Peukert) et s'abîme si on la vide souvent sous 50 % (sulfatation)."
           : "Une batterie **LiFePO4** garde une tension presque **plate** (≈ 13,2 V) de 90 % à 15 % : la tension ne dit presque rien de la charge, il faut compter les Ah (BMS, shunt). Elle accepte des décharges profondes (80 %), des milliers de cycles, et son **BMS** la coupe si une cellule sort de ses limites.";
         if (s.p.mode === "charge") t += "\n\nLe chargeur pousse d'abord un **courant constant** (CC), puis, quand la tension atteint " + LS.nombre(LS.BATTERIES[s.p.chimie].vAbs, 1) + " V, il tient cette **tension constante** (CV) : le courant diminue tout seul." + (pb ? " En plomb, cette fin de charge (absorption) dure des heures, puis le chargeur passe en **floating**." : " En lithium, la fin de charge est courte et on arrête au lieu d'entretenir.");
-        if (e.coupure) t += "\n\n⚠ " + (pb ? "Tension minimale atteinte : continuer abîmerait la batterie." : "Le **BMS** a coupé la sortie pour protéger les cellules.");
+        if (e.coupure) t += "\n\n⚠ " + (e.motif ? "Le **BMS** a coupé : " + e.motif.replace("BMS : ", "") + "." : pb ? "Tension minimale atteinte : continuer abîmerait la batterie." : "Le **BMS** a coupé la sortie pour protéger les cellules.");
+        t += pb ? "\n\nLe plomb n'a **pas de BMS** : rien ne l'empêche d'être chargé trop fort (au-delà de 0,2-0,3 C il chauffe et dégaze) ou usé par la chaleur (durée de vie divisée par 2 tous les 10 °C au-dessus de 25 °C)."
+          : "\n\nLe BMS limite le courant à environ **1 C** (charge conseillée ≤ 0,5 C) et **bloque la charge sous 0 °C**.";
         return t;
       }
     }, cfg);
@@ -446,7 +483,7 @@
         return [["Puissance disponible (MPP)", LS.nombre(k.mppt.Pmp, 0) + " W à " + LS.nombre(k.mppt.iv.Vmp, 1) + " V"],
           ["Tension du panneau", LS.nombre(r.Vpanneau, 1) + " V"], ["Puissance envoyée à la batterie", LS.nombre(r.P, 0) + " W", r.P < 0.85 * k.mppt.Pmp ? "alerte" : ""],
           ["Courant de charge", LS.nombre(r.P / s.p.Vbat, 1) + " A"], ["Gain du MPPT sur la journée", "+" + LS.nombre(k.jour.Epwm > 0 ? 100 * (k.jour.Emppt / k.jour.Epwm - 1) : 0, 0) + " %"],
-          ["Voc par matin froid (−10 °C)", LS.nombre(k.froid, 0) + " V", s.p.type === "mppt" && k.froid > 100 ? "alerte" : ""]];
+          ["Voc par matin froid (−10 °C)", LS.nombre(k.froid, 0) + " V (maxi " + (s.p.type === "mppt" ? 100 : LS.VMAX_PWM) + " V)", k.froid > (s.p.type === "mppt" ? 100 : LS.VMAX_PWM) ? "alerte" : ""]];
       },
       explication(s) {
         const k = this.calcul(s), r = s.p.type === "pwm" ? k.pwm : k.mppt;
@@ -455,6 +492,7 @@
           : "Un régulateur **MPPT** est un convertisseur : il cherche en permanence le **point de puissance maximale** du panneau, puis abaisse la tension en augmentant le courant (P = U·I conservée, ≈ 96 % de rendement). Il permet des panneaux de 60 cellules ou en série, à tension élevée.";
         if (s.p.type === "pwm" && s.p.module === "m60") t += "\n\n⚠ Panneau 60 cellules sur un PWM : le panneau est tiré à ≈ 13 V au lieu de ≈ 31 V, **plus de la moitié de la puissance est perdue**.";
         if (s.p.type === "mppt" && k.froid > 100) t += "\n\n🔥 Par un matin froid, la tension à vide de la chaîne (" + LS.nombre(k.froid, 0) + " V) dépasse les **100 V** admis : le régulateur serait détruit. On calcule toujours la Voc à la température minimale du site.";
+        if (s.p.type === "pwm" && k.froid > LS.VMAX_PWM) t += "\n\n🔥 La tension à vide de la chaîne par matin froid (" + LS.nombre(k.froid, 0) + " V) dépasse les **" + LS.VMAX_PWM + " V** qu'accepte un régulateur PWM 12/24 V courant : il serait détruit, et la batterie avec lui. Un PWM se branche sur un seul panneau « 12 V » (ou deux en série pour une batterie 24 V).";
         if (s.p.type === "mppt" && r.limite) t += "\n\nLe régulateur plafonne à 30 A : le surplus est perdu.";
         return t;
       }
@@ -511,7 +549,8 @@
           ["Énergie délestée (coupures)", LS.nombre(r.deleste / 1000, 2) + " kWh · " + r.heuresCoupees + " h", r.deleste > 0 ? "alerte" : "ok"],
           ["Surplus perdu (batterie pleine)", LS.nombre(r.perdu / 1000, 1) + " kWh"],
           ["Coût indicatif", fcfa(r.cout) + " (≈ " + LS.nombre(r.cout / 656, 0) + " €)"],
-          ["Sur 10 ans", fcfa(r.cout10) + " · batterie ≈ " + LS.nombre(r.vieBat, 1) + " ans · " + LS.nombre(r.cout10 / Math.max(1, r.kwh10), 0) + " FCFA/kWh"]];
+          ["Courants de la batterie", "décharge " + LS.nombre(r.Idech, 0) + " A, charge " + LS.nombre(r.Ich, 0) + " A" + (r.limD.msg ? " · " + r.limD.msg : "") + (r.limC.msg ? " · " + r.limC.msg : ""), r.limD.niveau !== "ok" || r.limC.niveau !== "ok" ? "alerte" : ""],
+          ["Sur 10 ans", fcfa(r.cout10) + " · batterie ≈ " + LS.nombre(r.vieBat, 1) + " ans à " + LS.nombre(r.Tbat, 0) + " °C de moyenne · " + LS.nombre(r.cout10 / Math.max(1, r.kwh10), 0) + " FCFA/kWh"]];
       },
       explication(s) {
         const r = this.res(s);
@@ -519,6 +558,8 @@
         t += "\n\nRègle rapide : Wc ≈ conso (Wh/j) ÷ (irradiation × 0,75) ; capacité (Ah) ≈ conso × jours d'autonomie ÷ (tension × profondeur de décharge).";
         t += "\n\nIci : il faudrait ≈ **" + LS.nombre(r.consoJour / (r.H * r.pr), 0) + " Wc** et ≈ **" + LS.nombre(r.consoJour * 3 / (s.p.tension * LS.BATTERIES[s.p.chimie].dodConseil), 0) + " Ah** en " + s.p.tension + " V pour 3 jours d'autonomie.";
         if (s.p.capacite * s.p.tension > 3000 && s.p.tension === 12) t += "\n\nAu-delà de 2-3 kWh, on passe le parc en **24 V ou 48 V** : à puissance égale, le courant et la section des câbles sont divisés.";
+        if (r.limD.niveau !== "ok" || r.limC.niveau !== "ok") t += "\n\n⚠ Courant trop fort pour la batterie : " + [r.limD.msg, r.limC.msg].filter(Boolean).join(" ; ") + ". Augmente la capacité ou la tension du parc. (Le bilan ci-dessus n'en tient pas compte.)";
+        if (r.fT < 1) t += "\n\nÀ " + LS.nombre(r.Tbat, 0) + " °C de moyenne, la durée de vie de la batterie est multipliée par " + LS.nombre(r.fT, 2) + (s.p.chimie === "plomb" ? " (plomb : divisée par 2 tous les 10 °C au-dessus de 25 °C). Une batterie au frais, ventilée, dure plus longtemps." : " (effet plus faible que pour le plomb, ordre de grandeur).");
         t += "\n\n_Prix d'ordre de grandeur (Afrique de l'Ouest, 2025), à vérifier chez un fournisseur._";
         return t;
       }

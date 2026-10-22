@@ -3,8 +3,8 @@ LS.ajouterTP({
   titre: "Défaut d'isolement et différentiel 30 mA",
   domaine: "batiment", niveau: 2, duree: "30 min",
   sim: "differentiel",
-  intro: "Une machine à laver à carcasse métallique a un **défaut d'isolement** : la phase touche la carcasse. L'installation est en schéma **TT** : neutre à la terre au transformateur (RB = 10 Ω), carcasse reliée à la prise de terre de la maison (RA). Fais varier la terre, la résistance du défaut, la protection et la personne qui touche, et observe la tension de contact, le courant dans le corps et sa durée.\n\nLe graphe place le choc reçu (courant, durée) sur les zones d'effets de la CEI 60479-1, **très simplifiées** : la réalité dépend du trajet du courant, de la personne et de l'état de la peau.",
-  config: { p: { IDn: 0, defaut: true, Rd: 1, RA: 30, touche: false, Rh: 2000 } },
+  intro: "Une machine à laver à carcasse métallique a un **défaut d'isolement** : la phase touche la carcasse. L'installation est en schéma **TT** : neutre à la terre au transformateur (RB = 10 Ω), carcasse reliée à la prise de terre de la maison (RA). Fais varier la terre, la résistance du défaut, la protection et la personne qui touche (résistance du corps sous 230 V : environ 1 000 à 2 100 Ω selon les personnes, peau sèche, d'après la CEI 60479-1 ; on prend une valeur prudente, beaucoup moins si la peau est mouillée), et observe la tension de contact, le courant dans le corps et sa durée.\n\nLe graphe place le choc reçu (courant, durée) sur les zones d'effets de la CEI 60479-1, **très simplifiées** : la réalité dépend du trajet du courant, de la personne et de l'état de la peau.",
+  config: { p: { IDn: 0, defaut: true, Rd: 1, RA: 30, touche: false, Rh: 1300 } },
   objectifs: [
     { texte: "Sans différentiel, avec une bonne terre (30 Ω) : fais toucher la carcasse par une personne aux mains sèches. Le disjoncteur ne coupe pas et le choc est en zone **AC-4**.",
       verif: s => { const k = s.calc(); return s.p.IDn === 0 && s.p.touche && isFinite(s.p.RA) && k.brut.Ib > 0 && k.zone === "AC-4"; },
