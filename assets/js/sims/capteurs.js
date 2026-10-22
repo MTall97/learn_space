@@ -218,10 +218,11 @@
       dessiner(s, ctx, W, H, c) {
         const m = s.etat.m, p = s.p, ph = s.etat.ph;
         // Vue de dessus : capteur à gauche, faisceau ±15°, objet, mur éventuel
-        const vx = 50, vy = 26, vw = W - vx - 20, vh = H * 0.55, oy = vy + vh / 2;
+        const vx = 50, vy = 26, vw = W - vx - 20, vh = H * 0.6, oy = vy + vh / 2;
         const sc = vw / 520;                               // px par cm
         ctx.strokeStyle = c.bordure; ctx.strokeRect(vx - 40, vy - 10, vw + 50, vh + 20);
         D().texte(ctx, "Vue de dessus (échelle : 1 m = " + n(100 * sc, 0) + " px)", vx - 34, vy + 2, c.doux, 11, "left");
+        ctx.save(); ctx.beginPath(); ctx.rect(vx - 40, vy - 10, vw + 50, vh + 20); ctx.clip();
         ctx.fillStyle = c.sombre ? "rgba(120,180,255,.10)" : "rgba(40,100,200,.08)";
         const L = 400 * sc, a = LS.HCSR04.demiAngle * DEG;
         ctx.beginPath(); ctx.moveTo(vx, oy); ctx.lineTo(vx + L * Math.cos(a), oy - L * Math.sin(a)); ctx.arc(vx, oy, L, -a, a); ctx.closePath(); ctx.fill();
@@ -250,8 +251,9 @@
           const t2 = (ph - 0.5) * 2, dir = Math.PI - 2 * p.angle * DEG;
           D().fleche(ctx, ox, oyy, ox + Math.cos(dir) * 120 * t2, oyy - Math.sin(dir) * 120 * t2, c.alerte, 2);
         }
+        ctx.restore();
         // Chronogramme : TRIG, salve 40 kHz, ECHO
-        const cx0 = 60, cw = W - cx0 - 20, cy0 = vy + vh + 34, lh = 26, tMax = 0.03;
+        const cx0 = 60, cw = W - cx0 - 20, cy0 = vy + vh + 30, lh = 34, tMax = 0.03;
         const X = t => cx0 + Math.min(1, t / tMax) * cw;
         const ligne = (y, nom) => D().texte(ctx, nom, cx0 - 8, y, c.texte, 11, "right", true);
         ligne(cy0, "TRIG"); ligne(cy0 + lh + 6, "ECHO");
@@ -357,17 +359,22 @@
         D().fleche(ctx, px + 100 > W - 10 ? px - 100 : px + 100, py - 30, px + 100 > W - 10 ? px - 100 : px + 100, py + 20, c.alerte, 2);
         D().texte(ctx, "g", px + 100 > W - 10 ? px - 90 : px + 110, py, c.alerte, 12, "left", true);
         // Graphe des angles
-        const gx = etroit ? 40 : 260, gy = etroit ? 160 : 40, gw = W - gx - 16, gh = H - gy - 40;
+        const gx = etroit ? 40 : 260, gy = etroit ? 160 : 40, gw = W - gx - 16, gh = H - gy - (etroit ? 60 : 40);
         const h = e.h, t1 = s.t, t0 = t1 - 10;
         const lim = Math.max(45, ...h.map(r => Math.max(Math.abs(r[1]), Math.abs(r[2]), Math.abs(r[4])))) * 1.1;
         D().graphe(ctx, gx, gy, gw, gh, { c, xlim: [t0, t1], ylim: [-lim, lim], series: [
           { pts: h.map(r => [r[0], r[3]]), coul: c.sombre ? "rgba(255,120,100,.45)" : "rgba(192,57,43,.35)", ep: 1 },
           { pts: h.map(r => [r[0], r[2]]), coul: c.info, ep: 2 },
           { pts: h.map(r => [r[0], r[1]]), coul: c.texte, ep: 3 },
-          { pts: h.map(r => [r[0], r[4]]), coul: c.ok, ep: 2 }], titre: "Angle sur 10 s (± " + n(lim, 0) + "°)", xlab: "temps" });
+          { pts: h.map(r => [r[0], r[4]]), coul: c.ok, ep: 2 }], titre: "Angle sur les 10 dernières secondes (± " + n(lim, 0) + "°)" });
         const leg = [["vrai", c.texte], ["gyro intégré", c.info], ["accéléromètre", c.alerte], ["fusion", c.ok]];
-        let lx = gx + 4;
-        leg.forEach(([t, col]) => { ctx.fillStyle = col; ctx.fillRect(lx, gy + gh + 14, 14, 4); D().texte(ctx, t, lx + 18, gy + gh + 16, c.texte, 11, "left"); lx += 30 + t.length * 6; });
+        let lx = gx + 4, ly = gy + gh + 16;
+        leg.forEach(([t, col]) => {
+          ctx.font = "500 11px Nunito, Segoe UI, sans-serif";
+          const lw = 30 + ctx.measureText(t).width;
+          if (lx + lw > W - 10) { lx = gx + 4; ly += 18; }
+          ctx.fillStyle = col; ctx.fillRect(lx, ly - 2, 14, 4); D().texte(ctx, t, lx + 18, ly, c.texte, 11, "left"); lx += lw;
+        });
       },
       mesures(s) {
         const e = s.etat, h = e.h.filter(r => r[0] > Math.max(e.tRecal || 0, e.tAlpha || 0) + 1);
