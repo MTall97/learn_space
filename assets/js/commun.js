@@ -32,6 +32,25 @@
   };
   LS.appliquerTheme();
 
+  /* ---------- Messages et confirmations dans la page ----------
+     (alert et confirm sont bloqués dans certains cadres, dont les pages publiées sur claude.ai) */
+  LS.avis = function (texte, duree) {
+    let zone = document.getElementById("ls-avis");
+    if (!zone) { zone = document.createElement("div"); zone.id = "ls-avis"; zone.setAttribute("role", "status"); document.body.append(zone); }
+    const m = document.createElement("div");
+    m.className = "avis"; m.textContent = texte;
+    m.addEventListener("click", () => m.remove());
+    zone.append(m);
+    setTimeout(() => m.remove(), duree || 5000);
+  };
+  // Premier clic : le bouton demande confirmation ; second clic dans les 4 s : l'action est faite.
+  LS.confirmer = function (bouton, action, question) {
+    if (bouton.dataset.confirme) { delete bouton.dataset.confirme; bouton.textContent = bouton.dataset.texte; clearTimeout(bouton._minuteur); action(); return; }
+    bouton.dataset.confirme = "1"; bouton.dataset.texte = bouton.textContent;
+    bouton.textContent = question || "Confirmer ?";
+    bouton._minuteur = setTimeout(() => { delete bouton.dataset.confirme; bouton.textContent = bouton.dataset.texte; }, 4000);
+  };
+
   /* ---------- Petites aides ---------- */
   LS.slug = function (s) {
     return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "")

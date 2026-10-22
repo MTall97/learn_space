@@ -102,8 +102,8 @@
       });
       lt.append(g);
     });
-    document.getElementById("effacer").addEventListener("click", () => {
-      if (confirm("Effacer toute ta progression (notions comprises et TP) ?")) { LS.effacerProgression(); location.reload(); }
+    document.getElementById("effacer").addEventListener("click", ev => {
+      LS.confirmer(ev.currentTarget, () => { LS.effacerProgression(); location.reload(); }, "Tout effacer ? Clique encore");
     });
     if (location.hash) { const el = document.querySelector(location.hash); if (el) { if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView(); } }
   })();

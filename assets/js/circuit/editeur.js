@@ -160,7 +160,7 @@
     }
     outils.push(LS.el("span", { class: "sep" }),
       LS.el("button", { class: "btn petit secondaire", text: "🛠 Réparer", title: "Remplace les composants grillés", onclick: () => self.reparer() }),
-      LS.el("button", { class: "btn petit secondaire", text: "↺ Recommencer", title: "Revenir au montage de départ", onclick: () => { if (confirm("Revenir au montage de départ ?")) self.reinitialiser(); } }));
+      LS.el("button", { class: "btn petit secondaire", text: "↺ Recommencer", title: "Revenir au montage de départ", onclick: ev => LS.confirmer(ev.currentTarget, () => self.reinitialiser(), "Revenir au départ ?") }));
     barre.append(...outils);
     const barrePalette = LS.el("div", { class: "sim-barre" }, [this.palette]);
     if (!types.length) barrePalette.classList.add("cache-tout");
@@ -574,7 +574,7 @@
     });
   };
   E.supprimer = function (x) {
-    if (x.fixe) { alert("Cet élément fait partie du montage imposé du TP."); return; }
+    if (x.fixe) { LS.avis("Cet élément fait partie du montage imposé du TP."); return; }
     if (x.type) this.schema.compos = this.schema.compos.filter(c => c !== x);
     else this.schema.fils = this.schema.fils.filter(f => f !== x);
     if (this.osc) this.osc.voies = this.osc.voies.map(v => v && v.c === x ? null : v);
@@ -644,7 +644,7 @@
     return LS.el("button", { class: "btn petit", text: "🚩 C'est la panne !", onclick: () => {
       self.signalements.push(x);
       const vrai = x.coupe || (x.etat && x.etat.grille);
-      alert(vrai ? "Bien vu : c'est bien un élément en panne. Remplace-le (supprime-le et remets-en un neuf, ou 🛠 Réparer pour une lampe)." : "Non, cet élément fonctionne. Continue tes mesures.");
+      LS.avis(vrai ? "Bien vu : c'est bien un élément en panne. Remplace-le (supprime-le et remets-en un neuf, ou 🛠 Réparer pour une lampe)." : "Non, cet élément fonctionne. Continue tes mesures.");
       self._signaler();
     } });
   };
