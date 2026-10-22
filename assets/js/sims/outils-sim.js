@@ -100,7 +100,7 @@
     if (def.init) def.init(sim);
     let avant = performance.now(), cumul = 1;
     function image(t) {
-      const dt = Math.min(0.05, (t - avant) / 1000); avant = t;
+      const dt = Math.max(0, Math.min(0.05, (t - avant) / 1000)); avant = t;
       if (sim.enMarche && !document.hidden) { sim.t += dt; if (def.avancer) def.avancer(sim, dt); }
       const c = LS.couleurs();
       ctx.clearRect(0, 0, W, H);

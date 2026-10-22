@@ -355,7 +355,7 @@
     let cumulPanneau = 0;
     function image(maintenant) {
       if (self.detruit) return;
-      const dt = Math.min(0.05, (maintenant - avant) / 1000);
+      const dt = Math.max(0, Math.min(0.05, (maintenant - avant) / 1000));
       avant = maintenant;
       if (self.enMarche && !document.hidden) {
         self.sim.avancer(dt * self.vitesse, self);
