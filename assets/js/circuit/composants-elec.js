@@ -45,9 +45,10 @@
         const vcrit = nvt * Math.log(nvt / (Math.SQRT2 * p.is));
         const brut = u(c, V);
         let vd = LS.pnjlim(brut, c._vd, nvt, vcrit);
+        const nvtz = (p.nz || p.n) * VT;
         if (p.vz) {
           // Claquage inverse (Zener) : on limite la grandeur w = −vd − Vz.
-          const w = LS.pnjlim(-vd - p.vz, -c._vd - p.vz, nvt, vcrit);
+          const w = LS.pnjlim(-vd - p.vz, -c._vd - p.vz, nvtz, nvtz * Math.log(nvtz / (Math.SQRT2 * p.iz)));
           vd = -w - p.vz;
         }
         vd = Math.max(vd, -1e3);
@@ -56,8 +57,8 @@
         const e = Math.exp(Math.min(vd / nvt, 80));
         let id = p.is * (e - 1), gd = p.is * e / nvt;
         if (p.vz) {
-          const ez = Math.exp(Math.min((-vd - p.vz) / nvt, 80));
-          id -= p.iz * ez; gd += p.iz * ez / nvt;
+          const ez = Math.exp(Math.min((-vd - p.vz) / nvtz, 80));
+          id -= p.iz * ez; gd += p.iz * ez / nvtz;
         }
         gd += 1e-12;
         c._G = gd; c._J = id - gd * vd;
@@ -78,7 +79,8 @@
       init(c) { c._vbe = 0; c._vbc = 0; },
       stamp(m, c, V, ctx) {
         const [B, C, E] = c._nets;
-        if (B === undefined || C === undefined || E === undefined) return;
+        c._lin = null;
+        if (B === undefined || C === undefined || E === undefined || (c.etat && c.etat.grille)) return;
         ctx.nonLineaire = true;
         const is = 1e-14, bf = c.p.beta || 100, br = 1;
         const vcrit = VT * Math.log(VT / (Math.SQRT2 * is));
@@ -102,16 +104,45 @@
         m.G(B, B, gpi + gmu); m.G(B, E, -gpi); m.G(B, C, -gmu); m.I(B, cB);
         // Ligne E = −(C + B)
         m.G(E, B, -(gF - gcC) - (gpi + gmu)); m.G(E, E, gF + gpi); m.G(E, C, -gcC + gmu); m.I(E, -(cC + cB));
-        c._lin = { gF, gcC, gpi, gmu, cC, cB };
+        // Claquage par avalanche entre collecteur et émetteur au-delà de Vceo (surtension à la coupure
+        // d'une charge inductive) : i = I0·exp((x − Vceo) / 1 V), x = Vce (NPN) ou Vec (PNP).
+        const lim = limitesTransistor(c), I0 = 1e-3, NV = 1;
+        const xB = signe * (V(C) - V(E));
+        const w = LS.pnjlim(xB - lim.vceo, (c._xce || 0) - lim.vceo, NV, NV * Math.log(NV / (Math.SQRT2 * I0)));
+        const x = w + lim.vceo;
+        if (Math.abs(x - xB) > 1e-6 * (1 + Math.abs(xB))) ctx.nonConverge = true;
+        c._xce = x;
+        const iav = I0 * Math.exp(Math.min(w / NV, 60)), gav = iav / NV + 1e-12;
+        m.g(C, E, gav); m.j(C, E, signe * (iav - gav * x));
+        c._lin = { gF, gcC, gpi, gmu, cC, cB, gav, jav: signe * (iav - gav * x) };
       },
       courants(c, V) {
         const [B, C, E] = c._nets;
         if (!c._lin || B === undefined || C === undefined || E === undefined) return [0, 0, 0];
         const l = c._lin;
         const vb = V(B), vc = V(C), ve = V(E);
-        const ic = (l.gF - l.gcC) * vb - l.gF * ve + l.gcC * vc + l.cC;
+        const iav = l.gav * (vc - ve) + l.jav; // courant d'avalanche C → E
+        const ic = (l.gF - l.gcC) * vb - l.gF * ve + l.gcC * vc + l.cC + iav;
         const ib = (l.gpi + l.gmu) * vb - l.gpi * ve - l.gmu * vc + l.cB;
         return [ib, ic, -(ib + ic)];
+      },
+      apres(c, V, ctx) {
+        c.etat = c.etat || {};
+        if (c.etat.grille) { c.etat.alerte = "Transistor grillé (trop de courant ou de puissance) : 🛠 Réparer"; return; }
+        const [B, C, E] = c._nets;
+        if (!c._lin || B === undefined) return;
+        const i = this.courants(c, V), lim = limitesTransistor(c);
+        const vce = V(C) - V(E), vbe = V(B) - V(E);
+        const P = Math.abs(vce * i[1]) + Math.abs(vbe * i[0]);
+        const avalanche = signe * vce > lim.vceo - 0.5 && Math.abs(i[1]) > 1e-3;
+        if (avalanche) c.etat.avalanches = (c.etat.avalanches || 0) + (c._avAvant ? 0 : 1);
+        c._avAvant = avalanche;
+        if (avalanche) c.etat.tAval = 0.5; else c.etat.tAval = Math.max(0, (c.etat.tAval || 0) - ctx.dt);
+        const pm = thermique(c, P, Math.max(Math.abs(i[1]), 4 * Math.abs(i[0])), ctx.dt, lim);
+        c.etat.alerte = c.etat.grille ? "Transistor grillé (trop de courant ou de puissance) : 🛠 Réparer" :
+          c.etat.tAval > 0 ? "Surtension à la coupure : Vce a atteint " + lim.vceo + " V (avalanche). Une charge inductive sans diode de roue libre détruit le transistor à la longue." :
+          Math.abs(i[1]) > lim.icmax ? "Courant collecteur au-delà du maximum (" + LS.si(lim.icmax, "A") + ") : il va griller" :
+          pm > lim.pnom ? "Le transistor chauffe : " + LS.si(pm, "W") + " (max " + LS.si(lim.pnom, "W") + ")" : "";
       }
     };
   }
@@ -122,6 +153,34 @@
     if (condition) c.etat.chauffe = (c.etat.chauffe || 0) + dt;
     else c.etat.chauffe = Math.max(0, (c.etat.chauffe || 0) - dt);
     if (c.etat.chauffe > duree && !c.etat.grille) { c.etat.grille = true; c.etat.change = true; }
+  }
+
+  /* Échauffement d'un semi-conducteur : puissance moyenne lissée (constante thermique lim.tau) et
+     courant de pointe. Grille si la puissance moyenne dépasse lim.pmax, ou si le courant dépasse
+     lim.icrete plus de lim.tcrete secondes. Renvoie la puissance moyenne. */
+  function thermique(c, P, i, dt, lim) {
+    c.etat = c.etat || {};
+    const e = c.etat;
+    e.pm = (e.pm || 0) + (P - (e.pm || 0)) * Math.min(1, dt / lim.tau);
+    e.chauffe = Math.abs(i) > lim.icrete ? (e.chauffe || 0) + dt : Math.max(0, (e.chauffe || 0) - dt);
+    if (!e.grille && (e.pm > lim.pmax || e.chauffe > lim.tcrete)) { e.grille = true; e.change = true; }
+    return e.pm;
+  }
+  // Ordres de grandeur des fiches techniques (pnom : puissance nominale ; pmax : destruction).
+  const LIM_DIODE = { pnom: 1.2, pmax: 3, tau: 0.3, icrete: 50, tcrete: 0.01 };   // 1N4007 : 1 A, 30 A pendant 8 ms
+  const LIM_ZENER = { pnom: 0.5, pmax: 1.2, tau: 0.2, icrete: 2, tcrete: 0.01 };  // Zener 0,5 W
+  const TRANSISTORS = {
+    "BC547 (petit signal)": { icmax: 0.1, vceo: 45, pnom: 0.5, pmax: 1.2, tau: 0.2, icrete: 0.5, tcrete: 0.02 },
+    "BC557 (petit signal)": { icmax: 0.1, vceo: 45, pnom: 0.5, pmax: 1.2, tau: 0.2, icrete: 0.5, tcrete: 0.02 },
+    "TIP31 (puissance)": { icmax: 3, vceo: 40, pnom: 10, pmax: 25, tau: 1, icrete: 6, tcrete: 0.05 },
+    "TIP32 (puissance)": { icmax: 3, vceo: 40, pnom: 10, pmax: 25, tau: 1, icrete: 6, tcrete: 0.05 }
+  };
+  const limitesTransistor = c => TRANSISTORS[c.p.modele] || TRANSISTORS["BC547 (petit signal)"];
+  /* Fusible : contrainte thermique I²t (fond en ≈ 12 ms à 10 In, ≈ 1 s à 1,5 In, jamais sous 1,1 In). */
+  function fusion(etat, cle, i, In, dt) {
+    const x = (i / In) * (i / In) - 1.21;
+    etat[cle] = x > 0 ? (etat[cle] || 0) + x * dt : Math.max(0, (etat[cle] || 0) - dt);
+    return etat[cle] > 1.2;
   }
 
   const COULEURS_LED = {
@@ -186,7 +245,14 @@
       else s = Math.sin(2 * Math.PI * ph);
       return c.p.off + c.p.A * s;
     },
-    modele: dipole((c, ctx) => { const e = R.generateur.tension(c, ctx.t); return [10, -e * 10]; }),
+    modele: avecApres(dipole((c, ctx) => { const e = R.generateur.tension(c, ctx.t); return [10, -e * 10]; }), (c, V, ctx) => {
+      const i = c._G * u(c, V) + c._J, e = R.generateur.tension(c, ctx.t);
+      c.etat = c.etat || {};
+      // Court-circuit : presque toute la tension se perd dans la résistance interne (0,1 Ω).
+      if (Math.abs(i) > 1 && Math.abs(e) > 1 && Math.abs(u(c, V)) < 0.3 * Math.abs(e)) c.etat.cc = 0.2;
+      else c.etat.cc = Math.max(0, (c.etat.cc || 0) - ctx.dt);
+      c.etat.alerte = c.etat.cc > 0 ? "Court-circuit : courant énorme (" + LS.si(Math.abs(i), "A") + " crête). Sur le réseau, le disjoncteur ou le fusible doit couper." : "";
+    }),
     mesures(c, V) { const i = -(c._G * u(c, V) + c._J); return [["Tension instantanée", LS.si(u(c, V), "V")], ["Courant", LS.si(i, "A")], ["Période T = 1/f", LS.si(1 / c.p.f, "s")], ["Valeur efficace (sinus)", LS.si(c.p.A / Math.SQRT2, "V")]]; }
   };
 
@@ -277,15 +343,22 @@
         halo.setAttribute("r", 16 + 14 * e);
       };
     },
-    modele: avecApres(dipole(c => (c.etat && c.etat.grille) ? null : [c.p.Pn / (c.p.Un * c.p.Un), 0]), (c, V, ctx) => {
-      const U = u(c, V), P = U * U * c.p.Pn / (c.p.Un * c.p.Un);
+    /* Filament : sa résistance croît avec sa température (≈ 1/14 de la valeur nominale à froid, d'où
+       l'appel de courant à l'allumage). Température réduite x = T/Tn : rayonnement ∝ x⁴, R ∝ x^1,2. */
+    resistance(c) { const x = c._x === undefined ? 0.11 : c._x; return c.p.Un * c.p.Un / c.p.Pn * Math.max(0.07, Math.pow(x, 1.2)); },
+    modele: avecApres(dipole(c => (c.etat && c.etat.grille) ? null : [1 / R.lampe.resistance(c), 0]), (c, V, ctx) => {
+      const U = u(c, V), Rf = R.lampe.resistance(c), P = U * U / Rf;
       c._u = U;
+      const x = c._x === undefined ? 0.11 : c._x;
+      c._x = Math.max(0.11, x + (P / c.p.Pn - Math.pow(x, 4)) * Math.min(0.5, ctx.dt / 0.2)); // inertie thermique
       const a = Math.min(1, ctx.dt / 0.1);
       c._ueff = Math.sqrt((c._ueff || 0) ** 2 * (1 - a) + U * U * a); // tension efficace (lissée sur 0,1 s)
-      surchauffe(c, P > 2 * c.p.Pn, ctx.dt, 0.15);
-      c.etat.alerte = c.etat.grille ? "Filament grillé : la tension était trop forte" : P > 1.3 * c.p.Pn ? "Surtension : la lampe va griller" : P < 0.05 * c.p.Pn && P > 1e-6 ? "Tension trop faible : le filament ne rougit pas" : "";
+      const Pr = Math.pow(c._x, 4) * c.p.Pn; // puissance rayonnée en régime établi
+      surchauffe(c, c._x > 1.22, ctx.dt, 0.15);
+      if (c.etat.grille) c._x = 0.11;
+      c.etat.alerte = c.etat.grille ? "Filament grillé : la tension était trop forte" : c._x > 1.07 ? "Surtension : la lampe va griller" : Pr < 0.05 * c.p.Pn && P > 1e-6 ? "Tension trop faible : le filament ne rougit pas" : "";
     }),
-    mesures(c, V) { const U = u(c, V), I = c._i ? c._i[0] : 0; return [["Tension", LS.si(U, "V")], ["Courant", LS.si(I, "A")], ["Puissance", LS.si(U * I, "W")], ["Éclat", Math.round(100 * Math.min(1, Math.sqrt(Math.abs(U * I) / c.p.Pn))) + " %"]]; }
+    mesures(c, V) { const U = u(c, V), I = c._i ? c._i[0] : 0; return [["Tension", LS.si(U, "V")], ["Courant", LS.si(I, "A")], ["Puissance", LS.si(U * I, "W")], ["Résistance du filament (chaude ou froide)", LS.si(R.lampe.resistance(c), "Ω")], ["Éclat", Math.round(100 * Math.min(1, Math.sqrt(Math.abs(U * I) / c.p.Pn))) + " %"]]; }
   };
 
   R.led = {
@@ -330,7 +403,14 @@
       d.p("M30,-10 L30,10 L50,0 Z", "plein"); d.l(50, -10, 50, 10);
       d.t(14, -8, "A", "txt"); d.t(66, -8, "K", "txt");
     },
-    modele: jonction(() => ({ n: 1.75, is: 2.5e-9 }))
+    modele: avecApres(jonction(() => ({ n: 1.75, is: 2.5e-9 })), (c, V, ctx) => {
+      c.etat = c.etat || {};
+      if (c.etat.grille) { c.etat.alerte = "Diode grillée (courant trop fort) : 🛠 Réparer"; return; }
+      const x = u(c, V), i = c._G ? c._G * x + c._J : 0;
+      const pm = thermique(c, Math.abs(x * i), i, ctx.dt, LIM_DIODE);
+      c.etat.alerte = c.etat.grille ? "Diode grillée (courant trop fort) : 🛠 Réparer" : pm > LIM_DIODE.pnom ? "La diode chauffe : " + LS.si(Math.abs(i), "A") + " (1N4007 : 1 A en continu)" : "";
+    }),
+    mesures(c, V) { const x = u(c, V), i = c._G ? c._G * x + c._J : 0; return [["Tension (seuil ≈ 0,7 V)", LS.si(x, "V")], ["Courant", LS.si(i, "A")], ["Puissance", LS.si(x * i, "W")], ["Limites (1N4007)", "1 A en continu, 30 A pendant 8 ms, 1 000 V en inverse"]]; }
   };
 
   R.zener = {
@@ -342,7 +422,15 @@
       d.p("M30,-10 L30,10 L50,0 Z", "plein"); d.p("M45,-14 L50,-10 L50,10 L55,14");
       d.t(40, 26, "Vz " + c.p.Vz + " V", "valeur");
     },
-    modele: jonction(c => ({ n: 1.75, is: 2.5e-9, vz: c.p.Vz, iz: 5e-4 }))
+    // Claquage : 5 mA à Vz, résistance dynamique ≈ 20 Ω à 10 mA (nz = 8).
+    modele: avecApres(jonction(c => ({ n: 1.75, is: 2.5e-9, vz: c.p.Vz, iz: 5e-3, nz: 8 })), (c, V, ctx) => {
+      c.etat = c.etat || {};
+      if (c.etat.grille) { c.etat.alerte = "Zener grillée (trop de puissance) : 🛠 Réparer"; return; }
+      const x = u(c, V), i = c._G ? c._G * x + c._J : 0;
+      const pm = thermique(c, Math.abs(x * i), i, ctx.dt, LIM_ZENER);
+      c.etat.alerte = c.etat.grille ? "Zener grillée (trop de puissance) : 🛠 Réparer" : pm > LIM_ZENER.pnom ? "La Zener chauffe : " + LS.si(pm, "W") + " (max 0,5 W) : augmente la résistance série" : "";
+    }),
+    mesures(c, V) { const x = u(c, V), i = c._G ? c._G * x + c._J : 0; return [["Tension", LS.si(x, "V")], ["Courant", LS.si(i, "A")], ["Puissance (max 0,5 W)", LS.si(Math.abs(x * i), "W")]]; }
   };
 
   R.condensateur = {
@@ -394,7 +482,10 @@
         if (ouvert(c)) return;
         const x = u(c, V);
         c._il = c._G * x + c._J;
-        if (Math.abs(x) > Math.abs(c._upic || 0)) c._upic = x; // tension crête (remise à zéro par le TP)
+        if (Math.abs(x) > Math.abs(c._upic || 0)) c._upic = x; // tension crête
+        // Tension « inverse » : quand la bobine rend son énergie (u et i de signes opposés), c'est la
+        // surtension de coupure. Remise à zéro par le TP.
+        if (x * c._il < 0 && Math.abs(x) > (c._uinv || 0)) c._uinv = Math.abs(x);
       },
       courants(c) { return [c._il || 0, -(c._il || 0)]; }
     },
@@ -498,7 +589,7 @@
   R.fusible = {
     nom: "Fusible", court: "Fusible", cat: "Commande", prefixe: "F",
     bornes: [[0, 0], [4, 0]],
-    props: [{ k: "In", nom: "Calibre", unite: "A", choix: [0.1, 0.5, 1, 2, 5], defaut: 0.5 }],
+    props: [{ k: "In", nom: "Calibre", unite: "A", choix: [0.1, 0.5, 1, 2, 5, 10, 16], defaut: 0.5 }],
     dessin(d, c) {
       d.l(0, 0, 20, 0); d.l(60, 0, 80, 0);
       d.r(20, -8, 40, 16, "plein");
@@ -507,8 +598,9 @@
     },
     modele: avecApres(dipole(c => (c.etat && c.etat.grille) ? null : [20, 0]), (c, V, ctx) => {
       const i = c._G ? c._G * u(c, V) : 0;
-      surchauffe(c, Math.abs(i) > c.p.In, ctx.dt, 0.05);
-      c.etat.alerte = c.etat.grille ? "Fusible fondu : il a protégé le circuit d'une surintensité" : "";
+      c.etat = c.etat || {};
+      if (!c.etat.grille && fusion(c.etat, "chauffe", i, c.p.In, ctx.dt)) { c.etat.grille = true; c.etat.change = true; }
+      c.etat.alerte = c.etat.grille ? "Fusible fondu : il a coupé une surintensité ou un court-circuit. Trouve la cause avant de le remplacer (🛠 Réparer)." : Math.abs(i) > 1.1 * c.p.In ? "Surintensité : le fusible chauffe" : "";
     })
   };
 
@@ -531,7 +623,7 @@
     nom: "Moteur à courant continu", court: "Moteur", cat: "Récepteurs", prefixe: "M",
     bornes: [[0, 0], [4, 0]],
     props: [{ k: "charge", nom: "Charge mécanique (couple résistant)", unite: "%", min: 0, max: 100, pas: 1, defaut: 10 }],
-    k: 0.012, R: 2, J: 2e-5, b: 2e-6,
+    k: 0.012, R: 2, L: 0.002, J: 2e-5, b: 2e-6,
     dessin(d, c) {
       d.l(0, 0, 24, 0); d.l(56, 0, 80, 0);
       d.c(40, 0, 16, "plein");
@@ -547,10 +639,12 @@
     },
     modele: {
       init(c) { c._w = c._w || 0; },
-      stamp(m, c) {
+      stamp(m, c, V, ctx) {
         if (ouvert(c)) return;
         const M = R.moteur;
-        c._G = 1 / M.R; c._J = -M.k * c._w / M.R;
+        // Induit : u = R·i + L·di/dt + kΩ (Euler implicite) → i = (u − kΩ + (L/dt)·i_préc) / (R + L/dt)
+        const z = M.R + M.L / ctx.dt;
+        c._G = 1 / z; c._J = (-M.k * c._w + (M.L / ctx.dt) * (c._i0 || 0)) / z;
         m.g(c._nets[0], c._nets[1], c._G); m.j(c._nets[0], c._nets[1], c._J);
       },
       apres(c, V, ctx) {
@@ -591,17 +685,20 @@
       d.t(-24, 44, c.p.Ub + "V", "valeur");
     },
     modele: {
-      init(c) { c._colle = !!c._colle; },
-      stamp(m, c) {
+      init(c) { c._colle = !!c._colle; c._il = c._il || 0; },
+      stamp(m, c, V, ctx) {
         const [a, b, k1, k2] = c._nets;
         const rb = c.p.Ub * c.p.Ub / 0.36; // bobine ≈ 0,36 W
-        c._gb = 1 / rb;
-        if (a !== undefined && b !== undefined) m.g(a, b, c._gb);
+        const L = 0.003 * rb;               // constante de temps L/R ≈ 3 ms (0,3 H pour un relais 6 V)
+        const z = rb + L / ctx.dt;
+        c._gb = 1 / z; c._jb = (L / ctx.dt) * (c._il || 0) / z;
+        if (a !== undefined && b !== undefined) { m.g(a, b, c._gb); m.j(a, b, c._jb); }
         if (c._colle && k1 !== undefined && k2 !== undefined) m.g(k1, k2, 100);
       },
       apres(c, V) {
         const [a, b] = c._nets;
-        const i = (a !== undefined && b !== undefined) ? c._gb * (V(a) - V(b)) : 0;
+        const i = (a !== undefined && b !== undefined) ? c._gb * (V(a) - V(b)) + c._jb : 0;
+        c._il = i;
         const inom = 0.36 / c.p.Ub;
         const avant = c._colle;
         if (Math.abs(i) > 0.7 * inom) c._colle = true;
@@ -610,14 +707,14 @@
       },
       courants(c, V) {
         const [a, b, k1, k2] = c._nets;
-        const ib = (a !== undefined && b !== undefined) ? c._gb * (V(a) - V(b)) : 0;
+        const ib = (a !== undefined && b !== undefined) ? c._gb * (V(a) - V(b)) + c._jb : 0;
         const ik = (c._colle && k1 !== undefined && k2 !== undefined) ? 100 * (V(k1) - V(k2)) : 0;
         return [ib, -ib, ik, -ik];
       }
     },
     mesures(c, V) {
       const [a, b] = c._nets;
-      const ib = (a !== undefined && b !== undefined) ? c._gb * (V(a) - V(b)) : 0;
+      const ib = c._il || 0;
       return [["Courant dans la bobine", LS.si(ib, "A")], ["Contact", c._colle ? "fermé (bobine alimentée)" : "ouvert"]];
     }
   };
@@ -625,7 +722,8 @@
   R.npn = {
     nom: "Transistor NPN", court: "NPN", cat: "Semi-conducteurs", prefixe: "T",
     bornes: [[0, 0], [2, -2], [2, 2]],
-    props: [{ k: "beta", nom: "Gain en courant β", unite: "", min: 20, max: 400, pas: 10, defaut: 100 }],
+    props: [{ k: "beta", nom: "Gain en courant β", unite: "", min: 20, max: 400, pas: 10, defaut: 100 },
+      { k: "modele", nom: "Modèle", choix: ["BC547 (petit signal)", "TIP31 (puissance)"], defaut: "BC547 (petit signal)" }],
     dessin(d) {
       d.c(30, 0, 18, "plein");
       d.l(0, 0, 20, 0); d.l(20, -11, 20, 11, "corps epais");
@@ -639,14 +737,17 @@
       const [B, C, E] = c._nets, i = c._i || [0, 0, 0];
       const vce = V(C) - V(E), ib = i[0], ic = i[1];
       const regime = ib < 1e-6 ? "bloqué (pas de courant de base)" : vce < 0.3 ? "saturé (interrupteur fermé)" : "linéaire (amplification Ic = β·Ib)";
-      return [["Courant de base Ib", LS.si(ib, "A")], ["Courant collecteur Ic", LS.si(ic, "A")], ["Vbe", LS.si(V(B) - V(E), "V")], ["Vce", LS.si(vce, "V")], ["Ic / Ib", ib > 1e-9 ? LS.nombre(ic / ib, 1) : "—"], ["Régime", regime]];
+      const lim = limitesTransistor(c);
+      return [["Courant de base Ib", LS.si(ib, "A")], ["Courant collecteur Ic", LS.si(ic, "A")], ["Vbe", LS.si(V(B) - V(E), "V")], ["Vce", LS.si(vce, "V")], ["Ic / Ib", ib > 1e-9 ? LS.nombre(ic / ib, 1) : "—"], ["Régime", regime],
+        ["Limites", "Ic ≤ " + LS.si(lim.icmax, "A") + ", Vce ≤ " + lim.vceo + " V, P ≤ " + LS.si(lim.pnom, "W")]];
     }
   };
 
   R.pnp = {
     nom: "Transistor PNP", court: "PNP", cat: "Semi-conducteurs", prefixe: "T",
     bornes: [[0, 0], [2, -2], [2, 2]],
-    props: [{ k: "beta", nom: "Gain en courant β", unite: "", min: 20, max: 400, pas: 10, defaut: 100 }],
+    props: [{ k: "beta", nom: "Gain en courant β", unite: "", min: 20, max: 400, pas: 10, defaut: 100 },
+      { k: "modele", nom: "Modèle", choix: ["BC557 (petit signal)", "TIP32 (puissance)"], defaut: "BC557 (petit signal)" }],
     dessin(d) {
       d.c(30, 0, 18, "plein");
       d.l(0, 0, 20, 0); d.l(20, -11, 20, 11, "corps epais");
@@ -681,7 +782,14 @@
         const a = Math.min(1, ctx.dt / 0.2);
         c._carre = (c._carre || 0) * (1 - a) + x * x * a;
         c._mesure = Math.sqrt(c._carre);
-      } else c._mesure = x;
+      } else {
+        // Mode continu : valeur moyenne (deux filtres de 0,1 s en cascade), comme un vrai multimètre :
+        // ≈ 0 V sur une sinusoïde de 50 Hz (ondulation résiduelle < 1 % de la crête).
+        const a = c._moy === undefined ? 1 : Math.min(1, ctx.dt / 0.1);
+        c._moy1 = (c._moy === undefined ? x : c._moy1 * (1 - a) + x * a);
+        c._moy = (c._moy || 0) * (1 - a) + c._moy1 * a;
+        c._mesure = c._moy;
+      }
     }),
     mesures(c) { return [["Lecture", R.voltmetre.lecture(c)], ["Branchement", "en dérivation (en parallèle)"]]; }
   };
@@ -704,7 +812,12 @@
         const a = Math.min(1, ctx.dt / 0.2);
         c._carre = (c._carre || 0) * (1 - a) + x * x * a;
         c._mesure = Math.sqrt(c._carre);
-      } else c._mesure = x;
+      } else {
+        const a = c._moy === undefined ? 1 : Math.min(1, ctx.dt / 0.1);
+        c._moy1 = (c._moy === undefined ? x : c._moy1 * (1 - a) + x * a);
+        c._moy = (c._moy || 0) * (1 - a) + c._moy1 * a;
+        c._mesure = c._moy;
+      }
     }),
     mesures(c) { return [["Lecture", c._mesure === undefined ? "—" : LS.si(c._mesure, "A")], ["Branchement", "en série (le courant le traverse)"]]; }
   };
@@ -747,8 +860,7 @@
         c._icarre = (c._icarre || 0) * (1 - a) + i * i * a;
         c._u = x; c._iInst = i;
         if (c.p.douille !== "VΩ" && c._G !== undefined) {
-          e.chauffeF = Math.abs(i) > M.FUSIBLE[c.p.douille] ? (e.chauffeF || 0) + ctx.dt : 0;
-          if (e.chauffeF > 0.02) { e.fusible = e.fusible || {}; e.fusible[c.p.douille] = true; e.change = true; }
+          if (fusion(e, "chauffeF", i, M.FUSIBLE[c.p.douille], ctx.dt)) { e.fusible = e.fusible || {}; e.fusible[c.p.douille] = true; e.chauffeF = 0; e.change = true; }
         }
       },
       courants(c) { const i = c._iInst || 0; return [i, -i]; }
@@ -789,7 +901,9 @@
           if (sel === "🔊") { res.bip = r < 50; Object.assign(res, r > 2000 ? { texte: "OL", unite: "Ω" } : auto(r, "Ω", 2000)); }
           else Object.assign(res, auto(r, "Ω", 40e6));
         }
-        if (Math.abs(c._iInst || 0) > 0.002 && sel !== "▶|") res.alerte = res.alerte || "Courant étranger dans les pointes : mesure d'ohms sur circuit alimenté ?";
+        // La source d'essai fait au plus 3 V et pousse le courant vers l'extérieur : une tension plus forte
+        // ou un courant qui entre dans l'appareil viennent du circuit, qui est alimenté.
+        if (v > M.TEST.U + 0.05 || (c._iInst || 0) > 1e-6) res.alerte = res.alerte || "Le circuit est sous tension : coupe l'alimentation avant de mesurer en Ω, continuité ou diode (la mesure est fausse et l'appareil peut souffrir)";
       }
       if (!pointesPosees) res.alerte = res.alerte || "Pose les deux pointes sur le circuit";
       return res;

@@ -126,3 +126,78 @@ test("bobine : surtension et étincelle à l'ouverture, supprimées par une diod
   assert.ok(sans.pic > 400 && sans.arc >= 1, "sans diode : pic " + sans.pic + ", arcs " + sans.arc);
   assert.ok(avec.pic < 2 && avec.arc === 0, "avec diode : pic " + avec.pic);
 });
+
+test("diode en direct sur une pile de 24 V sans résistance : elle grille", () => {
+  const pile = compo("pile", 0, 0, { U: 24, r: 0.01 });
+  const d = compo("diode", 0, 4);
+  simuler({ compos: [pile, d], fils: [fil([0, 0], [0, 4]), fil([4, 0], [4, 4])] }, 0.05, 1e-4);
+  assert.ok(d.etat.grille);
+});
+
+test("Zener 5,1 V : régulation réaliste (résistance dynamique ≈ 20 Ω à 10 mA)", () => {
+  const tension = I => {
+    const pile = compo("pile", 0, 0, { U: 12, r: 0.01 });
+    const r = compo("resistance", 0, 4, { R: (12 - 5.1) / I, Pmax: 5 });
+    const z = compo("zener", 8, 4, { Vz: 5.1 }, 180); // cathode à gauche, côté +
+    simuler({ compos: [pile, r, z], fils: [fil([0, 0], [0, 4]), fil([4, 4], [4, 4]), fil([4, 0], [8, 0], [8, 4])] }, 0.01);
+    return -(z._vd);
+  };
+  const v5 = tension(0.005), v15 = tension(0.015);
+  proche(v5, 5.1, 0.15, "à 5 mA");
+  const rd = (v15 - v5) / 0.01;
+  assert.ok(rd > 8 && rd < 40, "résistance dynamique " + rd + " Ω");
+});
+
+test("générateur 230 V en court-circuit : alerte", () => {
+  const g = compo("generateur", 0, 0, { A: 325, f: 50 });
+  const k = compo("interrupteur", 0, 4, { ferme: true });
+  simuler({ compos: [g, k], fils: [fil([0, 0], [0, 4]), fil([4, 0], [4, 4])] }, 0.02, 1e-4);
+  assert.ok(/Court-circuit/.test(g.etat.alerte));
+});
+
+test("voltmètre en mode continu sur du 230 V alternatif : il lit la moyenne, ≈ 0 V", () => {
+  const g = compo("generateur", 0, 0, { A: 325, f: 50 });
+  const v = compo("voltmetre", 0, 4);
+  const va = compo("voltmetre", 0, 8, { mode: "alternatif (AC, efficace)" });
+  simuler({ compos: [g, v, va], fils: [fil([0, 0], [0, 4], [0, 8]), fil([4, 0], [4, 4], [4, 8])] }, 2, 1e-4);
+  assert.ok(Math.abs(v._mesure) < 5, "DC : " + v._mesure);
+  proche(va._mesure, 230, 5, "AC");
+});
+
+test("fusible : tient à 1,05 In, fond en ≈ 1 s à 1,5 In et en ≈ 12 ms à 10 In", () => {
+  const essai = (I, duree) => {
+    // Le courant est fixé par la résistance interne de la pile.
+    const pile = compo("pile", 0, 0, { U: 10, r: 10 / I - 0.05 });
+    const f = compo("fusible", 0, 4, { In: 1 });
+    let t = 0;
+    const s = new LS.SimulateurElectrique({ compos: [pile, f], fils: [fil([0, 0], [0, 4]), fil([4, 0], [4, 4])] }, REG);
+    while (t < duree && !(f.etat && f.etat.grille)) { s.pas(1e-4); t += 1e-4; }
+    return f.etat && f.etat.grille ? t : Infinity;
+  };
+  assert.strictEqual(essai(1.05, 5), Infinity);
+  const t15 = essai(1.5, 5), t10 = essai(10, 1);
+  assert.ok(t15 > 0.7 && t15 < 2, "1,5 In : " + t15);
+  assert.ok(t10 > 0.005 && t10 < 0.03, "10 In : " + t10);
+});
+
+test("lampe : appel de courant à l'allumage (filament froid)", () => {
+  const pile = compo("pile", 0, 0, { U: 12, r: 0.01 });
+  const l = compo("lampe", 0, 4, { Un: 12, Pn: 21 });
+  const s = new LS.SimulateurElectrique({ compos: [pile, l], fils: [fil([0, 0], [0, 4]), fil([4, 0], [4, 4])] }, REG);
+  s.pas(1e-4); s.courants();
+  const i0 = l._i[0];
+  for (let k = 0; k < 5000; k++) s.pas(1e-4);
+  s.courants();
+  const i1 = l._i[0];
+  proche(i1, 21 / 12, 0.05, "courant établi");
+  assert.ok(i0 > 8 * i1, "appel " + i0 + " A contre " + i1 + " A");
+  assert.ok(!l.etat.grille);
+});
+
+test("multimètre en ohmmètre posé sur une pile de 9 V : alerte « sous tension »", () => {
+  const pile = compo("pile", 0, 0, { U: 9, r: 0.1 });
+  const mm = compo("multimetre", 0, 0, { sel: "Ω", douille: "VΩ" });
+  mm.bornes = [[0, 0], [4, 0]]; mm._posees = true;
+  simuler({ compos: [pile, mm], fils: [] }, 0.01);
+  assert.ok(/sous tension/.test(REG.multimetre.affichage(mm).alerte));
+});

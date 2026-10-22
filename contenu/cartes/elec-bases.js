@@ -45,7 +45,7 @@ LS.ajouterCarte({
       { t: "Calibre", d: "Valeur maximale mesurable dans une position du sélecteur. Au-delà, l'appareil affiche « OL » (over load). Les multimètres modernes choisissent souvent le calibre seuls (auto-range)." }
     ] },
     { t: "Sécurité", note: "Le courant peut tuer", c: [
-      { t: "Danger du courant", d: "C'est le courant qui traverse le corps qui est dangereux : dès 30 mA, risque de paralysie respiratoire ; au-delà de 75 mA, fibrillation cardiaque. Le corps humain a une résistance de l'ordre de 1 000 à 5 000 Ω : 230 V suffisent à tuer.", attention: "Ne jamais travailler sur une installation sous tension." },
+      { t: "Danger du courant", d: "C'est le courant qui traverse le corps qui est dangereux : dès 30 mA, risque de paralysie respiratoire ; au-delà de 75 mA, fibrillation cardiaque. Sous 230 V, le corps humain présente environ 1 000 à 2 000 Ω entre les mains (CEI 60479), moins encore mouillé : 115 à 230 mA, bien assez pour tuer.", attention: "Ne jamais travailler sur une installation sous tension." },
       { t: "Très basse tension", d: "En dessous de 50 V alternatif ou 120 V continu (TBT), le risque d'électrocution est très faible dans des conditions normales : c'est le domaine des piles, batteries 12 V, cartes électroniques." },
       { t: "Fusible", d: "Fil calibré qui fond quand le courant dépasse sa valeur nominale pendant un certain temps : il coupe le circuit et le protège d'un court-circuit ou d'une surcharge. Il se remplace après chaque défaut.", tp: "elec-bac-a-sable" },
       { t: "Disjoncteur", d: "Interrupteur automatique qui s'ouvre en cas de surintensité (élément magnétique pour les courts-circuits, thermique pour les surcharges). Il se réarme." },

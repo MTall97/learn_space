@@ -10,7 +10,7 @@ LS.ajouterTP({
   },
   objectifs: [
     { texte: "Branche une LED **rouge** avec une résistance en série sur la pile de 9 V, avec un courant **entre 12 et 22 mA**.",
-      indice: "R = (9 − 1,9) / 0,02 ≈ 355 Ω : prends 330 Ω. Attention au sens de la LED : anode vers le +.",
+      indice: "R = (9 − 1,9) / 0,02 ≈ 355 Ω : prends la valeur normalisée **au-dessus**, 390 Ω (≈ 18 mA). En dessous (330 Ω), on dépasserait 20 mA. Attention au sens de la LED : anode vers le +.",
       verif: s => s.liste("led").some(l => l.p.couleur === "rouge" && !(l.etat && l.etat.grille) && s.I(l) > 0.012 && s.I(l) < 0.022) },
     { texte: "Retourne la LED (bouton ⟳ deux fois) : elle s'éteint. C'est une diode : elle bloque le courant en inverse.",
       verif: (s, m) => s.liste("led").some(l => s.U(l) < -1 && Math.abs(s.I(l)) < 1e-5) },

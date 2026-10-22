@@ -1,7 +1,7 @@
 LS.ajouterCarte({
   id: "elec-alternatif",
   titre: "Le courant alternatif",
-  intro: "Le réseau électrique fournit une tension qui change de sens 50 fois par seconde. Cette carte explique comment la décrire (amplitude, période, valeur efficace), comment se comportent R, L et C en alternatif, ce que sont les puissances active et réactive, et le triphasé.",
+  intro: "Le réseau électrique fournit une tension qui change de sens 100 fois par seconde (50 périodes). Cette carte explique comment la décrire (amplitude, période, valeur efficace), comment se comportent R, L et C en alternatif, ce que sont les puissances active et réactive, et le triphasé.",
   racine: { t: "Courant alternatif", c: [
     { t: "Signal sinusoïdal", d: "Tension ou courant qui varie comme une sinusoïde : u(t) = Û·sin(2π·f·t + φ). C'est la forme produite naturellement par un alternateur qui tourne.", tp: "elec-12-alternatif", c: [
       { t: "Valeur crête", d: "Valeur maximale atteinte, notée Û (ou Umax). L'amplitude crête-à-crête vaut 2·Û.", ex: "Réseau 230 V : Û ≈ 325 V." },

@@ -27,13 +27,14 @@ LS.ajouterTP({
     { texte: "Ouvre K1 : observe l'**étincelle** entre les contacts et la surtension aux bornes de la bobine (centaines de volts !).",
       verif: (s, m) => { const k = s.trouver("K1"); return (k.etat && k.etat.etincelles) > 0; },
       bravo: "L'énergie stockée (½·L·I² ≈ 0,7 J) doit s'évacuer : sans chemin, elle force le passage dans l'air." },
-    { texte: "Ajoute une **diode de roue libre** en parallèle sur la bobine, montée **en inverse** (cathode vers le +). Refais fermer/ouvrir : plus d'étincelle, la surtension reste sous 2 V.",
+    { texte: "Ajoute une **diode de roue libre** en parallèle sur la bobine, montée **en inverse** (cathode vers le +). Refais fermer/ouvrir : plus d'étincelle, la tension inverse de la bobine à l'ouverture reste sous 2 V (le seuil de la diode).",
       indice: "La cathode (barre) va côté K1 (+), l'anode côté pile (−). En fonctionnement normal, la diode est bloquée ; à l'ouverture, le courant de la bobine tourne en rond à travers elle.",
       verif: (s, m) => {
         const k = s.trouver("K1"), l = s.trouver("L1");
         if (!s.liste("diode").length) return false;
-        if (k.p.ferme && (l._il || 0) > 1) { m.charge = true; m.n0 = (k.etat && k.etat.etincelles) || 0; l._upic = 0; }
-        if (m.charge && !k.p.ferme && Math.abs(l._il || 0) < 0.05) return ((k.etat && k.etat.etincelles) || 0) === m.n0 && Math.abs(l._upic || 0) < 2;
+        // Bobine chargée K1 fermé : on remet à zéro la tension inverse (énergie rendue), puis on la lit à l'ouverture.
+        if (k.p.ferme && (l._il || 0) > 1) { m.charge = true; m.n0 = (k.etat && k.etat.etincelles) || 0; l._uinv = 0; }
+        if (m.charge && !k.p.ferme && Math.abs(l._il || 0) < 0.05) return ((k.etat && k.etat.etincelles) || 0) === m.n0 && (l._uinv || 0) < 2;
         return false;
       } }
   ],

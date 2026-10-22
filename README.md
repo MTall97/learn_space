@@ -32,7 +32,7 @@ La progression (notions comprises, objectifs atteints, montages) est gardée **d
 
 - **Cartes mentales** (`carte.html?id=…`) : arbre interactif à la XMind. Clic sur une notion → définition, formule, exemple, analogie, lien vers le TP ; « J'ai compris » pour suivre sa progression ; mode **Réviser** par fiches.
 - **TP** (`tp.html?id=…`) : une simulation, des **objectifs vérifiés en direct**, des questions et les notions liées (tirées des cartes).
-- **Simulateur de circuits** (`assets/js/circuit/`) : on pose les composants, on les relie, on règle leurs valeurs, on observe courant (points jaunes), potentiels (couleurs des fils), oscilloscope et **multimètre réaliste** (sélecteur, douilles, fusibles, continuité, test diode). Résolution par analyse nodale en régime transitoire (méthode de Newton pour les diodes, LED et transistors ; Euler implicite pour condensateurs et bobines). Résistances, lampes, LED et fusibles peuvent griller (les autres composants : voir les limites) ; un contact qui coupe une bobine fait une étincelle.
+- **Simulateur de circuits** (`assets/js/circuit/`) : on pose les composants, on les relie, on règle leurs valeurs, on observe courant (points jaunes), potentiels (couleurs des fils), oscilloscope et **multimètre réaliste** (sélecteur, douilles, fusibles, continuité, test diode). Résolution par analyse nodale en régime transitoire (méthode de Newton pour les diodes, LED et transistors ; Euler implicite pour condensateurs et bobines). Résistances, lampes, LED, fusibles, diodes, Zener et transistors peuvent griller ; un contact qui coupe une bobine fait une étincelle.
 - **Simulations animées** (`assets/js/sims/`) : moteur thermique (modèle thermodynamique : compression, combustion, détente, diagramme pression-volume, couple), transmissions (dynamique de l'embrayage, calage), machines électriques, télécoms, ESP32 (contraintes réelles des broches, ADC non linéaire, PWM), drones.
 
 ### Arborescence
@@ -47,7 +47,7 @@ assets/js/sims/                      simulations animées
 contenu/parcours.js                  domaines et ordre des étapes
 contenu/cartes/<id>.js               une carte mentale par fichier
 contenu/tps/<id>.js                  un TP par fichier
-tests/                               tests (node --test tests/*.test.js)
+tests/                               tests (node --test tests/*.test.js), dont le rejeu des objectifs de TP
 ```
 
 ### Ajouter du contenu

@@ -53,7 +53,14 @@
   E._schemaInitial = function () {
     if (this.cleSauvegarde) {
       const s = LS.lire(this.cleSauvegarde, null);
-      if (s && s.compos) return s;
+      if (s && s.compos) {
+        // Les éléments verrouillés reprennent toujours les réglages du TP ; un montage sauvegardé avant
+        // l'ajout d'un élément imposé repart du montage du TP.
+        const imposes = ((this.opts.schema || {}).compos || []).filter(c => c.verrou);
+        if (imposes.some(c => !s.compos.some(x => x.nom === c.nom && x.type === c.type))) return JSON.parse(JSON.stringify(this.opts.schema));
+        imposes.forEach(c => { const x = s.compos.find(y => y.nom === c.nom); x.verrou = true; x.fixe = true; x.p = JSON.parse(JSON.stringify(c.p || {})); });
+        return s;
+      }
     }
     return JSON.parse(JSON.stringify(this.opts.schema || { compos: [], fils: [] }));
   };
@@ -91,7 +98,7 @@
   E._sauver = function () {
     if (!this.cleSauvegarde) return;
     const propre = {
-      compos: this.schema.compos.filter(c => !c.virtuel).map(c => ({ type: c.type, x: c.x, y: c.y, rot: c.rot, p: c.p, nom: c.nom, fixe: c.fixe, cache: c.cache, etat: c.etat && c.etat.grille ? { grille: true } : undefined })),
+      compos: this.schema.compos.filter(c => !c.virtuel).map(c => ({ type: c.type, x: c.x, y: c.y, rot: c.rot, p: c.p, nom: c.nom, fixe: c.fixe, verrou: c.verrou, cache: c.cache, etat: c.etat && c.etat.grille ? { grille: true } : undefined })),
       fils: this.schema.fils.map(f => ({ pts: f.pts, coupe: f.coupe, fixe: f.fixe }))
     };
     LS.ecrire(this.cleSauvegarde, propre);
@@ -210,7 +217,7 @@
   };
   E.reparer = function () {
     this.schema.compos.forEach(c => {
-      if (c.etat) { c.etat.grille = false; c.etat.chauffe = 0; c.etat.fusible = null; }
+      if (c.etat) { c.etat.grille = false; c.etat.chauffe = 0; c.etat.pm = 0; c.etat.fusible = null; c.etat.chauffeF = 0; }
     });
     this.rendu(); this._sauver(); this._signaler();
   };
@@ -617,7 +624,10 @@
     }
     const def = this.reg[x.type];
     pan.append(LS.el("h3", { text: `${x.nom} — ${def.nom}` }));
-    (def.props || []).forEach(q => pan.append(self._controle(x, q)));
+    // Élément imposé et verrouillé par le TP (ex. le réseau 230 V) : réglages affichés, non modifiables.
+    if (x.verrou) (def.props || []).forEach(q => pan.append(LS.el("div", { class: "ligne" }, [LS.el("span", { text: q.nom + " :" }),
+      LS.el("b", { text: q.bool ? (x.p[q.k] ? "oui" : "non") : q.choix ? x.p[q.k] + (q.unite ? " " + q.unite : "") : LS.si(x.p[q.k], q.unite || "", 3) }), LS.el("span", { class: "etiquette", text: "🔒 imposé" })])));
+    else (def.props || []).forEach(q => pan.append(self._controle(x, q)));
     const actions = LS.el("div", { class: "ligne" });
     if (def.cliquable && def.action) actions.append(LS.el("button", { class: "btn petit", text: "⇄ Basculer", onclick: () => { def.action(x); self.rendu(); self._sauver(); self._signaler(); self._afficherProprietes(); } }));
     if (!x.fixe) {
@@ -662,9 +672,12 @@
       return LS.el("div", { class: "ligne" }, [LS.el("span", { text: q.nom + " :" }), s]);
     }
     const val = LS.el("b", { text: LS.si(c.p[q.k], q.unite || "", 3) });
-    const pos = v => q.log ? 1000 * Math.log(v / q.min) / Math.log(q.max / q.min) : v;
-    const deVal = x => q.log ? q.min * Math.pow(q.max / q.min, x / 1000) : x;
-    const r = LS.el("input", { type: "range", min: q.log ? 0 : q.min, max: q.log ? 1000 : q.max, step: q.log ? 1 : (q.pas || (q.max - q.min) / 200), value: pos(c.p[q.k]) });
+    // Une valeur imposée par le TP peut sortir de la plage du curseur (325 V crête du réseau) : on élargit
+    // la plage pour ne jamais la ramener à la borne sans le vouloir.
+    const v0 = c.p[q.k], min = Math.min(q.min, v0), max = Math.max(q.max, v0);
+    const pos = v => q.log ? 1000 * Math.log(v / min) / Math.log(max / min) : v;
+    const deVal = x => q.log ? min * Math.pow(max / min, x / 1000) : x;
+    const r = LS.el("input", { type: "range", min: q.log ? 0 : min, max: q.log ? 1000 : max, step: q.log ? 1 : (q.pas || (max - min) / 200), value: pos(c.p[q.k]) });
     r.addEventListener("input", () => {
       let v = deVal(+r.value);
       if (q.normalise) v = normaliserE12(v);
@@ -675,7 +688,7 @@
     const saisie = LS.el("input", { type: "text", value: "", placeholder: "saisir", style: "width:80px", title: "Saisir une valeur (ex. 4.7k, 220, 10µ)" });
     saisie.addEventListener("change", () => {
       const v = LS.lireValeur(saisie.value);
-      if (v === null || v < (q.log ? q.min : q.min) || v > q.max) { saisie.value = ""; saisie.placeholder = "hors limites"; return; }
+      if (v === null || v < min || v > max) { saisie.value = ""; saisie.placeholder = "hors limites"; return; }
       r.value = pos(v); val.textContent = LS.si(v, q.unite || "", 3); changer(v); saisie.value = "";
     });
     return LS.el("div", { class: "controle" }, [LS.el("label", {}, [LS.el("span", { text: q.nom }), val]), LS.el("div", { class: "ligne" }, [r, saisie])]);

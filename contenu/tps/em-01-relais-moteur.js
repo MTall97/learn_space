@@ -6,7 +6,7 @@ LS.ajouterTP({
   intro: "Un **relais** est un interrupteur commandé par un **électroaimant** : quand sa bobine est alimentée, elle attire une lame qui ferme un contact. Le circuit de **commande** (6 V, bouton poussoir BP1, bobine) est séparé électriquement du circuit de **puissance** (12 V, contact, moteur M1). Comme les relais de démarreur ou de phares d'une voiture.",
   config: {
     palette: ["diode", "amperemetre", "voltmetre", "interrupteur", "lampe"],
-    dt: 5e-4,
+    dt: 2e-5, // pas fin pour résoudre la surtension de la bobine du relais à la coupure
     schema: {
       compos: [
         { type: "pile", x: 4, y: 6, rot: 90, p: { U: 6, r: 0.2 }, nom: "G1", fixe: true },
@@ -32,8 +32,17 @@ LS.ajouterTP({
       verif: (s, m) => { if (s.choix && s.choix.nom === "KA1") m.a = true; if (s.choix && s.choix.nom === "M1") m.b = true; return !!(m.a && m.b); } },
     { texte: "Remplace BP1 par un **interrupteur** pour une marche continue, puis augmente la **charge** du moteur à 100 % : la vitesse baisse et le courant monte.",
       verif: s => s.trouver("M1").p.charge >= 95 && s.liste("interrupteur").some(k => k.p.ferme) && Math.abs(s.trouver("M1")._i0 || 0) > 2 },
-    { texte: "Protège le contact du bouton : ajoute une **diode de roue libre** en parallèle sur la bobine du relais (cathode côté +).",
-      verif: s => { const k = s.trouver("KA1"); return s.liste("diode").some(d => s.memeNet(d, 1, k, 0) && s.memeNet(d, 0, k, 1)); } }
+    { texte: "Coupe la commande (relâche BP1 ou ouvre l'interrupteur) : une **étincelle** jaillit sur le contact, car la bobine du relais (≈ 0,3 H) refuse que son courant s'arrête. Ajoute une **diode de roue libre** en parallèle sur la bobine (cathode côté +), remets en marche puis coupe : plus d'étincelle.",
+      indice: "La cathode (barre) va sur la borne du haut de la bobine (reliée au + par le bouton), l'anode sur celle du bas (−).",
+      verif: (s, m) => {
+        const k = s.trouver("KA1");
+        const diode = s.liste("diode").some(d => s.memeNet(d, 1, k, 0) && s.memeNet(d, 0, k, 1));
+        const etincelles = s.liste("bouton").concat(s.liste("interrupteur")).reduce((n, c) => n + ((c.etat && c.etat.etincelles) || 0), 0);
+        if (!diode) { m.arme = false; return false; }
+        if (k._colle) { m.arme = true; m.n0 = etincelles; return false; }
+        return !!(m.arme && etincelles === m.n0 && Math.abs(k._il || 0) < 1e-3);
+      },
+      bravo: "La diode offre un chemin au courant de la bobine : il s'éteint en quelques millisecondes, sans surtension. Le contact (ou le transistor qui commande le relais) est protégé." }
   ],
   questions: [
     { q: "Quel est l'intérêt principal d'un relais ?", choix: ["Commander un circuit de forte puissance avec un petit courant, en isolant les deux circuits", "Augmenter la tension", "Mesurer le courant"], bonne: 0 },

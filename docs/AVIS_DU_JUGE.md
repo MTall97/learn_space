@@ -46,6 +46,31 @@ Calculs de base du bâtiment (courbes B/C/D, points du bilame, Iz, Icc, TT, temp
 ### Avis du juge sur les limites déclarées
 Honnêtes mais incomplètes : rien n'était déclaré pour le simulateur de circuits, la mécanique, les transmissions, l'électromécanique, les drones (puissance moteur non bornée : 22,7 kW par moteur en 10" 2 400 KV 6S), l'ESP32, les télécoms et le numérique ; ni pour le C-rate des batteries, In ≤ Iz, l'absence de protection en 230 V, les objectifs impossibles ou devinables et la couverture des tests. Le README affirmait « les composants peuvent griller » sans nuance.
 
+## Suites données (22/10/2026)
+
+| Point | Suite | Chiffre avant → après |
+|---|---|---|
+| B1 elec-10 | **Corrigé** : la bobine mesure la tension pendant qu'elle rend son énergie (`_uinv`) ; un test rejoue l'objectif. | diode bien montée : 11,87 V (refusé) → 0,90 V (validé) ; sans diode ≈ 600 V |
+| I1 court-circuit 230 V | **Corrigé** : alerte du générateur ; fusible F1 10 A imposé dans elec-08 (loi I²t), objectif « court-circuit puis réparation ». | ≈ 3 000 A sans alerte → F1 fond en ≈ 12 ms |
+| I2 éléments imposés | **Corrigé** : réglages verrouillés (🔒) sur le réseau, F1 et L1 ; un curseur hors plage élargit sa plage au lieu de ramener la valeur à la borne. Les autres éléments `fixe` restent réglables quand le TP le demande. | 325 V ramenés à 24 V → impossible |
+| I3 voltmètre DC | **Corrigé** : moyenne filtrée en mode continu ; question de elec-08 réécrite (≈ 0 V). | valeur instantanée → < 5 V sur le 230 V |
+| I4 In ≤ Iz | **Corrigé** : condition complète In ≤ Iz et I2 = 1,45 In ≤ 1,45 Iz, surcharge modérée tolérée temporairement ; nouvel objectif qui la montre. | « ne surchauffe jamais » → 1,5 mm² en 16 A à 18,3 A : 73 °C sans coupure, expliqué |
+| I5 corps humain | **Corrigé** : 1 000 à 2 100 Ω sous 230 V partout (CEI 60479-1), 1 300 Ω par défaut. | 1 000-5 000 Ω / sèche 2 000 Ω → 1 300 Ω, ≈ 129 mA avec RA 30 Ω |
+| I6 composants qui ne grillent pas | **Partiellement** : diode 1N4007, Zener 0,5 W, BC547/557, TIP31/32 grillent (puissance lissée, courant de pointe). Une diode grillée devient un circuit ouvert (en vrai, souvent un court-circuit) ; pas de claquage inverse de la 1N4007. | diode sur 24 V : 2 275 A → grillée en 10 ms |
+| I7 inductance du relais et du moteur | **Corrigé** : relais 0,3 H (6 V), induit 2 mH, avalanche du transistor au-delà de Vceo ; em-01 et elec-16 vérifient la diode réellement branchée. Limite : em-01 et elec-16 tournent au ralenti (×0,48, ×0,24) à cause du pas de calcul fin ; pas d'arc sur le contact du relais. | aucune étincelle → étincelle sans diode |
+| I8 ohmmètre sous tension | **Corrigé** : alerte dès 3,05 V aux pointes. Limite : une pile de 1,5 V donne une fausse résistance sans alerte (comme un vrai appareil). | 9 V : « OL » sans alerte → alerte |
+| I9 batteries | **Corrigé** : BMS LiFePO4 qui coupe au-delà de 1 C, charge refusée sous 0 °C ; alertes plomb (0,3 C en charge) ; durée de vie divisée par 2 tous les 10 °C au-dessus de 25 °C. | plomb à Bamako : 1,9 → 1,1 an |
+| I10 drone | **Corrigé** : sens de rotation en panne tiré du mixage ; puissance par moteur plafonnée selon la taille. | 10" 2 400 KV 6S : 22,7 kW → 1,5 kW et alerte |
+| I11 asynchrone | **Corrigé** : double cage simplifiée, glissement borné, calage, démarrage dynamique. | Cd/Cmax 0,29 → 0,67 ; vitesse −23 tr/min → calé |
+| I12 transformateur | **Corrigé** : saturation au-delà de 1,2 × les volts par spire nominaux ; pertes fer en (U1/N1)². | 100 spires sous 400 V : « normal » → 1 840 A, brûle |
+| I13 moteurs | **Corrigé** : frottements selon la vitesse du piston, remplissage par moteur, prémélange diesel ; recalages décrits dans meca-05. Limite : pmax de la moto 118 bar (un peu haute). | moto 49 N·m / 56 kW → 68 N·m / 86 kW ; diesel 44 → 87-157 bar |
+| I14 ESP32 UART | **Corrigé** : dessin sur GPIO 17/16 comme `Serial2`. | GPIO 1/3 → 17/16 |
+| I15 objectifs devinables | **Partiellement** : réponses saisies et vérifiées (tel-02, 04, 05, 06, num-05, elec-11), ordre imposé (`ordre: true`), essais comptés aux questions, signalements de panne après mesure et faux signalements limités. Les autres TP n'ont pas encore de réponse saisie ni d'ordre imposé. | — |
+| I16 tests | **Partiellement** : 46 → 86 tests ; rejeu des objectifs de 8 TP de circuit ; modèles mécaniques, électromécaniques, drone, ESP32, pédagogie. Non couverts : elec-03, elec-11, elec-17, pont de Graetz, simulateur logique, éditeur. | 46 → 86 |
+| Mineurs | **Corrigés** : 100 changements de sens par seconde, arrondi des résistances de LED vers le haut, ondulation à 100 Hz, RA·IΔn ≤ 25 V au mouillé, temps simulé du bilame, alerte d'entrée du PWM, deep sleep d'une DevKitC, ≈ 112 adresses I2C, puissance utile de l'alternateur, fusible du multimètre (I²t), appel de courant de la lampe (≈ 12×), Zener 8-40 Ω, ordre du parcours (elec-08 après le courant alternatif). **Non traités** : simulateur logique (entrée non reliée = 0, RS sans oscillation). | — |
+
+Erreur trouvée en corrigeant, hors rapport : tel-05 affirmait qu'un message TCP de 10 octets reçoit du bourrage (faux : trame de 68 octets) ; l'objectif passe en UDP.
+
 ## Limites relevées par les auteurs (22/10/2026)
 
 ### Maths utiles
