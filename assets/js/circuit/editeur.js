@@ -514,9 +514,43 @@
     });
   };
 
+  /* Tracé d'un fil de a à b, en segments horizontaux et verticaux, en évitant de passer sur une
+     autre borne ou extrémité de fil (ce qui créerait une connexion involontaire). */
   E._routeL = function (a, b) {
-    if (a[0] === b[0] || a[1] === b[1]) return [a.slice(), b.slice()];
-    return [a.slice(), [b[0], a[1]], b.slice()];
+    const obstacles = [];
+    if (this.schema) {
+      this.schema.compos.forEach(c => { if (!c.virtuel) this.reg[c.type].bornes.forEach(bo => obstacles.push(LS.positionBorne(c, bo))); });
+      this.schema.fils.forEach(f => { obstacles.push(f.pts[0], f.pts[f.pts.length - 1]); });
+    }
+    const egal = (p, q) => p[0] === q[0] && p[1] === q[1];
+    const touche = pts => {
+      let n = 0;
+      for (let i = 1; i < pts.length; i++) obstacles.forEach(o => {
+        if (egal(o, a) || egal(o, b)) return;
+        if (LS.surSegment(o, pts[i - 1], pts[i]) || (i < pts.length - 1 && egal(o, pts[i]))) n++;
+      });
+      return n;
+    };
+    const net = pts => pts.filter((p, i) => i === 0 || !egal(p, pts[i - 1]));
+    const cands = [];
+    if (a[0] === b[0] || a[1] === b[1]) cands.push([a, b]);
+    cands.push([a, [b[0], a[1]], b], [a, [a[0], b[1]], b]);
+    for (let d = 1; d <= 6; d++) for (const sg of [1, -1]) {
+      const y = Math.min(a[1], b[1]) - d * sg + (sg < 0 ? Math.abs(a[1] - b[1]) : 0);
+      cands.push([a, [a[0], y], [b[0], y], b]);
+      const x = Math.min(a[0], b[0]) - d * sg + (sg < 0 ? Math.abs(a[0] - b[0]) : 0);
+      cands.push([a, [x, a[1]], [x, b[1]], b]);
+    }
+    cands.push([a, [(a[0] + b[0]) >> 1, a[1]], [(a[0] + b[0]) >> 1, b[1]], b]);
+    let meilleur = null, score = Infinity;
+    for (const c of cands) {
+      const pts = net(c.map(p => p.slice()));
+      if (pts.some(p => p[0] < 0 || p[1] < 0 || p[0] > this.largeur || p[1] > this.hauteur)) continue;
+      const t = touche(pts) * 1000 + pts.length;
+      if (t < score) { score = t; meilleur = pts; }
+      if (touche(pts) === 0 && pts.length <= 3) break;
+    }
+    return meilleur || [a.slice(), b.slice()];
   };
   E._filsAttaches = function (c) {
     const bornes = this.reg[c.type].bornes.map(b => LS.positionBorne(c, b));

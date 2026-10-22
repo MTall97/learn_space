@@ -390,3 +390,5 @@ details.domaine[open] > summary header::before { transform: rotate(90deg); }
 .circuit-svg .etat-logique { stroke: none; }
 .objectif.en-cours { background: linear-gradient(90deg, rgba(247,147,30,.12), transparent); border-radius: 8px; }
 .objectif.en-cours .etat { border-color: var(--accent); color: var(--accent-fort); font-weight: 700; }
+/* Les éléments décoratifs ne doivent jamais intercepter les clics. */
+.circuit-svg .electron, .circuit-svg .jonction, .circuit-svg .point-libre, .circuit-svg .apercu, .circuit-svg .cible, .circuit-svg .fumee, .circuit-svg .grille-pt { pointer-events: none; }

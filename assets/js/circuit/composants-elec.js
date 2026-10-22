@@ -194,7 +194,7 @@
     nom: "Résistance", court: "Résistance", cat: "Passifs", prefixe: "R",
     bornes: [[0, 0], [4, 0]],
     props: [
-      { k: "R", nom: "Résistance", unite: "Ω", min: 1, max: 1e6, log: true, defaut: 100, normalise: true },
+      { k: "R", nom: "Résistance", unite: "Ω", min: 1, max: 1e6, log: true, defaut: 1000, normalise: true },
       { k: "Pmax", nom: "Puissance maximale", unite: "W", choix: [0.25, 0.5, 1, 5], defaut: 0.25 }
     ],
     dessin(d, c) {
