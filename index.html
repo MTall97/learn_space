@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Learn Space</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/commun.js"></script>
+  <script src="assets/js/progression.js"></script>
+  <script src="contenu/parcours.js"></script>
+</head>
+<body>
+  <main class="page">
+    <section class="accueil">
+      <h1>⚡ Learn Space</h1>
+      <p>Un espace pour apprendre l'électricité, l'électronique, l'électromécanique, les télécommunications, la mécanique des moteurs et des transmissions, l'ESP32 et les drones, en <strong>comprenant</strong> (cartes mentales avec définitions) et en <strong>pratiquant</strong> (TP où l'on assemble, mesure et fait varier les grandeurs dans des simulations).</p>
+      <div class="bloc" id="resume"></div>
+      <p class="note astuce"><strong>Comment avancer ?</strong> Dans chaque domaine, suis les étapes dans l'ordre : la carte mentale d'abord (coche « J'ai compris » au fil des notions), puis les TP du plus simple au plus complexe. Ta progression reste dans ce navigateur.</p>
+    </section>
+    <section id="parcours"></section>
+    <section id="cartes" class="domaine">
+      <header><h2>🗺️ Toutes les cartes mentales</h2></header>
+      <div class="grille" id="liste-cartes" style="margin-top:12px"></div>
+    </section>
+    <section id="tps" class="domaine">
+      <header><h2>🔧 Tous les TP</h2></header>
+      <div id="liste-tps"></div>
+    </section>
+    <p class="pied">
+      Learn Space · fonctionne hors ligne (ouvre <code>index.html</code>) ·
+      <button class="btn petit secondaire" id="effacer">Effacer ma progression</button>
+    </p>
+  </main>
+  <script>
+  (async function () {
+    const LS = window.LS;
+    LS.entete("accueil");
+    const cartes = [];
+    LS.parcours.forEach(d => d.etapes.forEach(e => { if (e.type === "carte") cartes.push(e.id); }));
+    await Promise.all(cartes.map(id => LS.charger("contenu/cartes/" + id + ".js").catch(() => null)));
+
+    function avancement(e) {
+      if (e.type === "carte") {
+        const c = LS.cartes[e.id];
+        return c ? LS.progressionCarte(c) : { faits: 0, total: 0, ratio: 0 };
+      }
+      return LS.progressionTPStockee(e.id);
+    }
+    const barre = r => LS.el("div", { class: "barre" }, [LS.el("span", { style: `width:${Math.round(r * 100)}%` })]);
+
+    let totalEtapes = 0, totalFaites = 0;
+    const zone = document.getElementById("parcours");
+    LS.parcours.forEach(d => {
+      const ratios = d.etapes.map(e => avancement(e).ratio);
+      const moy = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+      totalEtapes += d.etapes.length; totalFaites += ratios.reduce((a, b) => a + b, 0);
+      const liste = LS.el("ol", { class: "etapes" });
+      d.etapes.forEach((e, i) => {
+        const a = avancement(e);
+        const fait = a.ratio >= 0.999 && a.total > 0;
+        liste.append(LS.el("li", {}, [LS.el("a", { class: "etape" + (fait ? " faite" : ""), href: LS.etapeHref(e) }, [
+          LS.el("span", { class: "num", text: fait ? "✓" : String(i + 1) }),
+          LS.el("span", {}, [
+            LS.el("span", { class: "etiquette " + (e.type === "carte" ? "carte" : "tp"), text: e.type === "carte" ? "Carte mentale" : "TP" }), " ",
+            LS.el("span", { class: "titre", text: e.titre }),
+            LS.el("div", { class: "desc", text: e.desc || "" })
+          ]),
+          LS.el("span", { class: "droite" }, [barre(a.ratio), LS.el("small", { text: a.total ? `${a.faits}/${a.total}` : "" })])
+        ])]));
+      });
+      const details = LS.el("details", { class: "domaine", id: d.id, open: moy > 0 || d.id === "electricite" ? "open" : null }, [
+        LS.el("summary", {}, [LS.el("header", {}, [LS.el("h2", { text: d.icone + " " + d.titre }), barre(moy), LS.el("small", { text: Math.round(moy * 100) + " %" })])]),
+        LS.el("p", { text: d.desc }), liste
+      ]);
+      zone.append(details);
+    });
+    document.getElementById("resume").append(
+      LS.el("strong", { text: `Progression générale : ${Math.round(100 * totalFaites / totalEtapes)} %` }),
+      barre(totalFaites / totalEtapes),
+      LS.el("small", { text: `${LS.parcours.length} domaines · ${totalEtapes} étapes` }));
+
+    const lc = document.getElementById("liste-cartes");
+    LS.parcours.forEach(d => d.etapes.filter(e => e.type === "carte").forEach(e => {
+      const a = avancement(e);
+      lc.append(LS.el("a", { class: "bloc", href: LS.etapeHref(e), style: "text-decoration:none;color:inherit" }, [
+        LS.el("div", { class: "etiquette carte", text: d.icone + " " + d.titre }),
+        LS.el("h3", { text: e.titre.replace(/^Carte : /, "") }), LS.el("p", { class: "desc", text: e.desc }), barre(a.ratio),
+        LS.el("small", { text: a.total ? `${a.faits}/${a.total} notions comprises` : "" })]));
+    }));
+    const lt = document.getElementById("liste-tps");
+    LS.parcours.forEach(d => {
+      const tps = d.etapes.filter(e => e.type === "tp");
+      if (!tps.length) return;
+      lt.append(LS.el("h3", { text: d.icone + " " + d.titre }));
+      const g = LS.el("div", { class: "grille" });
+      tps.forEach(e => {
+        const a = avancement(e);
+        g.append(LS.el("a", { class: "bloc", href: LS.etapeHref(e), style: "text-decoration:none;color:inherit" }, [
+          LS.el("strong", { text: e.titre }), LS.el("p", { class: "desc", text: e.desc }), barre(a.ratio)]));
+      });
+      lt.append(g);
+    });
+    document.getElementById("effacer").addEventListener("click", () => {
+      if (confirm("Effacer toute ta progression (notions comprises et TP) ?")) { LS.effacerProgression(); location.reload(); }
+    });
+    if (location.hash) { const el = document.querySelector(location.hash); if (el) { if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView(); } }
+  })();
+  </script>
+</body>
+</html>
