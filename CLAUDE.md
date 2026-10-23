@@ -15,6 +15,19 @@ Demandes de l'utilisateur à respecter :
 - le plus réaliste possible, avec plusieurs cas de figure ; travail relu par un **juge** indépendant ;
 - interface ludique et fun mais sérieuse, **utilisable même par des enfants** (lecture facile, gros boutons, consignes courtes, encouragement).
 
+## Vision (23/10/2026)
+Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et comprendre.
+- **Français d'abord** (le bambara viendra plus tard) ; **programme générique**, par tranches d'âge.
+- **Quatre niveaux** : primaire, collège (11-15 ans), lycée, avancé. On choisit son niveau par un
+  profil ou par un petit test de placement, et on peut en changer (aussi par atelier). Le niveau
+  adapte : les étapes proposées, les textes (version simple sans formule au primaire), l'interface et
+  le guidage, la difficulté des objectifs et des quiz.
+- **Enfants** : aucun compte, aucune donnée envoyée (progression dans le navigateur seulement) ;
+  on simule, on ne manipule jamais le 230 V ni les batteries en vrai.
+- Appareils modestes et connexion faible : pages légères, fonctionnement hors ligne.
+- Hébergement : l'utilisateur s'en charge (probablement O2switch, offre cloud). Le site reste
+  statique : il suffit de copier les fichiers.
+
 ## Règles
 - Site statique, **sans dépendance ni étape de construction** : il doit marcher en ouvrant
   `index.html` depuis le disque (pas de modules ES, pas de `fetch` : le contenu est chargé par des
