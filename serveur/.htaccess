@@ -1,0 +1,2 @@
+# Le serveur du journal ne doit jamais être servi par Apache (au cas où il serait copié dans le dossier public).
+Require all denied

@@ -1,10 +1,16 @@
 {
-  "_lisez_moi": "Copier en serveur/config.json (non suivi par Git). Voir docs/JOURNAL.md.",
+  "_lisez_moi": "Copier en config.json à côté de app.js (fichier non suivi par Git, hors du dossier public). Voir docs/JOURNAL.md.",
   "origines": ["https://learnspace.exemple.ml"],
   "dossierDonnees": "/home/COMPTE/learnspace-donnees",
-  "adminHash": "scrypt$16384$8$1$REMPLACER_PAR_LE_RESULTAT_DE$node serveur/app.js --hacher",
+  "adminHash": "REMPLACER par le résultat de : node app.js --hacher",
+  "secretSession": "REMPLACER par 64 caractères aléatoires : node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
   "base": "/api",
+  "cheminAdmin": "/admin",
   "conservationJours": 395,
   "limiteLots10min": 120,
+  "limiteIp10min": 600,
+  "plafondOctetsJour": 50000000,
+  "plafondLotsJour": 200000,
+  "plafondDossierOctets": 2000000000,
   "cookieSecure": true
 }

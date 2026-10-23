@@ -191,7 +191,22 @@ Juge indépendant, lecture seule, sur le commit `11d7509`. Tests : 104 réussis.
 - Aucun secret ni aucune donnée dans Git.
 
 ### Suites
-- B1, B3, I1-I10 et M1-M13 : corrections confiées à l'auteur du journal (voir la section suivante quand elles sont faites).
+- **Faits (23/10/2026, 112 tests) : B1, B3, I1-I5, I7-I10, M1-M13.**
+  - B1 :
+    - seule la dernière entrée de XFF compte, et seulement quand la connexion vient du proxy local ;
+    - plafonds globaux (50 Mo/j, 200 000 lots/j, 2 Go), au-delà réponse 503 ;
+    - lecture et export CSV en flux ;
+    - page `/admin/diagnostic` pour vérifier XFF chez O2switch.
+  - I3 : heures arrondies (minute pour les événements, heure pour la réception).
+  - I4 : export et effacement d'un appareil.
+  - I5 : délai croissant par empreinte d'adresse, chemin d'administration configurable.
+  - I9 : journal désactivé tant que `assets/js/config-journal.js` n'est pas rempli.
+  - I10 : `serveur/.htaccess`, et le serveur refuse de démarrer sous `public_html`.
+- **Partiels :**
+  - **I6 :** le cookie est signé HMAC et le dédoublonnage passe par les fichiers. Restent propres à chaque processus : limites de débit, délais de connexion et révocation à la déconnexion (2 h au plus).
+  - **M8 :** `navigator.locks` ne s'applique pas à la fermeture de l'onglet. Une course rare entre deux onglets reste possible.
+  - **M14 :** `PASSENGER_BASE_URI` est retiré ; le serveur accepte les chemins avec ou sans `/api`.
+- **Bug trouvé en vérifiant dans Chromium :** avec `Referrer-Policy: no-referrer`, les formulaires de l'administration envoyaient `Origin: null` et la connexion était refusée. Passé à `same-origin`.
 - B2 : décision du propriétaire du site (collecte par défaut ou accord explicite d'un parent) et formalité auprès de l'APDP avant toute mise en ligne. Côté technique : identifiant renouvelé tous les 13 mois au plus et heures arrondies.
 
 ## Limites relevées par les auteurs (22/10/2026)
