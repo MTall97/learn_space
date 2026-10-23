@@ -16,7 +16,7 @@ LS.ajouterTP({
       verif: (s, m) => s.liste("led").some(l => s.U(l) < -1 && Math.abs(s.I(l)) < 1e-5) },
     { texte: "Passe la LED en **bleue** (seuil ≈ 3 V) et recalcule la résistance pour 12–22 mA.",
       verif: s => s.liste("led").some(l => l.p.couleur === "bleue" && !(l.etat && l.etat.grille) && s.I(l) > 0.012 && s.I(l) < 0.022) },
-    { texte: "Pour comprendre : branche une LED **sans résistance** et observe (🛠 Réparer ensuite).",
+    { texte: "Pour comprendre : branche une LED **sans résistance** et observe (« Réparer » ensuite).",
       verif: s => s.liste("led").some(l => l.etat && l.etat.grille), bravo: "Le courant n'est limité que par la résistance interne de la pile : bien plus de 30 mA, la LED surchauffe. La résistance série est obligatoire." }
   ],
   questions: [

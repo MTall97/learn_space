@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Premier circuit : pile, interrupteur, lampe",
   domaine: "electricite", niveau: 1, duree: "15 min",
   sim: "circuit",
-  intro: "Voici le circuit le plus simple : une **pile** (le générateur), un **interrupteur** et une **lampe** (le récepteur), reliés par des fils. Les petits points jaunes représentent le courant. Clique sur l'interrupteur pour le sélectionner, puis clique encore dessus (ou sur « ⇄ Basculer ») pour le fermer.",
+  intro: "Voici le circuit le plus simple : une **pile** (le générateur), un **interrupteur** et une **lampe** (le récepteur), reliés par des fils. Les petits points jaunes représentent le courant. Clique sur l'interrupteur pour le sélectionner, puis clique encore dessus (ou sur « Basculer ») pour le fermer.",
   config: {
     palette: ["pile", "lampe", "interrupteur", "resistance"],
     schema: {
@@ -29,7 +29,7 @@ LS.ajouterTP({
         return !!(m.ferme && k && !k.p.ferme && s.liste("lampe").every(l => Math.abs(s.I(l)) < 1e-4));
       } },
     { texte: "Ajoute une **deuxième lampe en série** avec la première (sur le même chemin) et ferme le circuit. Compare l'éclat des lampes avec le montage à une seule lampe.",
-      indice: "Supprime un fil (clique dessus puis 🗑), pose une lampe, puis relie ses deux bornes pour refermer le circuit. Clique sur une lampe pour lire sa tension et son courant.",
+      indice: "Supprime un fil (clique dessus puis « Supprimer »), pose une lampe, puis relie ses deux bornes pour refermer le circuit. Clique sur une lampe pour lire sa tension et son courant.",
       verif: s => {
         const l = s.liste("lampe").filter(x => Math.abs(s.I(x)) > 0.005);
         if (l.length < 2) return false;
@@ -45,11 +45,11 @@ LS.ajouterTP({
   ],
   questions: [
     { q: "Interrupteur ouvert, quelle est la tension entre ses deux bornes ?", choix: ["0 V : aucun courant ne passe", "Environ la tension de la pile (4,5 V)", "La moitié de la tension de la pile"], bonne: 1,
-      explication: "Aucun courant ne passe, donc la lampe n'a aucune tension à ses bornes (U = R·I = 0) : toute la tension de la pile se retrouve aux bornes de la coupure. Vérifie-le avec le multimètre (🔌)." },
+      explication: "Aucun courant ne passe, donc la lampe n'a aucune tension à ses bornes (U = R·I = 0) : toute la tension de la pile se retrouve aux bornes de la coupure. Vérifie-le avec le multimètre (bouton « Multimètre »)." },
     { q: "Dans un fil, dans quel sens se déplacent les électrons ?", choix: ["De la borne + vers la borne −", "De la borne − vers la borne +, à l'extérieur de la pile", "Ils ne bougent pas"], bonne: 1,
       explication: "Le sens conventionnel du courant (+ vers −) a été choisi avant la découverte de l'électron, qui est négatif et va dans l'autre sens. Coche « sens des électrons » pour le voir." },
     { q: "Deux lampes identiques en série sur 4,5 V : quelle tension aux bornes de chacune ?", choix: ["4,5 V", "2,25 V", "9 V"], bonne: 1, explication: "Les tensions s'additionnent en série : 2,25 + 2,25 = 4,5 V (loi des mailles)." }
   ],
   notions: [["elec-bases", "Circuit fermé"], ["elec-bases", "Courant électrique"], ["elec-bases", "Sens conventionnel"], ["elec-bases", "Court-circuit"], ["elec-bases", "En série"]],
-  suite: "Essaie une pile de 12 V avec une seule lampe 6 V : que se passe-t-il ? (bouton 🛠 Réparer pour changer la lampe)."
+  suite: "Essaie une pile de 12 V avec une seule lampe 6 V : que se passe-t-il ? (bouton « Réparer » pour changer la lampe)."
 });

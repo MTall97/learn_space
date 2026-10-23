@@ -23,7 +23,7 @@
     const cache = new Set(config.cacher || []);
 
     const barre = LS.el("div", { class: "sim-barre" });
-    const btnMarche = LS.el("button", { class: "btn petit", text: "⏸ Pause", onclick: () => { sim.enMarche = !sim.enMarche; btnMarche.textContent = sim.enMarche ? "⏸ Pause" : "▶ Lancer"; } });
+    const btnMarche = LS.el("button", { class: "btn petit", text: "Pause", onclick: () => { sim.enMarche = !sim.enMarche; btnMarche.textContent = sim.enMarche ? "Pause" : "Lancer"; } });
     barre.append(btnMarche);
     (def.boutons || []).forEach(b => {
       if (cache.has(b.k)) return;
@@ -132,7 +132,7 @@
       ctx.lineTo(x2 - s * Math.cos(a + 0.45), y2 - s * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
     },
     texte(ctx, t, x, y, coul, taille, align, gras) {
-      ctx.fillStyle = coul; ctx.font = (gras ? "700 " : "500 ") + (taille || 13) + "px Nunito, Segoe UI, sans-serif";
+      ctx.fillStyle = coul; ctx.font = (gras ? "700 " : "500 ") + (taille || 13) + "px " + LS.POLICE;
       ctx.textAlign = align || "left"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y);
     },
     /* Roue dentée : centre, rayon primitif, nombre de dents, angle. */

@@ -6,7 +6,7 @@ LS.ajouterTP({
   intro: "Voici un cylindre de moteur essence en coupe, animé au ralenti. Le cycle **Beau de Rochas** (ou d'Otto) se fait en **4 temps** = 2 tours de vilebrequin : admission, compression, combustion-détente, échappement. À droite : la **roue des phases** (avec les ouvertures de soupapes en anneaux : bleu = admission, gris = échappement, point jaune = étincelle) et le **diagramme pression-volume**, dont l'aire est le travail fourni à chaque cycle.",
   config: { cacher: ["turbo"] },
   objectifs: [
-    { texte: "Mets en **pause** et utilise « Temps suivant ⏭ » pour parcourir les 4 temps. Observe les soupapes.",
+    { texte: "Mets en **pause** et utilise « Temps suivant → » pour parcourir les 4 temps. Observe les soupapes.",
       verif: (s, m) => { m.vus = m.vus || new Set(); m.vus.add(LS.phaseMoteur(s.etat.th).n); return m.vus.size === 4 && !s.enMarche; } },
     { texte: "Remarque le **croisement des soupapes** : autour du PMH entre échappement et admission, les deux soupapes sont ouvertes en même temps. Arrête l'animation dans cette position.",
       verif: s => { const sp = LS.soupapes(s.etat.th); return !s.enMarche && sp.adm > 0.02 && sp.ech > 0.02; },

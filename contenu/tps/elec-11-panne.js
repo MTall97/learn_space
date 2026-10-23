@@ -23,7 +23,7 @@
   titre: "Recherche de panne",
   domaine: "electricite", niveau: 3, duree: "30 min",
   sim: "circuit",
-  intro: "Ce tableau d'éclairage a **deux pannes** : trois lampes devraient s'allumer quand K1 est fermé, mais certaines restent éteintes. Comme en vrai, tu **ne vois pas** le courant : le seul moyen est de **mesurer** avec le multimètre.\n\nMéthode de l'électricien :\n- **sous tension**, en V⎓ : on suit la tension du + vers la lampe ; là où elle disparaît, il y a une coupure ;\n- **hors tension** (K1 ouvert), en continuité 🔊 : un fil sain bipe, un fil coupé non ; une lampe saine bipe presque (quelques dizaines d'ohms), une lampe grillée affiche OL.\n\nQuand tu as trouvé un élément en panne, clique dessus puis sur **🚩 C'est la panne !**.",
+  intro: "Ce tableau d'éclairage a **deux pannes** : trois lampes devraient s'allumer quand K1 est fermé, mais certaines restent éteintes. Comme en vrai, tu **ne vois pas** le courant : le seul moyen est de **mesurer** avec le multimètre.\n\nMéthode de l'électricien :\n- **sous tension**, en V⎓ : on suit la tension du + vers la lampe ; là où elle disparaît, il y a une coupure ;\n- **hors tension** (K1 ouvert), en continuité •)) : un fil sain bipe, un fil coupé non ; une lampe saine bipe presque (quelques dizaines d'ohms), une lampe grillée affiche OL.\n\nQuand tu as trouvé un élément en panne, clique dessus puis sur **C'est la panne !**.",
   sauver: false,
   config: {
     multimetre: true, masquerCourant: true, signalement: true,
@@ -61,7 +61,7 @@
     { texte: "Quel est le **repère** de la lampe grillée, et qu'affichait le multimètre en Ω à ses bornes, hors tension ?",
       saisie: v => { const n = LS.normaliserReponse(v); return /l2/.test(n) && /ol|infini|∞|ouvert/.test(n); },
       aide: "Réponds par exemple « L5, OL ». Une lampe saine affiche quelques dizaines d'ohms." },
-    { texte: "**Répare** : remplace le fil coupé (supprime-le et trace-en un neuf) et la lampe (🛠 Réparer). Les trois lampes doivent briller.",
+    { texte: "**Répare** : remplace le fil coupé (supprime-le et trace-en un neuf) et la lampe (« Réparer »). Les trois lampes doivent briller.",
       verif: s => s.liste("lampe").filter(l => (l._ueff || 0) > 11).length >= 3 && !s.schema.fils.some(f => f.coupe) }
   ],
   questions: [

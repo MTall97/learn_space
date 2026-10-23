@@ -128,7 +128,7 @@
       },
       apres(c, V, ctx) {
         c.etat = c.etat || {};
-        if (c.etat.grille) { c.etat.alerte = "Transistor grillé (trop de courant ou de puissance) : 🛠 Réparer"; return; }
+        if (c.etat.grille) { c.etat.alerte = "Transistor grillé (trop de courant ou de puissance) : « Réparer »"; return; }
         const [B, C, E] = c._nets;
         if (!c._lin || B === undefined) return;
         const i = this.courants(c, V), lim = limitesTransistor(c);
@@ -139,7 +139,7 @@
         c._avAvant = avalanche;
         if (avalanche) c.etat.tAval = 0.5; else c.etat.tAval = Math.max(0, (c.etat.tAval || 0) - ctx.dt);
         const pm = thermique(c, P, Math.max(Math.abs(i[1]), 4 * Math.abs(i[0])), ctx.dt, lim);
-        c.etat.alerte = c.etat.grille ? "Transistor grillé (trop de courant ou de puissance) : 🛠 Réparer" :
+        c.etat.alerte = c.etat.grille ? "Transistor grillé (trop de courant ou de puissance) : « Réparer »" :
           c.etat.tAval > 0 ? "Surtension à la coupure : Vce a atteint " + lim.vceo + " V (avalanche). Une charge inductive sans diode de roue libre détruit le transistor à la longue." :
           Math.abs(i[1]) > lim.icmax ? "Courant collecteur au-delà du maximum (" + LS.si(lim.icmax, "A") + ") : il va griller" :
           pm > lim.pnom ? "Le transistor chauffe : " + LS.si(pm, "W") + " (max " + LS.si(lim.pnom, "W") + ")" : "";
@@ -405,10 +405,10 @@
     },
     modele: avecApres(jonction(() => ({ n: 1.75, is: 2.5e-9 })), (c, V, ctx) => {
       c.etat = c.etat || {};
-      if (c.etat.grille) { c.etat.alerte = "Diode grillée (courant trop fort) : 🛠 Réparer"; return; }
+      if (c.etat.grille) { c.etat.alerte = "Diode grillée (courant trop fort) : « Réparer »"; return; }
       const x = u(c, V), i = c._G ? c._G * x + c._J : 0;
       const pm = thermique(c, Math.abs(x * i), i, ctx.dt, LIM_DIODE);
-      c.etat.alerte = c.etat.grille ? "Diode grillée (courant trop fort) : 🛠 Réparer" : pm > LIM_DIODE.pnom ? "La diode chauffe : " + LS.si(Math.abs(i), "A") + " (1N4007 : 1 A en continu)" : "";
+      c.etat.alerte = c.etat.grille ? "Diode grillée (courant trop fort) : « Réparer »" : pm > LIM_DIODE.pnom ? "La diode chauffe : " + LS.si(Math.abs(i), "A") + " (1N4007 : 1 A en continu)" : "";
     }),
     mesures(c, V) { const x = u(c, V), i = c._G ? c._G * x + c._J : 0; return [["Tension (seuil ≈ 0,7 V)", LS.si(x, "V")], ["Courant", LS.si(i, "A")], ["Puissance", LS.si(x * i, "W")], ["Limites (1N4007)", "1 A en continu, 30 A pendant 8 ms, 1 000 V en inverse"]]; }
   };
@@ -425,10 +425,10 @@
     // Claquage : 5 mA à Vz, résistance dynamique ≈ 20 Ω à 10 mA (nz = 8).
     modele: avecApres(jonction(c => ({ n: 1.75, is: 2.5e-9, vz: c.p.Vz, iz: 5e-3, nz: 8 })), (c, V, ctx) => {
       c.etat = c.etat || {};
-      if (c.etat.grille) { c.etat.alerte = "Zener grillée (trop de puissance) : 🛠 Réparer"; return; }
+      if (c.etat.grille) { c.etat.alerte = "Zener grillée (trop de puissance) : « Réparer »"; return; }
       const x = u(c, V), i = c._G ? c._G * x + c._J : 0;
       const pm = thermique(c, Math.abs(x * i), i, ctx.dt, LIM_ZENER);
-      c.etat.alerte = c.etat.grille ? "Zener grillée (trop de puissance) : 🛠 Réparer" : pm > LIM_ZENER.pnom ? "La Zener chauffe : " + LS.si(pm, "W") + " (max 0,5 W) : augmente la résistance série" : "";
+      c.etat.alerte = c.etat.grille ? "Zener grillée (trop de puissance) : « Réparer »" : pm > LIM_ZENER.pnom ? "La Zener chauffe : " + LS.si(pm, "W") + " (max 0,5 W) : augmente la résistance série" : "";
     }),
     mesures(c, V) { const x = u(c, V), i = c._G ? c._G * x + c._J : 0; return [["Tension", LS.si(x, "V")], ["Courant", LS.si(i, "A")], ["Puissance (max 0,5 W)", LS.si(Math.abs(x * i), "W")]]; }
   };
@@ -600,7 +600,7 @@
       const i = c._G ? c._G * u(c, V) : 0;
       c.etat = c.etat || {};
       if (!c.etat.grille && fusion(c.etat, "chauffe", i, c.p.In, ctx.dt)) { c.etat.grille = true; c.etat.change = true; }
-      c.etat.alerte = c.etat.grille ? "Fusible fondu : il a coupé une surintensité ou un court-circuit. Trouve la cause avant de le remplacer (🛠 Réparer)." : Math.abs(i) > 1.1 * c.p.In ? "Surintensité : le fusible chauffe" : "";
+      c.etat.alerte = c.etat.grille ? "Fusible fondu : il a coupé une surintensité ou un court-circuit. Trouve la cause avant de le remplacer (« Réparer »)." : Math.abs(i) > 1.1 * c.p.In ? "Surintensité : le fusible chauffe" : "";
     })
   };
 
@@ -898,7 +898,7 @@
         } else {
           let r = i > 1e-9 ? v / i : Infinity;
           if (v < -0.01) { res.alerte = "Mesure faussée : le circuit est sous tension (coupe l'alimentation)"; r = Math.abs(r); }
-          if (sel === "🔊") { res.bip = r < 50; Object.assign(res, r > 2000 ? { texte: "OL", unite: "Ω" } : auto(r, "Ω", 2000)); }
+          if (sel === "•))") { res.bip = r < 50; Object.assign(res, r > 2000 ? { texte: "OL", unite: "Ω" } : auto(r, "Ω", 2000)); }
           else Object.assign(res, auto(r, "Ω", 40e6));
         }
         // La source d'essai fait au plus 3 V et pousse le courant vers l'extérieur : une tension plus forte

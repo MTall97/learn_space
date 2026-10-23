@@ -12,7 +12,8 @@ Demandes de l'utilisateur à respecter :
   du plus simple au plus complexe ;
 - en mécanique, fonctionnement simulé en direct, interactif, avec l'explication des notions ;
 - utilisation des outils de mesure (multimètre, oscilloscope) ;
-- le plus réaliste possible, avec plusieurs cas de figure ; travail relu par un **juge** indépendant.
+- le plus réaliste possible, avec plusieurs cas de figure ; travail relu par un **juge** indépendant ;
+- interface ludique et fun mais sérieuse, **utilisable même par des enfants** (lecture facile, gros boutons, consignes courtes, encouragement).
 
 ## Règles
 - Site statique, **sans dépendance ni étape de construction** : il doit marcher en ouvrant
@@ -34,6 +35,19 @@ Demandes de l'utilisateur à respecter :
 - `assets/js/circuit/logique.js` : simulateur logique.
 - `assets/js/sims/*.js` : simulations animées (`LS.simAnimee`), une fabrique par TP (`LS.sims.<nom>`).
 - `assets/js/sims/modele-moteur.js` : modèle thermodynamique du cylindre (testable sous Node).
+
+## Interface et jeu
+- Identité « atelier d'électronique » : façade d'appareil (niveau, jauge à aiguille, série, brevets),
+  ateliers posés comme des composants sur une carte électronique reliés par des pistes de cuivre,
+  piste de pastilles pour les étapes. **Pas de cartes génériques** (boîtes arrondies ombrées en grille),
+  **pas d'émojis ni de symboles Unicode décoratifs** dans l'interface : texte simple, ou pictogrammes au
+  trait de `LS.icone` (`commun.js`). Les symboles techniques restent (V⎓, ▶| du test diode, Ω…).
+- Polices : Baloo 2 pour les titres (ludique), Atkinson Hyperlegible pour le texte (sérieux, lisible),
+  JetBrains Mono pour les chiffres et la sérigraphie. Couleurs : jetons de `:root` dans `style.css`.
+- `assets/js/jeu.js` : points (notion 10, objectif 25, question 10, TP ou carte terminé 50), niveaux,
+  série de jours, objectif du jour (60 pts), brevets. Registre de gains idempotent dans le navigateur,
+  détecté en enveloppant `LS.marquerCompris` et `LS.enregistrerTP` (charger `jeu.js` après
+  `progression.js`).
 
 ## Juge
 Chaque étape importante est relue par une instance indépendante, en lecture seule, qui ne reçoit

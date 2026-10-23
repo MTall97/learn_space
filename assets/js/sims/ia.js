@@ -64,7 +64,7 @@
       ],
       boutons: [
         { k: "pas", texte: "Un pas de gradient", action: s => { s.etat.unPas = true; } },
-        { k: "zero", texte: "↺ Poids à zéro", action: s => { Object.assign(s.p, { w1: 0, w2: 0, b: 0 }); s.etat.histo = []; s.etat.iter = 0; } }
+        { k: "zero", texte: "Poids à zéro", action: s => { Object.assign(s.p, { w1: 0, w2: 0, b: 0 }); s.etat.histo = []; s.etat.iter = 0; } }
       ],
       init(s) { s.etat.histo = []; s.etat.iter = 0; s.etat.aAppris = false; s.etat.typeAvant = null; },
       changement(s, k) { if (k === "donnees") { s.etat.histo = []; s.etat.iter = 0; s.etat.aAppris = false; } if (k === "w1" || k === "w2" || k === "b") s.etat.histo = []; },
@@ -175,7 +175,7 @@
         { k: "bruit", nom: "Bruit sur les mesures (écart type)", min: 0, max: 0.6, pas: 0.01, defaut: 0.3, dec: 2 },
         { k: "lambda", nom: "Régularisation (ridge, λ)", choix: [[0, "aucune"], [1e-5, "très faible (10⁻⁵)"], [1e-3, "faible (10⁻³)"], [1e-2, "moyenne (10⁻²)"], [1e-1, "forte (10⁻¹)"]], nombres: true, defaut: 0 }
       ],
-      boutons: [{ k: "tirage", texte: "🎲 Nouveau tirage des données", action: s => { s.etat.graine++; } }],
+      boutons: [{ k: "tirage", texte: "Nouveau tirage des données", action: s => { s.etat.graine++; } }],
       init(s) { s.etat.graine = 3; },
       dessiner(s, ctx, W, H, c) {
         const k = calcul(s), r = k.res[s.p.degre - 1], pile = etroit(W);
@@ -425,7 +425,7 @@
         D().texte(ctx, etroit(W) ? "Référence (haut) et sortie (bas), mot à mot" : "Référence (validée par un humain) et sortie du système, mot à mot", 16, 14, c.texte, 12, "left", true);
         const coul = { ok: c.ok, S: "#e8841a", D: c.alerte, I: c.info };
         let x = 16, y = 44; const lh = 46;
-        ctx.font = "600 13px Nunito, Segoe UI, sans-serif";
+        ctx.font = "600 13px " + LS.POLICE;
         e.w.alignement.forEach(a => {
           const lw = Math.max(ctx.measureText(a.r || "—").width, ctx.measureText(a.h || "—").width) + 14;
           if (x + lw > W - 10) { x = 16; y += lh + 12; }
@@ -527,7 +527,7 @@
         { k: "style", nom: "Force du « style » propre à chaque série", min: 0, max: 2, pas: 0.05, defaut: 1, dec: 2 },
         { k: "k", nom: "k (nombre de voisins consultés)", min: 1, max: 15, pas: 2, defaut: 5 }
       ],
-      boutons: [{ k: "tirage", texte: "🎲 Nouveau tirage", action: s => { s.etat.graine++; } }],
+      boutons: [{ k: "tirage", texte: "Nouveau tirage", action: s => { s.etat.graine++; } }],
       init(s) { s.etat.graine = 1; },
       dessiner(s, ctx, W, H, c) {
         const e = calcul(s), pile = etroit(W), cote = pile ? Math.min(W - 40, H * 0.5) : Math.min(H - 50, W * 0.45), x0 = pile ? (W - cote) / 2 : 20, y0 = 28;

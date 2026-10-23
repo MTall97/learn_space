@@ -12,7 +12,7 @@
   function legende(ctx, items, x, y, W, c) {
     let lx = x, ly = y;
     items.forEach(([t, col]) => {
-      ctx.font = "500 11px Nunito, Segoe UI, sans-serif";
+      ctx.font = "500 11px " + LS.POLICE;
       const lw = 30 + ctx.measureText(t).width;
       if (lx + lw > W - 10 && lx > x) { lx = x; ly += 18; }
       ctx.fillStyle = col; ctx.fillRect(lx, ly - 2, 14, 4); D().texte(ctx, t, lx + 18, ly, c.texte, 11, "left"); lx += lw;
@@ -332,7 +332,7 @@
         { k: "chariot", nom: "La plateforme est sur un chariot qui accélère et freine", bool: true, defaut: false },
         { k: "alpha", nom: "Coefficient α du filtre complémentaire", min: 0.8, max: 0.999, pas: 0.001, defaut: 0.98, dec: 3 }
       ],
-      boutons: [{ k: "recaler", texte: "↺ Recaler les estimations", action: recaler }],
+      boutons: [{ k: "recaler", texte: "Recaler les estimations", action: recaler }],
       init(s) { Object.assign(s.etat, { theta: 0, omega: 0, aLin: 0, gyroInt: 0, fusion: 0, angleAccel: 0, h: [], tRecal: 0, tEch: 0, maxErrAcc: 0 }); },
       changement(s, k) { if (k !== "consigne" && k !== "alpha") s.etat.tRecal = s.t; if (k === "alpha") s.etat.tAlpha = s.t; s.etat.maxErrAcc = 0; },
       avancer(s, dt) {
@@ -435,9 +435,9 @@
         { k: "derive", nom: "Dérive thermique du capteur", bool: true, defaut: false }
       ],
       boutons: [
-        { k: "tare", texte: "⚖ Tare (plateau vide)", action: s => { if (s.p.masse !== 0) { LS.avis("La tare se fait plateau vide : retire d'abord la masse."); return; } s.etat.cal0 = moyBrut(s); LS.avis("Zéro enregistré : " + n(s.etat.cal0, 0) + " comptes."); } },
-        { k: "etalon", texte: "◎ Étalonner avec 500 g", action: s => { if (s.p.masse !== 500) { LS.avis("Pose la masse étalon de 500 g avant d'étalonner."); return; } if (s.etat.cal0 === null) { LS.avis("Fais d'abord la tare, plateau vide."); return; } s.etat.cal500 = moyBrut(s); LS.avis("Point 500 g enregistré : la balance est étalonnée."); } },
-        { k: "oubli", texte: "✕ Oublier l'étalonnage", action: s => { s.etat.cal0 = null; s.etat.cal500 = null; } }
+        { k: "tare", texte: "Tare (plateau vide)", action: s => { if (s.p.masse !== 0) { LS.avis("La tare se fait plateau vide : retire d'abord la masse."); return; } s.etat.cal0 = moyBrut(s); LS.avis("Zéro enregistré : " + n(s.etat.cal0, 0) + " comptes."); } },
+        { k: "etalon", texte: "Étalonner avec 500 g", action: s => { if (s.p.masse !== 500) { LS.avis("Pose la masse étalon de 500 g avant d'étalonner."); return; } if (s.etat.cal0 === null) { LS.avis("Fais d'abord la tare, plateau vide."); return; } s.etat.cal500 = moyBrut(s); LS.avis("Point 500 g enregistré : la balance est étalonnée."); } },
+        { k: "oubli", texte: "Oublier l'étalonnage", action: s => { s.etat.cal0 = null; s.etat.cal500 = null; } }
       ],
       init(s) { s.etat.acc = 0; raz(s); },
       changement(s, k) {

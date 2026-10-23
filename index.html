@@ -2,110 +2,233 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Learn Space</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/commun.js"></script>
   <script src="assets/js/progression.js"></script>
+  <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
 </head>
-<body>
+<body class="page-accueil">
   <main class="page">
-    <section class="accueil">
-      <h1>⚡ Learn Space</h1>
-      <p>Un espace pour apprendre l'électricité, l'électronique, l'électromécanique, les télécommunications, la mécanique des moteurs et des transmissions, l'ESP32 et les drones, en <strong>comprenant</strong> (cartes mentales avec définitions) et en <strong>pratiquant</strong> (TP où l'on assemble, mesure et fait varier les grandeurs dans des simulations).</p>
-      <div class="bloc" id="resume"></div>
-      <p class="note astuce"><strong>Comment avancer ?</strong> Dans chaque domaine, suis les étapes dans l'ordre : la carte mentale d'abord (coche « J'ai compris » au fil des notions), puis les TP du plus simple au plus complexe. Ta progression reste dans ce navigateur.</p>
+    <section id="tableau" aria-labelledby="titre-reprendre">
+      <div id="reprendre" class="reprendre"></div>
+      <div id="facade" class="facade" aria-label="Tableau de bord"></div>
     </section>
-    <section id="parcours"></section>
-    <section id="cartes" class="domaine">
-      <header><h2>🗺️ Toutes les cartes mentales</h2></header>
-      <div class="grille" id="liste-cartes" style="margin-top:12px"></div>
+
+    <section id="ateliers" class="section" aria-labelledby="titre-ateliers">
+      <div class="section-tete">
+        <h2 id="titre-ateliers">Ateliers</h2>
+        <p>Chaque composant de la carte est un atelier. Choisis-en un : sa piste s'affiche dessous, de la carte mentale au TP le plus complexe.</p>
+      </div>
+      <div class="carte-mere">
+        <svg class="pistes-cuivre" aria-hidden="true"></svg>
+        <div id="composants" class="composants"></div>
+        <span class="serigraphie-carte" aria-hidden="true">LEARN SPACE · REV 2 · 17 ATELIERS</span>
+      </div>
+      <div id="piste" class="piste-zone" aria-live="polite"></div>
     </section>
-    <section id="tps" class="domaine">
-      <header><h2>🔧 Tous les TP</h2></header>
-      <div id="liste-tps"></div>
+
+    <section id="brevets" class="section" aria-labelledby="titre-brevets">
+      <div class="section-tete">
+        <h2 id="titre-brevets">Brevets</h2>
+        <p id="brevets-resume"></p>
+      </div>
+      <div id="grille-brevets" class="plaques"></div>
     </section>
+
+    <section id="bibliotheque" class="section" aria-labelledby="titre-biblio">
+      <div class="section-tete">
+        <h2 id="titre-biblio">Chercher une notion ou un TP</h2>
+      </div>
+      <input type="search" id="recherche" placeholder="loi d'Ohm, batterie, PID, spectrogramme…" aria-label="Chercher">
+      <ul id="resultats" class="resultats"></ul>
+    </section>
+
     <p class="pied">
-      Learn Space · fonctionne hors ligne (ouvre <code>index.html</code>) ·
+      Learn Space fonctionne hors ligne. Ta progression reste dans ce navigateur.
       <button class="btn petit secondaire" id="effacer">Effacer ma progression</button>
     </p>
   </main>
   <script>
   (async function () {
-    const LS = window.LS;
-    LS.entete("accueil");
+    const LS = window.LS, J = LS.jeu;
+    LS.entete(location.hash === "#brevets" ? "brevets" : location.hash && location.hash !== "#tableau" ? "ateliers" : "accueil");
     const cartes = [];
     LS.parcours.forEach(d => d.etapes.forEach(e => { if (e.type === "carte") cartes.push(e.id); }));
     await Promise.all(cartes.map(id => LS.charger("contenu/cartes/" + id + ".js").catch(() => null)));
 
-    function avancement(e) {
-      if (e.type === "carte") {
-        const c = LS.cartes[e.id];
-        return c ? LS.progressionCarte(c) : { faits: 0, total: 0, ratio: 0 };
-      }
+    const avancement = e => {
+      if (e.type === "carte") { const c = LS.cartes[e.id]; return c ? LS.progressionCarte(c) : { faits: 0, total: 0, ratio: 0 }; }
       return LS.progressionTPStockee(e.id);
+    };
+    const majuscule = t => t.charAt(0).toUpperCase() + t.slice(1);
+    const sansCarte = t => majuscule(t.replace(/^Carte : /, ""));
+    const fini = a => a.total > 0 && a.ratio >= 0.999;
+    const info = id => J.DOMAINES[id] || { code: "?", h: 30 };
+    const bargraphe = (ratio, n) => { n = n || 10; return LS.el("span", { class: "bargraphe", style: "--n:" + n, role: "img", "aria-label": Math.round(ratio * 100) + " %" },
+      Array.from({ length: n }, (_, i) => LS.el("i", { class: i < Math.round(ratio * n) ? "on" : "" }))); };
+    const voyants = n => LS.el("span", { class: "voyants", role: "img", "aria-label": n + " voyant(s) sur 3" }, [0, 1, 2].map(i => LS.el("i", { class: i < n ? "on" : "" })));
+
+    const domaines = LS.parcours.map(d => {
+      const etapes = d.etapes.map(e => Object.assign({ domaine: d.id }, e, { a: avancement(e) }));
+      const ratio = etapes.reduce((s, e) => s + e.a.ratio, 0) / etapes.length;
+      return { d, etapes, ratio, faites: etapes.filter(e => fini(e.a)).length, courante: etapes.find(e => !fini(e.a)) || null };
+    });
+    const parId = Object.fromEntries(domaines.map(x => [x.d.id, x]));
+
+    /* ---------- Reprendre ---------- */
+    const der = LS.lire("derniere", null);
+    let cible = null, raison = "";
+    if (der) {
+      const dom = domaines.find(x => x.etapes.some(e => e.type === der.type && e.id === der.id));
+      const e = dom && dom.etapes.find(x => x.type === der.type && x.id === der.id);
+      if (e && !fini(e.a)) { cible = e; raison = "Tu t'es arrêté ici"; }
+      else if (dom && dom.courante) { cible = dom.courante; raison = "Étape suivante"; }
     }
-    const barre = r => LS.el("div", { class: "barre" }, [LS.el("span", { style: `width:${Math.round(r * 100)}%` })]);
+    if (!cible) { const dom = domaines.find(x => x.d.id === "electricite" && x.courante) || domaines.find(x => x.courante); if (dom) { cible = dom.courante; raison = der ? "Prochaine étape" : "Pour commencer"; } }
+    const rep = document.getElementById("reprendre");
+    if (cible) {
+      const inf = info(cible.domaine);
+      rep.style.setProperty("--h", inf.h);
+      rep.append(
+        LS.el("p", { class: "surtitre", text: raison + " · " + LS.nomDomaine(cible.domaine) }),
+        LS.el("h1", { id: "titre-reprendre", text: sansCarte(cible.titre) }),
+        LS.el("p", { class: "reprendre-desc", text: (cible.type === "carte" ? "Carte mentale. " : "TP. ") + (cible.desc || "") }),
+        LS.el("div", { class: "reprendre-action" }, [
+          LS.el("a", { class: "btn gros", href: LS.etapeHref(cible), text: cible.a.faits ? "Reprendre" : "Commencer" }),
+          cible.a.total ? LS.el("span", { class: "reprendre-prog" }, [bargraphe(cible.a.ratio, Math.min(cible.a.total, 12)), LS.el("small", { class: "mono", text: cible.a.faits + "/" + cible.a.total })]) : null
+        ]));
+    } else rep.append(LS.el("h1", { id: "titre-reprendre", text: "Tout est terminé." }));
 
-    let totalEtapes = 0, totalFaites = 0;
-    const zone = document.getElementById("parcours");
-    LS.parcours.forEach(d => {
-      const ratios = d.etapes.map(e => avancement(e).ratio);
-      const moy = ratios.reduce((a, b) => a + b, 0) / ratios.length;
-      totalEtapes += d.etapes.length; totalFaites += ratios.reduce((a, b) => a + b, 0);
-      const liste = LS.el("ol", { class: "etapes" });
-      d.etapes.forEach((e, i) => {
-        const a = avancement(e);
-        const fait = a.ratio >= 0.999 && a.total > 0;
-        liste.append(LS.el("li", {}, [LS.el("a", { class: "etape" + (fait ? " faite" : ""), href: LS.etapeHref(e) }, [
-          LS.el("span", { class: "num", text: fait ? "✓" : String(i + 1) }),
-          LS.el("span", {}, [
-            LS.el("span", { class: "etiquette " + (e.type === "carte" ? "carte" : "tp"), text: e.type === "carte" ? "Carte mentale" : "TP" }), " ",
-            LS.el("span", { class: "titre", text: e.titre }),
-            LS.el("div", { class: "desc", text: e.desc || "" })
-          ]),
-          LS.el("span", { class: "droite" }, [barre(a.ratio), LS.el("small", { text: a.total ? `${a.faits}/${a.total}` : "" })])
-        ])]));
-      });
-      const details = LS.el("details", { class: "domaine", id: d.id, open: moy > 0 || d.id === "electricite" ? "open" : null }, [
-        LS.el("summary", {}, [LS.el("header", {}, [LS.el("h2", { text: d.icone + " " + d.titre }), barre(moy), LS.el("small", { text: Math.round(moy * 100) + " %" })])]),
-        LS.el("p", { text: d.desc }), liste
-      ]);
-      zone.append(details);
+    /* ---------- Façade d'appareil : niveau, jauge du jour, série, brevets ---------- */
+    const etat = J.etat();
+    const avDom = Object.fromEntries(domaines.map(x => [x.d.id, x.ratio]));
+    const brevets = J.brevets(avDom), obtenus = brevets.filter(b => b.ok);
+    const fac = document.getElementById("facade");
+    const module = (cls, titre, contenu) => LS.el("div", { class: "module " + cls }, [LS.el("span", { class: "serigraphie", text: titre }), ...contenu]);
+    fac.append(module("m-niveau", "NIVEAU", [
+      LS.el("div", { class: "afficheur", role: "img", "aria-label": "Niveau " + etat.niveau.n }, [LS.el("span", { class: "fantome", "aria-hidden": "true", text: "88" }), LS.el("span", { class: "chiffres", text: String(etat.niveau.n).padStart(2, "0") })]),
+      LS.el("span", { class: "module-texte" }, [LS.el("strong", { text: etat.niveau.titre }), LS.el("small", { text: etat.niveau.dans + "/" + etat.niveau.pour + " pts vers N" + (etat.niveau.n + 1) })]),
+      bargraphe(etat.niveau.ratio)
+    ]));
+    const r = Math.min(1, etat.jour / etat.objectifJour), ang = -90 + 180 * r;
+    const grad = Array.from({ length: 11 }, (_, i) => { const a = Math.PI * (1 - i / 10), l = i % 5 ? 37 : 33; return `<line x1="${(60 + 42 * Math.cos(a)).toFixed(1)}" y1="${(60 - 42 * Math.sin(a)).toFixed(1)}" x2="${(60 + l * Math.cos(a)).toFixed(1)}" y2="${(60 - l * Math.sin(a)).toFixed(1)}"/>`; }).join("");
+    fac.append(module("m-jour", "OBJECTIF DU JOUR", [
+      LS.el("div", { class: "galva", html: `<svg viewBox="0 0 120 72" role="img" aria-label="${etat.jour} points sur ${etat.objectifJour} aujourd'hui">
+        <path d="M14 60 A46 46 0 0 1 106 60" class="g-zone"/><path d="M83 20.2 A46 46 0 0 1 106 60" class="g-vert"/>
+        <g class="g-grad">${grad}</g><text x="16" y="70" class="g-txt">0</text><text x="104" y="70" class="g-txt" text-anchor="end">${etat.objectifJour}</text>
+        <line x1="60" y1="60" x2="60" y2="18" class="g-aiguille" transform="rotate(${ang.toFixed(1)} 60 60)"/><circle cx="60" cy="60" r="4.5" class="g-axe"/></svg>` }),
+      LS.el("span", { class: "module-texte" }, [LS.el("strong", { class: "mono", text: etat.jour + " / " + etat.objectifJour + " pts" }), LS.el("small", { text: etat.jour >= etat.objectifJour ? "Atteint aujourd'hui." : "Notion 10 · objectif 25 · question 10" })])
+    ]));
+    const jours = LS.lire("jours", {}), semaine = LS.el("span", { class: "semaine", "aria-hidden": "true" });
+    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); semaine.append(LS.el("i", { class: (jours[J.jourISO(d)] || 0) > 0 ? "on" : "" })); }
+    fac.append(module("m-serie", "SÉRIE", [LS.el("span", { class: "compteur mono", text: String(etat.serie).padStart(2, "0") }), LS.el("span", { class: "module-texte" }, [LS.el("strong", { text: etat.serie > 1 ? "jours d'affilée" : "jour d'affilée" }), semaine])]));
+    fac.append(module("m-brevets", "BREVETS", [LS.el("span", { class: "compteur mono", text: String(obtenus.length).padStart(2, "0") }), LS.el("span", { class: "module-texte" }, [LS.el("strong", { text: "sur " + brevets.length }), LS.el("a", { href: "#brevets", text: "Voir les brevets" })])]));
+
+    /* ---------- Carte mère : un composant par atelier, reliés par des pistes ---------- */
+    const zoneC = document.getElementById("composants"), svgP = document.querySelector(".pistes-cuivre"), zonePiste = document.getElementById("piste");
+    domaines.forEach(x => {
+      const inf = info(x.d.id);
+      zoneC.append(LS.el("button", { class: "composant" + (x.ratio >= 0.999 ? " termine" : x.ratio > 0 ? " en-cours" : ""), id: "atelier-" + x.d.id, style: "--h:" + inf.h, "aria-label": x.d.titre + ", " + x.faites + " étapes terminées sur " + x.etapes.length, onclick: () => choisir(x.d.id, true) }, [
+        LS.el("span", { class: "boitier", "aria-hidden": "true" }, [LS.el("span", { class: "code", text: inf.code }), LS.el("span", { class: "led-etat" })]),
+        LS.el("span", { class: "etiquette-compo" }, [LS.el("strong", { text: x.d.titre }), LS.el("small", { class: "mono", text: x.faites + "/" + x.etapes.length })]),
+        bargraphe(x.ratio, 8)
+      ]));
     });
-    document.getElementById("resume").append(
-      LS.el("strong", { text: `Progression générale : ${Math.round(100 * totalFaites / totalEtapes)} %` }),
-      barre(totalFaites / totalEtapes),
-      LS.el("small", { text: `${LS.parcours.length} domaines · ${totalEtapes} étapes` }));
+    // Pistes de cuivre orthogonales d'un boîtier au suivant (recalculées quand la mise en page change).
+    function tracerPistes() {
+      const base = zoneC.getBoundingClientRect();
+      const compos = [...zoneC.querySelectorAll(".composant")].map(c => ({ c: c.getBoundingClientRect(), b: c.querySelector(".boitier").getBoundingClientRect() }));
+      svgP.setAttribute("viewBox", `0 0 ${base.width} ${base.height}`);
+      svgP.style.width = base.width + "px"; svgP.style.height = base.height + "px";
+      // Bas de chaque rangée : les pistes passent dans le couloir sous la rangée, jamais sur les textes.
+      const basRangee = y => Math.max(...compos.filter(k => Math.abs(k.c.top - y) < 4).map(k => k.c.bottom));
+      let d = "", vias = "";
+      for (let i = 0; i < compos.length - 1; i++) {
+        const A = compos[i], B = compos[i + 1];
+        // On sort et on entre par la patte gauche des boîtiers : la colonne de gauche est toujours libre.
+        const xa = A.b.left - base.left, xb = B.b.left - base.left, ga = xa - 12, gb = xb - 12;
+        const ya = A.b.top + A.b.height / 2 - base.top, yb = B.b.top + B.b.height / 2 - base.top;
+        const couloir = basRangee(A.c.top) - base.top + 14;
+        d += `M${xa} ${ya}H${ga}V${couloir}H${gb}V${yb}H${xb}`;
+        vias += `<circle cx="${ga}" cy="${couloir}" r="3"/>`;
+      }
+      svgP.innerHTML = `<path d="${d}"/><g class="vias">${vias}</g>`;
+    }
+    tracerPistes();
+    if (window.ResizeObserver) new ResizeObserver(tracerPistes).observe(zoneC); else window.addEventListener("resize", tracerPistes);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tracerPistes);
 
-    const lc = document.getElementById("liste-cartes");
-    LS.parcours.forEach(d => d.etapes.filter(e => e.type === "carte").forEach(e => {
-      const a = avancement(e);
-      lc.append(LS.el("a", { class: "bloc", href: LS.etapeHref(e), style: "text-decoration:none;color:inherit" }, [
-        LS.el("div", { class: "etiquette carte", text: d.icone + " " + d.titre }),
-        LS.el("h3", { text: e.titre.replace(/^Carte : /, "") }), LS.el("p", { class: "desc", text: e.desc }), barre(a.ratio),
-        LS.el("small", { text: a.total ? `${a.faits}/${a.total} notions comprises` : "" })]));
+    function choisir(id, defiler) {
+      const x = parId[id]; if (!x) return;
+      zoneC.querySelectorAll(".composant").forEach(t => { const v = t.id === "atelier-" + id; t.classList.toggle("choisi", v); t.setAttribute("aria-pressed", v ? "true" : "false"); });
+      const inf = info(id);
+      zonePiste.innerHTML = ""; zonePiste.style.setProperty("--h", inf.h);
+      const liste = LS.el("ol", { class: "piste" });
+      let nTP = 0;
+      x.etapes.forEach(e => {
+        const f = fini(e.a), cour = x.courante === e;
+        if (e.type === "tp") nTP++;
+        liste.append(LS.el("li", { class: "plot" + (f ? " fait" : "") + (cour ? " courant" : "") + (e.type === "carte" ? " carte" : " tp") }, [
+          LS.el("span", { class: "pastille", "aria-hidden": "true", text: f ? "✓" : e.type === "carte" ? "" : String(nTP) }),
+          LS.el("div", { class: "plot-texte" }, [
+            LS.el("span", { class: "plot-type mono", text: (e.type === "carte" ? "CARTE MENTALE" : "TP " + String(nTP).padStart(2, "0")) + (e.a.total ? " · " + e.a.faits + "/" + e.a.total : "") + (cour ? " · TU EN ES LÀ" : "") }),
+            LS.el("a", { href: LS.etapeHref(e), class: "plot-lien", text: sansCarte(e.titre) }),
+            LS.el("span", { class: "desc", text: e.desc || "" }),
+            e.type === "tp" ? voyants(Math.round(e.a.ratio * 3)) : null
+          ])
+        ]));
+      });
+      zonePiste.append(
+        LS.el("div", { class: "piste-tete" }, [
+          LS.el("span", { class: "surtitre", text: "Atelier " + inf.code + " · " + x.faites + "/" + x.etapes.length + " étapes" }),
+          LS.el("h3", { text: x.d.titre }), LS.el("p", { class: "desc", text: x.d.desc }), bargraphe(x.ratio, x.etapes.length)]),
+        liste);
+      if (defiler) { zonePiste.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); try { history.replaceState(null, "", "#" + id); } catch (e) { /* cadre */ } }
+    }
+    const h = location.hash.slice(1);
+    choisir(parId[h] ? h : (cible ? cible.domaine : domaines[0].d.id), !!parId[h]);
+
+    /* ---------- Brevets : plaques gravées ---------- */
+    document.getElementById("brevets-resume").textContent = obtenus.length + " obtenus sur " + brevets.length + " : un par atelier terminé, les autres pour la régularité et la précision.";
+    const gb = document.getElementById("grille-brevets");
+    const vus = LS.lire("brevetsVus", {}), nouveaux = [];
+    brevets.forEach(b => {
+      if (b.ok && !vus[b.id]) { nouveaux.push(b); vus[b.id] = true; }
+      gb.append(LS.el("div", { class: "plaque-brevet" + (b.ok ? " obtenu" : "") + (b.domaine ? " domaine" : ""), style: b.h !== undefined ? "--h:" + b.h : null, title: b.desc }, [
+        LS.el("span", { class: "plaque", text: b.code, "aria-hidden": "true" }),
+        LS.el("strong", { text: b.nom }),
+        LS.el("small", { text: b.ok ? "obtenu" : b.domaine ? "atelier à terminer" : b.desc })]));
+    });
+    LS.ecrire("brevetsVus", vus);
+    nouveaux.slice(0, 3).forEach(b => LS.avis("Nouveau brevet : " + b.nom));
+    if (location.hash === "#brevets") document.getElementById("brevets").scrollIntoView();
+
+    /* ---------- Recherche ---------- */
+    const index = [];
+    domaines.forEach(x => x.etapes.forEach(e => index.push({ texte: e.titre + " " + (e.desc || ""), titre: sansCarte(e.titre), sous: (e.type === "carte" ? "Carte · " : "TP · ") + x.d.titre, href: LS.etapeHref(e) })));
+    LS.parcours.forEach(d => d.etapes.filter(e => e.type === "carte" && LS.cartes[e.id]).forEach(e => {
+      LS.noeudsCarte(LS.cartes[e.id]).filter(n => n._niveau > 0).forEach(n => index.push({ texte: n.t + " " + (n.d || ""), titre: n.t, sous: "Notion · " + LS.cartes[e.id].titre, href: "carte.html?id=" + e.id + "&n=" + LS.slug(n.t) }));
     }));
-    const lt = document.getElementById("liste-tps");
-    LS.parcours.forEach(d => {
-      const tps = d.etapes.filter(e => e.type === "tp");
-      if (!tps.length) return;
-      lt.append(LS.el("h3", { text: d.icone + " " + d.titre }));
-      const g = LS.el("div", { class: "grille" });
-      tps.forEach(e => {
-        const a = avancement(e);
-        g.append(LS.el("a", { class: "bloc", href: LS.etapeHref(e), style: "text-decoration:none;color:inherit" }, [
-          LS.el("strong", { text: e.titre }), LS.el("p", { class: "desc", text: e.desc }), barre(a.ratio)]));
-      });
-      lt.append(g);
-    });
+    const norm = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    index.forEach(x => { x.n = norm(x.texte); x.nt = norm(x.titre); });
+    const res = document.getElementById("resultats"), champ = document.getElementById("recherche");
+    const chercher = () => {
+      const q = norm(champ.value.trim()); res.innerHTML = "";
+      if (q.length < 2) { res.append(LS.el("li", { class: "vide", text: index.length + " notions et étapes. Tape au moins 2 lettres." })); return; }
+      const t = index.filter(x => x.n.includes(q)).sort((a, b) => (b.nt.includes(q) - a.nt.includes(q))).slice(0, 30);
+      if (!t.length) res.append(LS.el("li", { class: "vide", text: "Rien trouvé pour « " + champ.value + " »." }));
+      t.forEach(x => res.append(LS.el("li", {}, [LS.el("a", { href: x.href, text: x.titre }), LS.el("span", { class: "desc", text: x.sous })])));
+    };
+    champ.addEventListener("input", chercher); chercher();
+
     document.getElementById("effacer").addEventListener("click", ev => {
-      LS.confirmer(ev.currentTarget, () => { LS.effacerProgression(); location.reload(); }, "Tout effacer ? Clique encore");
+      LS.confirmer(ev.currentTarget, () => { ["compris", "tp", "gains", "jours", "brevetsVus"].forEach(k => LS.ecrire(k, {})); LS.ecrire("derniere", null); location.reload(); }, "Tout effacer ? Clique encore");
     });
-    if (location.hash) { const el = document.querySelector(location.hash); if (el) { if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView(); } }
   })();
   </script>
 </body>

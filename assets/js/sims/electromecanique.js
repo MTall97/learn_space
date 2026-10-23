@@ -220,7 +220,7 @@
         { k: "Cr", nom: "Couple de la charge", min: 0, max: 40, pas: 1, defaut: 10, unite: "N·m" },
         { k: "vitVis", nom: "Ralenti de l'animation", min: 5, max: 200, pas: 5, defaut: 50, unite: "×" }
       ],
-      boutons: [{ k: "arret", texte: "⏹ Arrêter puis redémarrer", action: s => { s.etat.w = 0; } }],
+      boutons: [{ k: "arret", texte: "Arrêter puis redémarrer", action: s => { s.etat.w = 0; } }],
       init(s) { s.etat.af = 0; s.etat.ar = 0; s.etat.w = 0; },
       calc(s) {
         const r = LS.regimeAsynchrone(s.p.f, s.p.p, s.p.Cr, true);

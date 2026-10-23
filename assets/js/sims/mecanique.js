@@ -179,7 +179,7 @@
       ],
       boutons: [
         { k: "pas", texte: "+10°", titre: "Avancer de 10° (pense à mettre en pause)", action: s => { s.etat.th = (s.etat.th + 10) % 720; } },
-        { k: "phase", texte: "Temps suivant ⏭", action: s => { s.etat.th = (Math.floor(s.etat.th / 180) + 1) * 180 % 720; } }
+        { k: "phase", texte: "Temps suivant →", action: s => { s.etat.th = (Math.floor(s.etat.th / 180) + 1) * 180 % 720; } }
       ],
       init(s) { s.etat.th = 0; s.p.bielle = 140; this.changement(s); },
       changement(s, k) {

@@ -276,7 +276,7 @@
     }
     ctx.strokeStyle = "rgba(255,255,255,.35)";
     for (let g = 1; g < mod.groupes; g++) { ctx.beginPath(); ctx.moveTo(x + g * 2 * cw, y); ctx.lineTo(x + g * 2 * cw, y + h); ctx.stroke(); }
-    if (ombre) D().texte(ctx, "🍂", x + cw / 2, y + ch / 2, c.texte, 14, "center");
+    if (ombre) D().texte(ctx, "ombre", x + cw / 2, y + ch / 2, c.texte, 14, "center");
     const leg = mod.groupes + " groupes de " + mod.Ns / mod.groupes + " cellules" + (bypass ? ", 1 diode bypass chacun" : ", sans diode bypass");
     if (court) { D().texte(ctx, mod.groupes + " groupes de " + mod.Ns / mod.groupes + " cellules", x + w + 14, y + 20, c.doux, 11, "left"); D().texte(ctx, bypass ? "avec diodes bypass" : "sans diode bypass", x + w + 14, y + 36, bypass ? c.doux : c.alerte, 11, "left"); }
     else D().texte(ctx, leg, x, y + h + 14, c.doux, 11, "left");
@@ -336,7 +336,7 @@
         if (s.p.ombre >= 30) t += s.p.bypass
           ? "\n\nAvec l'ombre, la **diode bypass** court-circuite le groupe de 20 cellules concerné : la courbe fait une **marche** et le panneau perd environ un tiers de sa tension au lieu de tout son courant."
           : "\n\n⚠ **Sans diode bypass**, la cellule ombragée limite le courant de tout le panneau, ou se met en **inverse** et chauffe (**point chaud**) : elle peut brûler le panneau.";
-        if (k.op.Pcellule > 15) t += "\n\n🔥 La cellule ombragée dissipe **" + LS.nombre(k.op.Pcellule, 0) + " W** sur quelques cm² : point chaud.";
+        if (k.op.Pcellule > 15) t += "\n\n⚠ La cellule ombragée dissipe **" + LS.nombre(k.op.Pcellule, 0) + " W** sur quelques cm² : point chaud.";
         return t;
       }
     }, cfg);
@@ -357,8 +357,8 @@
         { k: "T", nom: "Température de la batterie", min: -10, max: 45, pas: 1, defaut: 25, unite: "°C" }
       ],
       boutons: [
-        { k: "pleine", texte: "🔋 Batterie pleine", action: s => { s.etat.b.soc = 1; s.raz(s); } },
-        { k: "moitie", texte: "◐ À 40 %", action: s => { s.etat.b.soc = 0.4; s.raz(s); } }
+        { k: "pleine", texte: "Batterie pleine", action: s => { s.etat.b.soc = 1; s.raz(s); } },
+        { k: "moitie", texte: "À 40 %", action: s => { s.etat.b.soc = 0.4; s.raz(s); } }
       ],
       changement(s, k) { if (k === "chimie" || k === "C" || k === "mode") s.raz(s); },
       init(s) {
@@ -491,8 +491,8 @@
           ? "Un régulateur **PWM** n'est qu'un interrupteur rapide : quand il est fermé, le panneau est **collé à la tension de la batterie**. Il ne travaille donc pas à son MPP : la puissance perdue est la différence de tension. Il convient à un panneau « 12 V » de 36 cellules (Vmp ≈ 17-18 V)."
           : "Un régulateur **MPPT** est un convertisseur : il cherche en permanence le **point de puissance maximale** du panneau, puis abaisse la tension en augmentant le courant (P = U·I conservée, ≈ 96 % de rendement). Il permet des panneaux de 60 cellules ou en série, à tension élevée.";
         if (s.p.type === "pwm" && s.p.module === "m60") t += "\n\n⚠ Panneau 60 cellules sur un PWM : le panneau est tiré à ≈ 13 V au lieu de ≈ 31 V, **plus de la moitié de la puissance est perdue**.";
-        if (s.p.type === "mppt" && k.froid > 100) t += "\n\n🔥 Par un matin froid, la tension à vide de la chaîne (" + LS.nombre(k.froid, 0) + " V) dépasse les **100 V** admis : le régulateur serait détruit. On calcule toujours la Voc à la température minimale du site.";
-        if (s.p.type === "pwm" && k.froid > LS.VMAX_PWM) t += "\n\n🔥 La tension à vide de la chaîne par matin froid (" + LS.nombre(k.froid, 0) + " V) dépasse les **" + LS.VMAX_PWM + " V** qu'accepte un régulateur PWM 12/24 V courant : il serait détruit, et la batterie avec lui. Un PWM se branche sur un seul panneau « 12 V » (ou deux en série pour une batterie 24 V).";
+        if (s.p.type === "mppt" && k.froid > 100) t += "\n\n⚠ Par un matin froid, la tension à vide de la chaîne (" + LS.nombre(k.froid, 0) + " V) dépasse les **100 V** admis : le régulateur serait détruit. On calcule toujours la Voc à la température minimale du site.";
+        if (s.p.type === "pwm" && k.froid > LS.VMAX_PWM) t += "\n\n⚠ La tension à vide de la chaîne par matin froid (" + LS.nombre(k.froid, 0) + " V) dépasse les **" + LS.VMAX_PWM + " V** qu'accepte un régulateur PWM 12/24 V courant : il serait détruit, et la batterie avec lui. Un PWM se branche sur un seul panneau « 12 V » (ou deux en série pour une batterie 24 V).";
         if (s.p.type === "mppt" && r.limite) t += "\n\nLe régulateur plafonne à 30 A : le surplus est perdu.";
         return t;
       }
@@ -538,7 +538,7 @@
           series: [{ pts: [[0, r.socLimite], [n, r.socLimite]], coul: c.alerte, ep: 1 }, { pts: r.h.map((q, i) => [i + 1, q.soc]), coul: c.info, ep: 2.5 }] });
         const i = Math.floor(s.etat.curseur), q = r.h[i];
         ctx.strokeStyle = c.doux; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(g.X(i + 0.5), gy1); ctx.lineTo(g.X(i + 0.5), gy2 + gh2); ctx.stroke(); ctx.setLineDash([]);
-        D().texte(ctx, "Jour " + (Math.floor(i / 24) + 1) + ", " + (i % 24) + " h : " + (q.G > 1 ? "☀ " : "☾ ") + LS.nombre(q.prod, 0) + " W produits, " + LS.nombre(q.besoin, 0) + " W consommés" + (q.coupe > 0 ? " · délestage !" : ""), gx, H - 14, q.coupe > 0 ? c.alerte : c.texte, 12, "left", true);
+        D().texte(ctx, "Jour " + (Math.floor(i / 24) + 1) + ", " + (i % 24) + " h : " + (q.G > 1 ? "jour " : "nuit ") + LS.nombre(q.prod, 0) + " W produits, " + LS.nombre(q.besoin, 0) + " W consommés" + (q.coupe > 0 ? " · délestage !" : ""), gx, H - 14, q.coupe > 0 ? c.alerte : c.texte, 12, "left", true);
       },
       mesures(s) {
         const r = this.res(s);

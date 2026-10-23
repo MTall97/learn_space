@@ -120,8 +120,8 @@
         { k: "gaz", nom: "Accélérateur", min: 0, max: 100, pas: 1, defaut: 0, unite: "%" },
         { k: "pente", nom: "Pente de la route", min: 0, max: 20, pas: 1, defaut: 0, unite: "%" }
       ],
-      boutons: [{ k: "redemarrer", texte: "🔑 Redémarrer le moteur", action: s => { s.etat.we = RAD(800); s.etat.cale = false; } },
-        { k: "arret", texte: "⏹ Arrêter la voiture", action: s => { s.etat.wv = 0; s.p.pedale = 0; } }],
+      boutons: [{ k: "redemarrer", texte: "Redémarrer le moteur", action: s => { s.etat.we = RAD(800); s.etat.cale = false; } },
+        { k: "arret", texte: "Arrêter la voiture", action: s => { s.etat.wv = 0; s.p.pedale = 0; } }],
       init(s) { s.etat.we = RAD(800); s.etat.wv = 0; s.etat.chaleur = 0; s.etat.cale = false; s.etat.colle = false; s.etat.histo = []; },
       avancer(s, dt) {
         const e = s.etat, n = 20, h = dt / n;

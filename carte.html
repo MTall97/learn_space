@@ -2,13 +2,14 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Carte mentale · Learn Space</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/commun.js"></script>
   <script src="assets/js/progression.js"></script>
+  <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
   <script src="assets/js/carte-mentale.js"></script>
 </head>
@@ -17,12 +18,12 @@
     <h1 id="titre">Carte mentale</h1>
     <div class="barre" style="width:140px"><span id="prog" style="width:0"></span></div>
     <small id="prog-texte"></small>
-    <button class="btn petit" id="revision">🃏 Réviser</button>
+    <button class="btn petit" id="revision">Réviser</button>
     <button class="btn petit secondaire" id="deplier">Tout déplier</button>
     <button class="btn petit secondaire" id="replier">Replier</button>
     <button class="btn petit secondaire" id="zplus" title="Zoomer">＋</button>
     <button class="btn petit secondaire" id="zmoins" title="Dézoomer">－</button>
-    <button class="btn petit secondaire" id="centrer" title="Recentrer">⌖</button>
+    <button class="btn petit secondaire" id="centrer" title="Recentrer">Recentrer</button>
   </div>
   <div class="carte-zone" id="zone">
     <aside class="panneau cache" id="panneau"></aside>
@@ -36,6 +37,7 @@
     try { await LS.charger("contenu/cartes/" + id + ".js"); }
     catch (e) { zone.innerHTML = "<p style='padding:16px'>Carte introuvable. <a href='index.html#cartes'>Voir les cartes</a></p>"; return; }
     const carte = LS.cartes[id];
+    if (LS.jeu) LS.jeu.visiter("carte", id);
     document.title = carte.titre + " · Learn Space";
     document.getElementById("titre").textContent = carte.titre;
     const pan = document.getElementById("panneau");
@@ -54,7 +56,7 @@
       const pos = LS.positionDansParcours("carte", id);
       pan.append(LS.el("button", { class: "btn secondaire petit fermer", text: "✕", onclick: () => pan.classList.add("cache") }),
         LS.el("h2", { text: carte.titre }), LS.el("div", { html: LS.texte(carte.intro) }),
-        LS.el("p", { class: "note astuce", html: "Clique sur une notion pour lire sa définition, sur le petit rond pour déplier ses branches. <strong>Notion suivante →</strong> te fait parcourir la carte dans l'ordre. 🔧 = un TP pratique existe." }),
+        LS.el("p", { class: "note astuce", html: "Clique sur une notion pour lire sa définition, sur le petit rond pour déplier ses branches. <strong>Notion suivante →</strong> te fait parcourir la carte dans l'ordre. « TP » = un TP pratique existe." }),
         LS.el("button", { class: "btn", text: "Commencer : " + carte.racine.c[0].t + " →", onclick: () => cm.choisir(carte.racine.c[0], true) }));
       if (pos && pos.suivant) pan.append(LS.el("p", {}, [LS.el("a", { href: pos.suivant.href, text: "Étape suivante du parcours : " + pos.suivant.titre + " →" })]));
     }

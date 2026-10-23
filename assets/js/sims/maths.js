@@ -446,7 +446,7 @@
     return LS.simAnimee(el, {
       hauteur: 500,
       controles,
-      boutons: [{ k: "plus", texte: "+ 1 000 tirages", action: s => tirer(s, 1000) }, { k: "raz", texte: "↺ Recommencer", action: s => recommencer(s) }],
+      boutons: [{ k: "plus", texte: "+ 1 000 tirages", action: s => tirer(s, 1000) }, { k: "raz", texte: "Recommencer", action: s => recommencer(s) }],
       init(s) { filtrer(s); recommencer(s); },
       changement(s, k) { if (k === "exp") filtrer(s); if (k !== "vitesse") recommencer(s); },
       avancer(s, dt) {

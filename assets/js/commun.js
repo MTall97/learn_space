@@ -150,15 +150,34 @@
   };
 
   /* ---------- En-tête commun ---------- */
+  LS.POLICE = '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  LS.POLICE_TITRE = '"Baloo 2", "Segoe UI", system-ui, sans-serif';
+
+  /* Pictogrammes au trait (24 × 24, couleur du texte). */
+  const PICTOS = {
+    accueil: '<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
+    ateliers: '<rect x="7" y="7" width="10" height="10" rx="1"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/>',
+    brevets: '<circle cx="12" cy="9" r="5"/><path d="M9 13.5 7.5 21l4.5-2.5 4.5 2.5L15 13.5"/>',
+    bac: '<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M7 10h.01M10 10h.01M13 10h.01M16 10h.01M7 14h.01M10 14h.01M13 14h.01M16 14h.01"/>',
+    theme: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>'
+  };
+  LS.icone = nom => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PICTOS[nom] || ""}</svg>`;
+
+  /* En-tête (logo, navigation, puce du joueur, thème) et barre d'onglets en bas sur téléphone. */
   LS.entete = function (actif, racine) {
     racine = racine || "";
-    const liens = [["accueil", "Parcours", "index.html"], ["cartes", "Cartes mentales", "index.html#cartes"], ["tps", "TP", "index.html#tps"], ["bac", "Bac à sable", "tp.html?id=elec-bac-a-sable"]];
-    const nav = LS.el("nav", {}, liens.map(l => LS.el("a", { href: racine + l[2], class: l[0] === actif ? "actif" : "" , text: l[1] })));
+    if (actif === "cartes" || actif === "tps") actif = "ateliers";
+    const liens = [["accueil", "Accueil", "index.html#tableau"], ["ateliers", "Ateliers", "index.html#ateliers"], ["brevets", "Brevets", "index.html#brevets"], ["bac", "Bac à sable", "tp.html?id=elec-bac-a-sable"]];
+    const lien = l => LS.el("a", { href: racine + l[2], class: "onglet" + (l[0] === actif ? " actif" : ""), "aria-current": l[0] === actif ? "page" : null }, [LS.el("span", { class: "ic", "aria-hidden": "true", html: LS.icone(l[0]) }), LS.el("span", { text: l[1] })]);
+    const theme = LS.el("button", { class: "bouton-theme", title: "Changer de thème", "aria-label": "Changer de thème", html: LS.icone("theme"), onclick: LS.basculerTheme });
     const h = LS.el("header", { class: "entete" }, [
-      LS.el("a", { class: "logo", href: racine + "index.html", text: "⚡ Learn Space" }),
-      nav,
-      LS.el("button", { class: "bouton-theme", title: "Changer de thème", text: "◐", onclick: LS.basculerTheme })
+      LS.el("a", { class: "logo", href: racine + "index.html" }, [LS.el("span", { class: "led", "aria-hidden": "true" }), LS.el("span", { text: "Learn Space" })]),
+      LS.el("nav", { class: "nav-haut", "aria-label": "Navigation" }, liens.map(lien)),
+      LS.jeu ? LS.jeu.puce(racine) : null,
+      theme
     ]);
     document.body.prepend(h);
+    document.body.append(LS.el("nav", { class: "nav-bas", "aria-label": "Navigation" }, liens.map(lien)));
+    if (LS.jeu) LS.jeu.majPuce();
   };
 })();

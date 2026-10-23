@@ -92,7 +92,7 @@
         { k: "usure", nom: "Batterie qui se vide (poussée −25 %)", bool: true, defaut: false },
         { k: "vent", nom: "Rafales de vent", bool: true, defaut: false }
       ],
-      boutons: [{ k: "reset", texte: "↺ Poser le drone", action: s => { Object.assign(s.etat, { z: 0, v: 0, T: 0, integ: 0, h: [], tStep: s.t, zmax: 0 }); } }],
+      boutons: [{ k: "reset", texte: "Poser le drone", action: s => { Object.assign(s.etat, { z: 0, v: 0, T: 0, integ: 0, h: [], tStep: s.t, zmax: 0 }); } }],
       init(s) { Object.assign(s.etat, { z: 0, v: 0, T: 0, integ: 0, h: [], tStep: 0, consAvant: s.p.consigne, zmax: 0 }); },
       avancer(s, dt) {
         const e = s.etat, n = 20, h = dt / n;
@@ -165,7 +165,7 @@
         { k: "lacet", nom: "Lacet (rotation gauche ↔ droite)", min: -100, max: 100, pas: 5, defaut: 0, unite: "%" },
         { k: "panne", nom: "Panne d'un moteur", choix: [[-1, "aucune"], [0, "avant gauche"], [1, "avant droit"], [2, "arrière gauche"], [3, "arrière droit"]], nombres: true, defaut: -1 }
       ],
-      boutons: [{ k: "centre", texte: "⌖ Recentrer", action: s => { Object.assign(s.etat, { x: 0, y: 0, z: 5, cap: 0, vx: 0, vy: 0, vz: 0, trace: [] }); } }],
+      boutons: [{ k: "centre", texte: "Recentrer", action: s => { Object.assign(s.etat, { x: 0, y: 0, z: 5, cap: 0, vx: 0, vy: 0, vz: 0, trace: [] }); } }],
       init(s) { Object.assign(s.etat, { x: 0, y: 0, z: 5, cap: 0, vx: 0, vy: 0, vz: 0, trace: [], a: 0 }); },
       avancer(s, dt) {
         const e = s.etat, p = s.p;

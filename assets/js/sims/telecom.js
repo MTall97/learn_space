@@ -123,7 +123,7 @@
         { k: "B", nom: "Bande passante du câble", min: 1, max: 40, pas: 0.5, defaut: 20, unite: "kHz", dec: 1 },
         { k: "bruit", nom: "Bruit", min: 0, max: 0.4, pas: 0.01, defaut: 0.05, unite: "V", dec: 2 }
       ],
-      boutons: [{ k: "nb", texte: "🎲 Nouveau bruit", action: s => { s.etat.graine = (s.etat.graine || 1) + 1; } }],
+      boutons: [{ k: "nb", texte: "Nouveau bruit", action: s => { s.etat.graine = (s.etat.graine || 1) + 1; } }],
       init(s) { s.etat.graine = 1; const r = alea(99); s.etat.bits = [...Array(40)].map(() => r() > 0.5 ? 1 : 0); },
       calc(s) {
         const ech = 40, n = s.etat.bits.length * ech, Tb = 1 / (s.p.D * 1000), dt = Tb / ech;
@@ -366,7 +366,7 @@
         { k: "coupe", nom: "Couper la liaison B–D", bool: true, defaut: false },
         { k: "vit", nom: "Vitesse", min: 0.3, max: 3, pas: 0.1, defaut: 1, dec: 1 }
       ],
-      boutons: [{ k: "envoyer", texte: "📨 Envoyer un message de A à F", action: s => s.def._envoyer(s) }],
+      boutons: [{ k: "envoyer", texte: "Envoyer un message de A à F", action: s => s.def._envoyer(s) }],
       _envoyer(s) {
         const ch = chemins(s.p.coupe);
         s.etat.t = 0; s.etat.fini = false; s.etat.coupure = false;

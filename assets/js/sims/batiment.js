@@ -155,8 +155,8 @@
         { k: "courtcircuit", nom: "⚡ Court-circuit en bout de ligne", bool: true, defaut: false }
       ]),
       boutons: [
-        { k: "rearmer", texte: "↺ Réarmer le disjoncteur", action: s => { Object.assign(s.etat, { ouvert: false, bilame: 0, cause: null, tOuvert: null }); } },
-        { k: "refroidir", texte: "❄ Laisser refroidir", action: s => { s.etat.T = 30; s.etat.Tmax = 30; s.etat.h = []; } }
+        { k: "rearmer", texte: "Réarmer le disjoncteur", action: s => { Object.assign(s.etat, { ouvert: false, bilame: 0, cause: null, tOuvert: null }); } },
+        { k: "refroidir", texte: "Laisser refroidir", action: s => { s.etat.T = 30; s.etat.Tmax = 30; s.etat.h = []; } }
       ],
       init(s) { Object.assign(s.etat, { T: 30, Tmax: 30, bilame: 0, ouvert: false, cause: null, tsim: 0, h: [], I2t: 0, abime: false, depuis: 0, tOuvert: null }); },
       changement(s) { s.etat.depuis = s.etat.tsim; },
@@ -268,8 +268,8 @@
         { k: "Rh", nom: "Résistance de la personne", aide: "Ordres de grandeur sous 230 V (CEI 60479-1) : peau sèche, environ 1 000 à 2 100 Ω selon les personnes, médiane vers 1 300-1 400 Ω ; on prend une valeur prudente. Humide : mains humides. Mouillée : pieds nus sur sol mouillé.", choix: [[1300, "sèche : 1 300 Ω (valeur prudente)"], [1000, "humide : 1 000 Ω"], [500, "mouillée : 500 Ω"]], nombres: true, defaut: 1300 }
       ],
       boutons: [
-        { k: "rearmer", texte: "↺ Réarmer", action: s => { s.etat.ouvert = false; s.etat.cause = null; s.etat.t0 = s.t; } },
-        { k: "test", texte: "T Bouton test", titre: "Crée une fuite interne d'environ 1,5 IΔn", action: s => { if (s.p.IDn) { s.etat.ouvert = true; s.etat.cause = "test"; s.etat.test = true; LS.avis("Le différentiel a déclenché : il fonctionne. Teste-le ainsi tous les mois."); } else LS.avis("Aucun différentiel : rien ne se passe."); } }
+        { k: "rearmer", texte: "Réarmer", action: s => { s.etat.ouvert = false; s.etat.cause = null; s.etat.t0 = s.t; } },
+        { k: "test", texte: "Bouton test (T)", titre: "Crée une fuite interne d'environ 1,5 IΔn", action: s => { if (s.p.IDn) { s.etat.ouvert = true; s.etat.cause = "test"; s.etat.test = true; LS.avis("Le différentiel a déclenché : il fonctionne. Teste-le ainsi tous les mois."); } else LS.avis("Aucun différentiel : rien ne se passe."); } }
       ],
       init(s) { Object.assign(s.etat, { ouvert: false, cause: null, a: 0, t0: 0, test: false }); },
       changement(s) { s.etat.t0 = s.t; },

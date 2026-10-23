@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Le va-et-vient de la maison",
   domaine: "electricite", niveau: 2, duree: "25 min",
   sim: "circuit",
-  intro: "Dans un couloir, on veut allumer et éteindre la même lampe depuis **deux endroits**. On utilise deux **interrupteurs va-et-vient** (à trois bornes : une borne commune et deux sorties) reliés par deux fils appelés **navettes**. Ici, le réseau est simulé par un générateur alternatif de **230 V efficaces** (325 V crête, 50 Hz), protégé par un fusible F1 de 10 A, et une lampe de 230 V, 60 W. Ces trois éléments sont imposés 🔒.\n\n⚠ En vrai : on coupe le disjoncteur avant de câbler, et la **phase** passe par les interrupteurs, jamais le neutre.",
+  intro: "Dans un couloir, on veut allumer et éteindre la même lampe depuis **deux endroits**. On utilise deux **interrupteurs va-et-vient** (à trois bornes : une borne commune et deux sorties) reliés par deux fils appelés **navettes**. Ici, le réseau est simulé par un générateur alternatif de **230 V efficaces** (325 V crête, 50 Hz), protégé par un fusible F1 de 10 A, et une lampe de 230 V, 60 W. Ces trois éléments sont imposés (réglages verrouillés).\n\n⚠ En vrai : on coupe le disjoncteur avant de câbler, et la **phase** passe par les interrupteurs, jamais le neutre.",
   config: {
     palette: ["vaetvient", "interrupteur", "lampe", "voltmetre", "amperemetre", "fusible"],
     schema: {
@@ -38,7 +38,7 @@ LS.ajouterTP({
       }, bravo: "C'est un « OU exclusif » : la lampe s'allume quand les deux interrupteurs sont dans des positions différentes (ou identiques, selon le câblage)." },
     { texte: "Mesure la tension aux bornes de la lampe allumée avec un voltmètre en mode **alternatif** : environ 230 V.",
       verif: s => s.liste("voltmetre").some(v => v.p.mode.startsWith("alternatif") && Math.abs(v._mesure - 230) < 10) },
-    { texte: "Le **fusible** protège l'installation : en simulation seulement, relie par erreur la sortie d'un interrupteur (la phase) au fil du **neutre**. Le court-circuit fait fondre F1. Retire le fil fautif, puis 🛠 Réparer : la lampe se rallume.",
+    { texte: "Le **fusible** protège l'installation : en simulation seulement, relie par erreur la sortie d'un interrupteur (la phase) au fil du **neutre**. Le court-circuit fait fondre F1. Retire le fil fautif, puis « Réparer » : la lampe se rallume.",
       indice: "Un fil de la borne de sortie de S2 jusqu'au fil du bas suffit. Le générateur affiche « Court-circuit » et F1 fond en quelques millisecondes.",
       verif: (s, m) => { const f = s.trouver("F1"), l = s.trouver("L1"); if (f && f.etat && f.etat.grille) m.fondu = true; return !!(m.fondu && f && !(f.etat && f.etat.grille) && (l._ueff || 0) > 100); },
       bravo: "Un court-circuit franc fait passer des centaines d'ampères : le fusible (ou le disjoncteur) doit couper avant que les fils ne chauffent. On cherche toujours la cause avant de réarmer." }

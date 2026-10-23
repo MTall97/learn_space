@@ -147,9 +147,9 @@
       b.append(mini, LS.el("span", { text: def.court || def.nom }));
       this.palette.append(b);
     });
-    this.btnChoix = LS.el("button", { class: "btn petit secondaire actif", text: "✋ Déplacer", title: "Sélectionner et déplacer", onclick: () => self._mode("choix") });
-    this.btnFil = LS.el("button", { class: "btn petit secondaire", text: "〰 Fil", title: "Tracer des fils (on peut aussi glisser depuis une borne)", onclick: () => self._mode("fil") });
-    this.btnMarche = LS.el("button", { class: "btn petit", text: "⏸ Pause", onclick: () => self.basculerMarche() });
+    this.btnChoix = LS.el("button", { class: "btn petit secondaire actif", text: "Déplacer", title: "Sélectionner et déplacer", onclick: () => self._mode("choix") });
+    this.btnFil = LS.el("button", { class: "btn petit secondaire", text: "Fil", title: "Tracer des fils (on peut aussi glisser depuis une borne)", onclick: () => self._mode("fil") });
+    this.btnMarche = LS.el("button", { class: "btn petit", text: "Pause", onclick: () => self.basculerMarche() });
     const vit = LS.el("select", { title: "Vitesse de la simulation", onchange: e => { self.vitesse = +e.target.value; } });
     [[1, "temps réel"], [0.1, "ralenti ×10"], [0.01, "ralenti ×100"], [0.001, "ralenti ×1000"]].forEach(([v, t]) => {
       const o = LS.el("option", { value: v, text: t }); if (v === this.vitesse) o.selected = true; vit.append(o);
@@ -161,13 +161,13 @@
         LS.el("input", { type: "checkbox", onchange: e => { self.electrons = e.target.checked; } }), "sens des électrons"]);
       const cbC = LS.el("label", { style: "font-size:.85rem;display:flex;gap:4px;align-items:center" }, [
         LS.el("input", { type: "checkbox", checked: this.couleursPotentiel ? "checked" : null, onchange: e => { self.couleursPotentiel = e.target.checked; } }), "couleurs des potentiels"]);
-      this.btnMM = LS.el("button", { class: "btn petit secondaire", text: "🔌 Multimètre", onclick: () => self.basculerMultimetre() });
-      this.btnOsc = LS.el("button", { class: "btn petit secondaire", text: "📈 Oscilloscope", onclick: () => self.basculerOscillo() });
+      this.btnMM = LS.el("button", { class: "btn petit secondaire", text: "Multimètre", onclick: () => self.basculerMultimetre() });
+      this.btnOsc = LS.el("button", { class: "btn petit secondaire", text: "Oscilloscope", onclick: () => self.basculerOscillo() });
       outils.push(LS.el("span", { class: "sep" }), this.btnMM, this.btnOsc, cbE, cbC);
     }
     outils.push(LS.el("span", { class: "sep" }),
-      LS.el("button", { class: "btn petit secondaire", text: "🛠 Réparer", title: "Remplace les composants grillés", onclick: () => self.reparer() }),
-      LS.el("button", { class: "btn petit secondaire", text: "↺ Recommencer", title: "Revenir au montage de départ", onclick: ev => LS.confirmer(ev.currentTarget, () => self.reinitialiser(), "Revenir au départ ?") }));
+      LS.el("button", { class: "btn petit secondaire", text: "Réparer", title: "Remplace les composants grillés", onclick: () => self.reparer() }),
+      LS.el("button", { class: "btn petit secondaire", text: "Recommencer", title: "Revenir au montage de départ", onclick: ev => LS.confirmer(ev.currentTarget, () => self.reinitialiser(), "Revenir au départ ?") }));
     barre.append(...outils);
     const barrePalette = LS.el("div", { class: "sim-barre" }, [this.palette]);
     if (!types.length) barrePalette.classList.add("cache-tout");
@@ -213,7 +213,7 @@
   };
   E.basculerMarche = function () {
     this.enMarche = !this.enMarche;
-    this.btnMarche.textContent = this.enMarche ? "⏸ Pause" : "▶ Lancer";
+    this.btnMarche.textContent = this.enMarche ? "Pause" : "Lancer";
   };
   E.reparer = function () {
     this.schema.compos.forEach(c => {
@@ -619,24 +619,24 @@
     if (!x.type) {
       pan.append(LS.el("h3", { text: "Fil" }),
         LS.el("p", { text: "Un fil relie deux points : ils sont au même potentiel (même tension par rapport à la masse)." }),
-        LS.el("div", { class: "ligne" }, [LS.el("button", { class: "btn petit secondaire", text: "🗑 Supprimer le fil", onclick: () => self.supprimer(x) }), this._boutonPanne(x)]));
+        LS.el("div", { class: "ligne" }, [LS.el("button", { class: "btn petit secondaire", text: "Supprimer le fil", onclick: () => self.supprimer(x) }), this._boutonPanne(x)]));
       return;
     }
     const def = this.reg[x.type];
     pan.append(LS.el("h3", { text: `${x.nom} — ${def.nom}` }));
     // Élément imposé et verrouillé par le TP (ex. le réseau 230 V) : réglages affichés, non modifiables.
     if (x.verrou) (def.props || []).forEach(q => pan.append(LS.el("div", { class: "ligne" }, [LS.el("span", { text: q.nom + " :" }),
-      LS.el("b", { text: q.bool ? (x.p[q.k] ? "oui" : "non") : q.choix ? x.p[q.k] + (q.unite ? " " + q.unite : "") : LS.si(x.p[q.k], q.unite || "", 3) }), LS.el("span", { class: "etiquette", text: "🔒 imposé" })])));
+      LS.el("b", { text: q.bool ? (x.p[q.k] ? "oui" : "non") : q.choix ? x.p[q.k] + (q.unite ? " " + q.unite : "") : LS.si(x.p[q.k], q.unite || "", 3) }), LS.el("span", { class: "etiquette", text: "imposé" })])));
     else (def.props || []).forEach(q => pan.append(self._controle(x, q)));
     const actions = LS.el("div", { class: "ligne" });
-    if (def.cliquable && def.action) actions.append(LS.el("button", { class: "btn petit", text: "⇄ Basculer", onclick: () => { def.action(x); self.rendu(); self._sauver(); self._signaler(); self._afficherProprietes(); } }));
+    if (def.cliquable && def.action) actions.append(LS.el("button", { class: "btn petit", text: "Basculer", onclick: () => { def.action(x); self.rendu(); self._sauver(); self._signaler(); self._afficherProprietes(); } }));
     if (!x.fixe) {
       actions.append(LS.el("button", { class: "btn petit secondaire", text: "⟳ Tourner (R)", onclick: () => self.tourner(x) }));
-      actions.append(LS.el("button", { class: "btn petit secondaire", text: "🗑 Supprimer", onclick: () => self.supprimer(x) }));
+      actions.append(LS.el("button", { class: "btn petit secondaire", text: "Supprimer", onclick: () => self.supprimer(x) }));
     } else actions.append(LS.el("span", { class: "etiquette", text: "élément imposé par le TP" }));
     if (this.opts.electrique) {
-      actions.append(LS.el("button", { class: "btn petit secondaire", text: "📈 Voie 1", title: "Afficher sa tension sur l'oscilloscope (voie 1)", onclick: () => self.surOscillo(x, 0) }));
-      actions.append(LS.el("button", { class: "btn petit secondaire", text: "📈 Voie 2", title: "Afficher sa tension sur l'oscilloscope (voie 2)", onclick: () => self.surOscillo(x, 1) }));
+      actions.append(LS.el("button", { class: "btn petit secondaire", text: "Voie 1", title: "Afficher sa tension sur l'oscilloscope (voie 1)", onclick: () => self.surOscillo(x, 0) }));
+      actions.append(LS.el("button", { class: "btn petit secondaire", text: "Voie 2", title: "Afficher sa tension sur l'oscilloscope (voie 2)", onclick: () => self.surOscillo(x, 1) }));
     }
     const bp = this._boutonPanne(x);
     if (bp) actions.append(bp);
@@ -651,10 +651,10 @@
     if (!this.opts.signalement) return null;
     const self = this;
     this.signalements = this.signalements || [];
-    return LS.el("button", { class: "btn petit", text: "🚩 C'est la panne !", onclick: () => {
+    return LS.el("button", { class: "btn petit", text: "C'est la panne !", onclick: () => {
       self.signalements.push(x);
       const vrai = x.coupe || (x.etat && x.etat.grille);
-      LS.avis(vrai ? "Bien vu : c'est bien un élément en panne. Remplace-le (supprime-le et remets-en un neuf, ou 🛠 Réparer pour une lampe)." : "Non, cet élément fonctionne. Continue tes mesures.");
+      LS.avis(vrai ? "Bien vu : c'est bien un élément en panne. Remplace-le (supprime-le et remets-en un neuf, ou « Réparer » pour une lampe)." : "Non, cet élément fonctionne. Continue tes mesures.");
       self._signaler();
     } });
   };
@@ -753,7 +753,7 @@
       const bt = LS.el("button", { class: "btn petit secondaire", text: x.g === "I" ? "→ U" : "→ I", title: "Basculer tension / courant", onclick: () => { x.g = x.g === "I" ? "U" : "I"; this.osc.donnees = []; this._legendeOsc(); } });
       this.oscLegende.append(s, bt);
     });
-    if (!v[0] && !v[1]) this.oscLegende.textContent = " — clique sur un composant puis « 📈 Voie 1 » ou « 📈 Voie 2 ».";
+    if (!v[0] && !v[1]) this.oscLegende.textContent = " — clique sur un composant puis « Voie 1 » ou « Voie 2 ».";
   };
   /* Appelé par le simulateur après chaque pas. */
   E.echantillonner = function (t) {
@@ -844,7 +844,7 @@
     pan.innerHTML = "";
     this.ecranMM = LS.el("div", { class: "mm-ecran", text: "" });
     this.alerteMM = LS.el("div", { class: "mm-alerte" });
-    const positions = [["OFF", "Arrêt"], ["V⎓", "Tension continue"], ["V~", "Tension alternative (efficace)"], ["A⎓", "Courant continu"], ["A~", "Courant alternatif"], ["Ω", "Résistance (hors tension !)"], ["🔊", "Continuité (bip si < 50 Ω)"], ["▶|", "Test de diode"]];
+    const positions = [["OFF", "Arrêt"], ["V⎓", "Tension continue"], ["V~", "Tension alternative (efficace)"], ["A⎓", "Courant continu"], ["A~", "Courant alternatif"], ["Ω", "Résistance (hors tension !)"], ["•))", "Continuité (bip si < 50 Ω)"], ["▶|", "Test de diode"]];
     const sel = LS.el("div", { class: "mm-selecteur" });
     positions.forEach(([v, t]) => {
       const b = LS.el("button", { class: "mm-pos" + (mm.sel === v ? " actif" : ""), title: t, text: v, onclick: () => { mm.sel = v; self._installerMultimetre(); self.sim.preparer(); self._construireMultimetre(); self._signaler(); } });
@@ -862,7 +862,7 @@
       LS.el("div", { class: "mm-titre", text: "Multimètre" }), this.ecranMM,
       LS.el("div", { class: "mm-mode", text: desc ? desc[1] : "" }), sel, douilles, this.alerteMM,
       LS.el("p", { class: "aide", html: "Fais glisser les pointes <b style='color:#e53935'>rouge</b> et <b>noire</b> sur la plaque pour toucher le circuit. Pour un courant, il faut <b>ouvrir</b> le circuit et y insérer l'appareil." }),
-      LS.el("button", { class: "btn petit secondaire", text: "🔧 Changer le fusible", onclick: () => { if (self._mm) { self._mm.etat.fusible = null; self._signaler(); } } })
+      LS.el("button", { class: "btn petit secondaire", text: "Changer le fusible", onclick: () => { if (self._mm) { self._mm.etat.fusible = null; self._signaler(); } } })
     ]));
   };
   E._rendreSondes = function () {

@@ -49,7 +49,7 @@ LS.ajouterTP({
         if (l.texte === "OL") m.inverse = true;
         return !!(m.direct && m.inverse);
       }, bravo: "Une diode ne conduit que dans un sens : c'est ce qui permet de la tester (et de repérer ses bornes)." },
-    { texte: "**L'erreur classique** : remets le circuit en état, laisse le cordon rouge dans **mA** et mesure la tension de la pile en position V⎓. Que devient le fusible du multimètre ? Remplace-le ensuite (🔧).",
+    { texte: "**L'erreur classique** : remets le circuit en état, laisse le cordon rouge dans **mA** et mesure la tension de la pile en position V⎓. Que devient le fusible du multimètre ? Remplace-le ensuite (bouton « Changer le fusible »).",
       verif: (s, m) => { const e = s._mm && s._mm.etat; if (e && e.fusible && e.fusible.mA) m.grille = true; return !!(m.grille && !(e && e.fusible && e.fusible.mA)); },
       bravo: "Dans la douille mA, l'appareil n'a qu'une très faible résistance : posé sur la pile, c'est un court-circuit. Le fusible interne l'a protégé. Toujours vérifier la douille avant de mesurer une tension !" }
   ],

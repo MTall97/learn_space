@@ -17,7 +17,7 @@
 
   const mesureur = document.createElement("canvas").getContext("2d");
   function largeurTexte(t, taille, gras, police) {
-    mesureur.font = (gras ? "700 " : "500 ") + taille + "px " + (police || "Nunito, Segoe UI, sans-serif");
+    mesureur.font = (gras ? "700 " : "500 ") + taille + "px " + (police || LS.POLICE);
     return mesureur.measureText(t).width;
   }
 
@@ -53,9 +53,9 @@
   P._taille = function (n) {
     let w, h;
     if (n._niveau === 0) {
-      w = Math.max(160, largeurTexte(n.t, 22, true, "Kalam, cursive") + 50); h = 70;
+      w = Math.max(160, largeurTexte(n.t, 22, true, LS.POLICE_TITRE) + 50); h = 70;
     } else if (n._niveau === 1) {
-      w = largeurTexte(n.t, 17, true, "Kalam, cursive") + 40; h = 40;
+      w = largeurTexte(n.t, 17, true, LS.POLICE_TITRE) + 40; h = 40;
     } else {
       w = largeurTexte(n.t, 14, false) + 18; h = 28;
     }
@@ -136,7 +136,7 @@
     svg("rect", { width: n._w, height: n._h, rx: r, ry: r }, grp);
     const t = svg("text", { x: n.tp ? (n._w - 18) / 2 : n._w / 2, y: n._h / 2 + 5, "text-anchor": "middle" }, grp);
     t.textContent = n.t;
-    if (n.tp) { const i = svg("text", { class: "icone-tp", x: n._w - 16, y: n._h / 2 + 5 }, grp); i.textContent = "🔧"; }
+    if (n.tp) { const i = svg("text", { class: "icone-tp", x: n._w - 16, y: n._h / 2 + 5 }, grp); i.textContent = "TP"; }
     if (LS.compris(n._id) && n._niveau > 0) {
       const c = svg("text", { class: "coche", x: -14, y: n._h / 2 + 5 }, grp); c.textContent = "✓";
     }
@@ -209,7 +209,7 @@
     pan.append(LS.el("button", { class: "btn secondaire petit fermer", text: "✕", title: "Fermer", onclick: () => pan.classList.add("cache") }));
     if (chemin.length) pan.append(LS.el("div", { class: "chemin", text: chemin.join(" › ") }));
     pan.append(LS.el("h2", { text: n.t }));
-    if (n.note) pan.append(LS.el("div", { class: "note", html: "💬 " + LS.texte(n.note) }));
+    if (n.note) pan.append(LS.el("div", { class: "note", html: ""+ LS.texte(n.note) }));
     if (n.tag) pan.append(LS.el("span", { class: "etiquette", text: n.tag }));
     if (n.d) pan.append(LS.el("div", { class: "definition", html: LS.texte(n.d) }));
     else pan.append(LS.el("p", { class: "vide", text: "Pas encore de définition pour cette notion." }));
@@ -221,7 +221,7 @@
       const tps = Array.isArray(n.tp) ? n.tp : [n.tp];
       tps.forEach(id => {
         const titre = (LS.tps[id] && LS.tps[id].titre) || (LS.catalogueTP && LS.catalogueTP[id]) || id;
-        pan.append(LS.el("p", {}, [LS.el("a", { class: "btn", href: "tp.html?id=" + id, text: "🔧 TP : " + titre })]));
+        pan.append(LS.el("p", {}, [LS.el("a", { class: "btn", href: "tp.html?id=" + id, text: "TP : " + titre })]));
       });
     }
     if (n.c && n.c.length) {
