@@ -148,20 +148,20 @@ test("Zener 5,1 V : régulation réaliste (résistance dynamique ≈ 20 Ω à 10
   assert.ok(rd > 8 && rd < 40, "résistance dynamique " + rd + " Ω");
 });
 
-test("générateur 230 V en court-circuit : alerte", () => {
-  const g = compo("generateur", 0, 0, { A: 325, f: 50 });
+test("générateur 220 V en court-circuit : alerte", () => {
+  const g = compo("generateur", 0, 0, { A: 311, f: 50 });
   const k = compo("interrupteur", 0, 4, { ferme: true });
   simuler({ compos: [g, k], fils: [fil([0, 0], [0, 4]), fil([4, 0], [4, 4])] }, 0.02, 1e-4);
   assert.ok(/Court-circuit/.test(g.etat.alerte));
 });
 
-test("voltmètre en mode continu sur du 230 V alternatif : il lit la moyenne, ≈ 0 V", () => {
-  const g = compo("generateur", 0, 0, { A: 325, f: 50 });
+test("voltmètre en mode continu sur du 220 V alternatif : il lit la moyenne, ≈ 0 V", () => {
+  const g = compo("generateur", 0, 0, { A: 311, f: 50 });
   const v = compo("voltmetre", 0, 4);
   const va = compo("voltmetre", 0, 8, { mode: "alternatif (AC, efficace)" });
   simuler({ compos: [g, v, va], fils: [fil([0, 0], [0, 4], [0, 8]), fil([4, 0], [4, 4], [4, 8])] }, 2, 1e-4);
   assert.ok(Math.abs(v._mesure) < 5, "DC : " + v._mesure);
-  proche(va._mesure, 230, 5, "AC");
+  proche(va._mesure, 220, 5, "AC");
 });
 
 test("fusible : tient à 1,05 In, fond en ≈ 1 s à 1,5 In et en ≈ 12 ms à 10 In", () => {

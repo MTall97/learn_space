@@ -220,7 +220,7 @@
     // Rendement de la chaîne : salissures et câbles (0,9) × température des cellules × régulateur.
     const Tc = Ta + 22, etaTemp = 1 - 0.0037 * (Tc - 25), etaReg = p.regulateur === "pwm" ? 0.75 : 0.96;
     const pr = 0.9 * etaTemp * etaReg, etaOnd = 0.92, veille = 10;
-    const conso = LS.profilConsommation(p).map(w => (w + veille) / etaOnd);   // appareils en 230 V par un onduleur, 10 W de veille
+    const conso = LS.profilConsommation(p).map(w => (w + veille) / etaOnd);   // appareils en 220 V par un onduleur, 10 W de veille
     const Eb = p.capacite * p.tension, socMin = 1 - bat.dodConseil;          // Wh nominaux, état de charge mini autorisé
     const etaCh = p.chimie === "plomb" ? 0.85 : 0.95, etaDe = p.chimie === "plomb" ? 0.95 : 0.98;
     let soc = 1, sMin = 1, deleste = 0, perdu = 0, servi = 0, prodTot = 0, heuresCoupees = 0, cyclage = 0;

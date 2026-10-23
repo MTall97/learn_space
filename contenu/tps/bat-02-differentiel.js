@@ -3,12 +3,12 @@ LS.ajouterTP({
   titre: "Défaut d'isolement et différentiel 30 mA",
   domaine: "batiment", niveau: 2, duree: "30 min",
   sim: "differentiel",
-  intro: "Une machine à laver à carcasse métallique a un **défaut d'isolement** : la phase touche la carcasse. L'installation est en schéma **TT** : neutre à la terre au transformateur (RB = 10 Ω), carcasse reliée à la prise de terre de la maison (RA). Fais varier la terre, la résistance du défaut, la protection et la personne qui touche (résistance du corps sous 230 V : environ 1 000 à 2 100 Ω selon les personnes, peau sèche, d'après la CEI 60479-1 ; on prend une valeur prudente, beaucoup moins si la peau est mouillée), et observe la tension de contact, le courant dans le corps et sa durée.\n\nLe graphe place le choc reçu (courant, durée) sur les zones d'effets de la CEI 60479-1, **très simplifiées** : la réalité dépend du trajet du courant, de la personne et de l'état de la peau.",
+  intro: "Une machine à laver à carcasse métallique a un **défaut d'isolement** : la phase touche la carcasse. L'installation est en schéma **TT** : neutre à la terre au transformateur (RB = 10 Ω), carcasse reliée à la prise de terre de la maison (RA). Fais varier la terre, la résistance du défaut, la protection et la personne qui touche (réseau malien de 220 V ; résistance du corps sous 220-230 V : environ 1 000 à 2 100 Ω selon les personnes, peau sèche, d'après la CEI 60479-1 ; on prend une valeur prudente, beaucoup moins si la peau est mouillée), et observe la tension de contact, le courant dans le corps et sa durée.\n\nLe graphe place le choc reçu (courant, durée) sur les zones d'effets de la CEI 60479-1, **très simplifiées** : la réalité dépend du trajet du courant, de la personne et de l'état de la peau.",
   config: { p: { IDn: 0, defaut: true, Rd: 1, RA: 30, touche: false, Rh: 1300 } },
   objectifs: [
     { texte: "Sans différentiel, avec une bonne terre (30 Ω) : fais toucher la carcasse par une personne aux mains sèches. Le disjoncteur ne coupe pas et le choc est en zone **AC-4**.",
       verif: s => { const k = s.calc(); return s.p.IDn === 0 && s.p.touche && isFinite(s.p.RA) && k.brut.Ib > 0 && k.zone === "AC-4"; },
-      bravo: "Le courant de défaut (quelques ampères) est bien trop faible pour le disjoncteur 16 A : la carcasse reste à plus de 150 V, sans fin." },
+      bravo: "Le courant de défaut (quelques ampères) est bien trop faible pour le disjoncteur 16 A : la carcasse reste vers 160 V, sans fin." },
     { texte: "Ajoute un différentiel **30 mA** : il coupe. Réarme : il recoupe tant que le défaut est là.",
       verif: s => s.p.IDn === 0.03 && s.etat.ouvert && s.etat.cause === "differentiel" },
     { texte: "Le 500 mA du disjoncteur de branchement avec une mauvaise terre (**1 500 Ω**) et un défaut de **1 kΩ** ou plus : il ne coupe pas, alors que la carcasse dépasse **50 V**.",
@@ -20,7 +20,7 @@ LS.ajouterTP({
     { texte: "Appuie sur le **bouton test** d'un différentiel.", verif: s => s.etat.test }
   ],
   questions: [
-    { q: "Défaut franc, RA = 30 Ω, RB = 10 Ω : courant de défaut ?", choix: ["≈ 5,75 A", "≈ 23 A", "≈ 30 mA"], bonne: 0, explication: "Id = 230 / (10 + 30) ≈ 5,75 A, et Uc = 5,75 × 30 ≈ 172 V." },
+    { q: "Défaut franc, RA = 30 Ω, RB = 10 Ω : courant de défaut ?", choix: ["≈ 5,5 A", "≈ 22 A", "≈ 30 mA"], bonne: 0, explication: "Id = 220 / (10 + 30) = 5,5 A, et Uc = 5,5 × 30 = 165 V." },
     { q: "Avec un différentiel 30 mA, quelle résistance de terre maximale (UL = 50 V) ?", choix: ["≈ 17 Ω", "≈ 167 Ω", "≈ 1 667 Ω"], bonne: 2, explication: "RA ≤ 50 / 0,03 ≈ 1 667 Ω ; on vise en pratique bien moins de 100 Ω." },
     { q: "Un interrupteur différentiel protège-t-il contre les surcharges ?", choix: ["Oui", "Non, il faut des disjoncteurs en aval"], bonne: 1 }
   ],

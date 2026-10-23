@@ -16,7 +16,7 @@
     electronique: { code: "Si", h: 200, brevet: "Électronicien" },
     numerique: { code: "01", h: 150, brevet: "Logicien" },
     solaire: { code: "PV", h: 45, brevet: "Installateur solaire" },
-    batiment: { code: "230", h: 8, brevet: "Électricien du bâtiment" },
+    batiment: { code: "220", h: 8, brevet: "Électricien du bâtiment" },
     electromecanique: { code: "M~", h: 330, brevet: "Électromécanicien" },
     telecom: { code: "dB", h: 190, brevet: "Télécommunicant" },
     moteurs: { code: "4T", h: 15, brevet: "Motoriste" },

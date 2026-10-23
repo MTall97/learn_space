@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Longueur de câble et chute de tension",
   domaine: "batiment", niveau: 2, duree: "25 min",
   sim: "chuteTension",
-  intro: "On alimente un appareil au bout d'une ligne (un abri au fond du jardin, une pompe dans un puits). Le câble a une résistance : une partie de la tension se perd en chemin et chauffe le câble. Fais varier la longueur, la section et le métal, puis démarre un moteur.\n\nCalcul selon la formule de la NF C 15-100 : u = b (ρ L / S cos φ + λ L sin φ) I, avec ρ à chaud (cuivre 0,0225, aluminium 0,036 Ω·mm²/m), λ = 0,08 mΩ/m, b = 2 en monophasé, courant calculé sous 230 V.",
+  intro: "On alimente un appareil au bout d'une ligne (un abri au fond du jardin, une pompe dans un puits). Le câble a une résistance : une partie de la tension se perd en chemin et chauffe le câble. Fais varier la longueur, la section et le métal, puis démarre un moteur.\n\nCalcul selon la formule de la NF C 15-100 : u = b (ρ L / S cos φ + λ L sin φ) I, avec ρ à chaud (cuivre 0,0225, aluminium 0,036 Ω·mm²/m), λ = 0,08 mΩ/m, b = 2 en monophasé, courant calculé sous 220 V (réseau malien).",
   config: { p: { charge: "radiateur", matiere: "cuivre", section: 1.5, longueur: 20 } },
   objectifs: [
     { texte: "Radiateur à **50 m** ou plus en **1,5 mm²** : la chute de tension dépasse **5 %**.",

@@ -624,7 +624,7 @@
     }
     const def = this.reg[x.type];
     pan.append(LS.el("h3", { text: `${x.nom} — ${def.nom}` }));
-    // Élément imposé et verrouillé par le TP (ex. le réseau 230 V) : réglages affichés, non modifiables.
+    // Élément imposé et verrouillé par le TP (ex. le réseau 220 V) : réglages affichés, non modifiables.
     if (x.verrou) (def.props || []).forEach(q => pan.append(LS.el("div", { class: "ligne" }, [LS.el("span", { text: q.nom + " :" }),
       LS.el("b", { text: q.bool ? (x.p[q.k] ? "oui" : "non") : q.choix ? x.p[q.k] + (q.unite ? " " + q.unite : "") : LS.si(x.p[q.k], q.unite || "", 3) }), LS.el("span", { class: "etiquette", text: "imposé" })])));
     else (def.props || []).forEach(q => pan.append(self._controle(x, q)));
@@ -672,7 +672,7 @@
       return LS.el("div", { class: "ligne" }, [LS.el("span", { text: q.nom + " :" }), s]);
     }
     const val = LS.el("b", { text: LS.si(c.p[q.k], q.unite || "", 3) });
-    // Une valeur imposée par le TP peut sortir de la plage du curseur (325 V crête du réseau) : on élargit
+    // Une valeur imposée par le TP peut sortir de la plage du curseur (311 V crête du réseau malien) : on élargit
     // la plage pour ne jamais la ramener à la borne sans le vouloir.
     const v0 = c.p[q.k], min = Math.min(q.min, v0), max = Math.max(q.max, v0);
     const pos = v => q.log ? 1000 * Math.log(v / min) / Math.log(max / min) : v;

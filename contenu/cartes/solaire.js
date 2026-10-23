@@ -1,7 +1,7 @@
 LS.ajouterCarte({
   id: "solaire",
   titre: "L'énergie solaire et les batteries",
-  intro: "Une installation solaire autonome transforme la lumière en électricité (panneaux), la range (batterie), la contrôle (régulateur) et la rend utilisable par les appareils en 230 V (onduleur). Cette carte suit l'énergie du soleil jusqu'à la prise, puis explique comment dimensionner et câbler l'ensemble en sécurité.",
+  intro: "Une installation solaire autonome transforme la lumière en électricité (panneaux), la range (batterie), la contrôle (régulateur) et la rend utilisable par les appareils en 220 V (onduleur). Cette carte suit l'énergie du soleil jusqu'à la prise, puis explique comment dimensionner et câbler l'ensemble en sécurité.",
   racine: { t: "Énergie solaire", c: [
     { t: "Le rayonnement solaire", c: [
       { t: "Éclairement", d: "Puissance lumineuse reçue par mètre carré, en W/m². Environ 1 000 W/m² en plein soleil à midi, 100 à 300 W/m² par ciel couvert, 0 la nuit.", f: "P_lumière = éclairement × surface", ex: "Un panneau de 1,7 m² sous 1 000 W/m² reçoit 1 700 W de lumière et en convertit ≈ 20 % : 340 W.", tp: "sol-01-panneau" },
@@ -39,7 +39,7 @@ LS.ajouterCarte({
       { t: "Charge CC/CV", d: "Le chargeur fournit d'abord un courant constant (CC, phase « bulk »), puis, quand la tension atteint la consigne (14,4 V plomb, 14,2 V lithium), il tient cette tension constante (CV, « absorption ») et le courant décroît. En plomb, on termine par une tension d'entretien (floating ≈ 13,6 V).", tp: "sol-02-batterie" }
     ] },
     { t: "L'onduleur", c: [
-      { t: "Onduleur", d: "Convertit le courant continu de la batterie (12, 24 ou 48 V) en 230 V alternatif 50 Hz pour les appareils ordinaires. On le choisit pour la puissance totale des appareils allumés en même temps, avec une marge pour les démarrages (moteurs, compresseurs : 3 à 5 fois la puissance nominale pendant un instant)." },
+      { t: "Onduleur", d: "Convertit le courant continu de la batterie (12, 24 ou 48 V) en 220 V alternatif 50 Hz pour les appareils ordinaires (230 V pour les onduleurs vendus en Europe). On le choisit pour la puissance totale des appareils allumés en même temps, avec une marge pour les démarrages (moteurs, compresseurs : 3 à 5 fois la puissance nominale pendant un instant)." },
       { t: "Onduleur pur sinus", d: "Produit une vraie sinusoïde. Les onduleurs « quasi-sinus » (signal en marches) sont moins chers mais font chauffer ou bourdonner les moteurs, les frigos et certaines alimentations." },
       { t: "Consommation à vide", d: "Un onduleur allumé consomme même sans appareil : 5 à 30 W selon le modèle, soit 0,1 à 0,7 kWh par jour, parfois autant qu'un frigo économe. On choisit un modèle à faible consommation ou on l'éteint la nuit.", tp: "sol-04-dimensionnement" },
       { t: "Rendement global", d: "Pertes cumulées entre la lumière et la prise : température des cellules, poussière, câbles, régulateur, batterie (charge et décharge), onduleur. On compte en général 65 à 80 % entre l'énergie « crête » des panneaux et l'énergie utile.", f: "η_global = η_panneau × η_régulateur × η_batterie × η_onduleur", tp: "sol-04-dimensionnement" }

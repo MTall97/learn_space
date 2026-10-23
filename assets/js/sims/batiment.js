@@ -11,6 +11,9 @@
   const D = () => LS.dessin;
   const RHO = { cuivre: 0.0225, alu: 0.036 };          // Ω·mm²/m, résistivité « à chaud » utilisée par la NF C 15-100
   const RHO_FROID = { cuivre: 0.0178, alu: 0.029 };    // à 20 °C
+  // Réseau malien : 220 V entre phase et neutre, 50 Hz (230 V en Europe).
+  const U_RESEAU = 220;
+  LS.U_RESEAU = U_RESEAU;
   // Courant admissible Iz (A), câble cuivre PVC, 2 conducteurs chargés, sous conduit encastré (méthode B), 30 °C.
   const IZ = { 1.5: 17.5, 2.5: 24, 4: 32, 6: 41, 10: 57 };
   const COURBES = { B: [3, 5], C: [5, 10], D: [10, 20] };
@@ -50,13 +53,13 @@
   LS.chuteTension = function (o) {
     const cos = o.cosphi === undefined ? 1 : o.cosphi, sin = Math.sqrt(Math.max(0, 1 - cos * cos));
     const u = 2 * (RHO[o.matiere || "cuivre"] * o.longueur / o.section * cos + 0.08e-3 * o.longueur * sin) * o.I;
-    const U = o.U || 230;
+    const U = o.U || U_RESEAU;
     return { dU: u, pourcent: 100 * u / U, Ucharge: U - u, pertes: LS.resistanceLigne(o.longueur, o.section, o.matiere) * o.I * o.I };
   };
   // Défaut d'isolement en schéma TT : phase → carcasse (Rd), carcasse → terre par la prise de terre RA
   // et, éventuellement, par une personne (Rh). Retour par la terre du neutre RB.
   LS.defautTT = function (o) {
-    const U = o.U || 230, RB = o.RB === undefined ? 10 : o.RB;
+    const U = o.U || U_RESEAU, RB = o.RB === undefined ? 10 : o.RB;
     const RA = o.RA, Rh = o.touche ? o.Rh : Infinity;
     const Rpar = !isFinite(RA) && !isFinite(Rh) ? Infinity : !isFinite(RA) ? Rh : !isFinite(Rh) ? RA : RA * Rh / (RA + Rh);
     if (!isFinite(o.Rd) || !isFinite(Rpar)) {
@@ -137,8 +140,8 @@
       const p = s.p, e = s.etat;
       const Rc = LS.resistanceLigne(p.longueur, p.section, "cuivre");
       const Pdem = APPAREILS.reduce((a, ap) => a + (p[ap.k] ? ap.P : 0), 0);
-      const Icharge = Pdem / 230;
-      const Icc = 230 / (Zreseau + Rc);                     // court-circuit franc en bout de ligne
+      const Icharge = Pdem / U_RESEAU;
+      const Icc = U_RESEAU / (Zreseau + Rc);                     // court-circuit franc en bout de ligne
       const Idem = p.courtcircuit ? Icc : Icharge;
       const I = e.ouvert ? 0 : Idem;
       return { Rc, Pdem, Icharge, Icc, Idem, I, Iz: IZ[p.section], Tfin: LS.temperatureCable(I, p.section) };
@@ -265,7 +268,7 @@
         { k: "Rd", nom: "Résistance du défaut", min: 0.1, max: 100000, log: true, defaut: 1, format: v => LS.si(v, "Ω") },
         { k: "RA", nom: "Prise de terre de la maison RA", choix: [[10, "10 Ω"], [30, "30 Ω"], [100, "100 Ω"], [500, "500 Ω"], [1500, "1 500 Ω"], [Infinity, "absente"]], nombres: true, defaut: 30 },
         { k: "touche", nom: "Une personne touche la carcasse", bool: true, defaut: false },
-        { k: "Rh", nom: "Résistance de la personne", aide: "Ordres de grandeur sous 230 V (CEI 60479-1) : peau sèche, environ 1 000 à 2 100 Ω selon les personnes, médiane vers 1 300-1 400 Ω ; on prend une valeur prudente. Humide : mains humides. Mouillée : pieds nus sur sol mouillé.", choix: [[1300, "sèche : 1 300 Ω (valeur prudente)"], [1000, "humide : 1 000 Ω"], [500, "mouillée : 500 Ω"]], nombres: true, defaut: 1300 }
+        { k: "Rh", nom: "Résistance de la personne", aide: "Ordres de grandeur sous 220-230 V (CEI 60479-1) : peau sèche, environ 1 000 à 2 100 Ω selon les personnes, médiane vers 1 300-1 400 Ω ; on prend une valeur prudente. Humide : mains humides. Mouillée : pieds nus sur sol mouillé.", choix: [[1300, "sèche : 1 300 Ω (valeur prudente)"], [1000, "humide : 1 000 Ω"], [500, "mouillée : 500 Ω"]], nombres: true, defaut: 1300 }
       ],
       boutons: [
         { k: "rearmer", texte: "Réarmer", action: s => { s.etat.ouvert = false; s.etat.cause = null; s.etat.t0 = s.t; } },
@@ -285,7 +288,7 @@
         const sol = sh - 30;
         // Réseau : transformateur, terre du neutre RB
         ctx.strokeStyle = c.texte; ctx.lineWidth = 2;
-        D().texte(ctx, "Réseau 230 V", 14, 20, c.texte, 12, "left", true);
+        D().texte(ctx, "Réseau " + U_RESEAU + " V", 14, 20, c.texte, 12, "left", true);
         const yP = 44, yN = 70;
         ctx.strokeStyle = "#8d6e63"; ctx.beginPath(); ctx.moveTo(14, yP); ctx.lineTo(sw - 70, yP); ctx.stroke();
         ctx.strokeStyle = "#1e88e5"; ctx.beginPath(); ctx.moveTo(14, yN); ctx.lineTo(sw - 60, yN); ctx.stroke();
@@ -371,7 +374,7 @@
     function calc(s) {
       const p = s.p;
       const ch = CHARGES[p.charge];
-      const I = ch.P / (230 * ch.cos * ch.rend);
+      const I = ch.P / (U_RESEAU * ch.cos * ch.rend);
       const r = LS.chuteTension({ I, longueur: p.longueur, section: p.section, matiere: p.matiere, cosphi: ch.cos });
       const dem = ch.kd ? LS.chuteTension({ I: I * ch.kd, longueur: p.longueur, section: p.section, matiere: p.matiere, cosphi: ch.cosd }) : null;
       return Object.assign(r, { I, ch, dem, R: LS.resistanceLigne(p.longueur, p.section, p.matiere), limite: p.charge === "lampes" ? 3 : 5 });
@@ -393,7 +396,7 @@
         const x0 = 20, x1 = W - (etroit ? 90 : 120), y0 = 70, y1 = 130;
         // Source et ligne aller-retour
         ctx.fillStyle = c.carte; ctx.strokeStyle = c.bordure; ctx.fillRect(x0, y0 - 20, 60, y1 - y0 + 40); ctx.strokeRect(x0, y0 - 20, 60, y1 - y0 + 40);
-        D().texte(ctx, "230 V", x0 + 30, (y0 + y1) / 2, c.texte, 13, "center", true);
+        D().texte(ctx, U_RESEAU + " V", x0 + 30, (y0 + y1) / 2, c.texte, 13, "center", true);
         const ep = 2 + p.section / 4;
         ctx.lineWidth = ep; ctx.strokeStyle = p.matiere === "alu" ? "#b0bec5" : "#d7894a";
         ctx.beginPath(); ctx.moveTo(x0 + 60, y0); ctx.lineTo(x1, y0); ctx.moveTo(x0 + 60, y1); ctx.lineTo(x1, y1); ctx.stroke(); ctx.lineWidth = 1;
@@ -408,7 +411,7 @@
         D().texte(ctx, k.ch.nom.split(" ")[0], ax + aw / 2, y0, c.texte, 12, "center", true);
         D().texte(ctx, LS.nombre(r.Ucharge, 0) + " V", ax + aw / 2, (y0 + y1) / 2 + 4, r.pourcent > k.limite ? c.alerte : c.texte, 16, "center", true);
         // Effet sur l'appareil
-        const u = r.Ucharge / 230;
+        const u = r.Ucharge / U_RESEAU;
         if (p.charge === "lampes") { const flux = Math.pow(u, 3.4); ctx.fillStyle = `rgba(255,220,80,${0.15 + 0.7 * flux})`; ctx.beginPath(); ctx.arc(ax + aw / 2, y1 + 40, 10 + 18 * flux, 0, 7); ctx.fill(); }
         if (p.charge === "pompe") {
           const ok = !k.dem || k.dem.pourcent <= 15;
@@ -432,7 +435,7 @@
           ["Tension à l'appareil", LS.nombre(k.Ucharge, 0) + " V"], ["Pertes dans la ligne", LS.nombre(k.pertes, 0) + " W (" + LS.nombre(100 * k.pertes / k.ch.P, 1) + " %)"],
           ["Limite usuelle", k.limite + " % (" + (k.limite === 3 ? "éclairage" : "autres usages") + ")"]];
         if (k.dem) l.push(["Au démarrage (" + k.ch.kd + " × In, cos φ " + LS.nombre(k.ch.cosd, 1) + ")", LS.nombre(k.dem.dU, 0) + " V (" + LS.nombre(k.dem.pourcent, 1) + " %)", k.dem.pourcent > 15 ? "alerte" : ""]);
-        if (s.p.charge === "lampes") l.push(["Lumière des halogènes", LS.nombre(100 * Math.pow(k.Ucharge / 230, 3.4), 0) + " %"]);
+        if (s.p.charge === "lampes") l.push(["Lumière des halogènes", LS.nombre(100 * Math.pow(k.Ucharge / U_RESEAU, 3.4), 0) + " %"]);
         return l;
       },
       explication(s) {

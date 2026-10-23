@@ -324,7 +324,7 @@
     nom: "Lampe", court: "Lampe", cat: "Récepteurs", prefixe: "L",
     bornes: [[0, 0], [4, 0]],
     props: [
-      { k: "Un", nom: "Tension nominale", unite: "V", choix: [1.5, 3.5, 6, 12, 24, 230], defaut: 6 },
+      { k: "Un", nom: "Tension nominale", unite: "V", choix: [1.5, 3.5, 6, 12, 24, 220, 230], defaut: 6 },
       { k: "Pn", nom: "Puissance nominale", unite: "W", choix: [0.1, 0.3, 0.5, 1, 3, 5, 21, 40, 60], defaut: 0.5 }
     ],
     dessin(d, c) {

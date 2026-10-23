@@ -126,18 +126,19 @@
   };
 
   /* ---------- Transformateur ---------- */
-  /* Transformateur de 50 VA environ, prévu pour 0,2 V par spire (230 V sur 1 150 spires).
+  /* Transformateur de 50 VA environ, prévu pour 0,2 V par spire (220 V du réseau malien sur N1_NOMINAL = 1 100 spires).
      Le flux dans le fer est proportionnel aux volts par spire (U1 / N1). Au-delà d'environ 1,2 fois la
      valeur prévue, le fer sature : le courant magnétisant croît très vite, limité seulement par la
      résistance du fil du primaire. Pertes fer ∝ (U1 / N1)². */
+  const U_RESEAU = 220, N1_NOMINAL = 1100;
   LS.calcTransformateur = function (p) {
-    const R1 = 2.5 * p.N1 / 1150;                                   // résistance du primaire (Ω)
+    const R1 = 2.5 * p.N1 / N1_NOMINAL;                                   // résistance du primaire (Ω)
     if (p.continu) { const I1 = p.U1 / R1; return { U2: 0, I2: 0, I1, P: 0, b: 0, grille: I1 > 2 }; }
     const m = p.N2 / p.N1, b = (p.U1 / p.N1) / 0.2;                  // b = flux / flux prévu
     const U2v = p.U1 * m, Rs = 0.4 * m * m * 50 + 0.2;               // résistance des enroulements ramenée
     const I2 = U2v / (p.R + Rs), U2 = I2 * p.R;
     const sat = b > 1.1 ? Math.exp(6 * (b - 1.1)) : 1;
-    const Imag = Math.min(p.U1 / R1, 0.03 * b * sat * 1150 / p.N1);
+    const Imag = Math.min(p.U1 / R1, 0.03 * b * sat * N1_NOMINAL / p.N1);
     const I1 = Math.hypot(I2 * m, Imag);
     const Pfer = 4 * b * b, Pcu = I2 * I2 * Rs + I1 * I1 * R1;
     const P = U2 * I2;
@@ -147,8 +148,8 @@
     return LS.simAnimee(el, {
       hauteur: 360,
       controles: [
-        { k: "U1", nom: "Tension primaire (efficace)", min: 0, max: 400, pas: 5, defaut: 230, unite: "V" },
-        { k: "N1", nom: "Spires au primaire N1", min: 100, max: 2000, pas: 10, defaut: 1150 },
+        { k: "U1", nom: "Tension primaire (efficace)", min: 0, max: 400, pas: 5, defaut: U_RESEAU, unite: "V" },
+        { k: "N1", nom: "Spires au primaire N1", min: 100, max: 2000, pas: 10, defaut: N1_NOMINAL },
         { k: "N2", nom: "Spires au secondaire N2", min: 10, max: 2000, pas: 5, defaut: 120 },
         { k: "R", nom: "Charge au secondaire", min: 1, max: 1000, pas: 1, defaut: 12, unite: "Ω" },
         { k: "continu", nom: "Alimenter en courant continu", bool: true, defaut: false }

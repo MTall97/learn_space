@@ -7,7 +7,7 @@ LS.ajouterCarte({
       { t: "Dopage N et P", d: "Dopage N : on ajoute des atomes qui apportent des électrons libres (porteurs négatifs). Dopage P : des atomes qui créent des « trous » (porteurs positifs)." },
       { t: "Jonction PN", d: "Zone de contact entre silicium P et N. Elle conduit dans un sens (P vers N) au-delà d'environ 0,6 V et bloque dans l'autre : c'est une diode." }
     ] },
-    { t: "Alimentation", d: "Chaîne qui transforme le 230 V alternatif en tension continue basse et stable : transformateur → redressement → lissage → régulation. Les chargeurs modernes sont des alimentations **à découpage**, plus petites et efficaces.", c: [
+    { t: "Alimentation", d: "Chaîne qui transforme le 220 V alternatif du réseau en tension continue basse et stable : transformateur → redressement → lissage → régulation. Les chargeurs modernes sont des alimentations **à découpage**, plus petites et efficaces.", c: [
       { t: "Redressement", d: "Transformation de l'alternatif en une tension de signe constant, grâce à des diodes. Simple alternance (une diode, on perd la moitié) ou double alternance.", tp: "elec-14-redressement" },
       { t: "Pont de Graetz", d: "Quatre diodes en losange qui redressent les deux alternances : deux diodes conduisent à chaque alternance. Perte : deux seuils de diode (≈ 1,4 V).", tp: "elec-14-redressement" },
       { t: "Lissage", d: "Un condensateur en parallèle sur la sortie se charge aux crêtes et alimente la charge entre deux crêtes : la tension devient presque continue, avec une petite **ondulation**.", f: "Ondulation ≈ I / (f × C), avec f = 100 Hz après un pont (double alternance) sur du 50 Hz, 50 Hz en simple alternance", tp: "elec-14-redressement" },

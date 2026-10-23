@@ -207,7 +207,7 @@ test("em-01 : relais, étincelle sans diode, plus d'étincelle avec la diode de 
   assert.ok(s.atteint(3), "objectif 4 avec la diode");
 });
 
-test("elec-08 : le fusible de 10 A coupe un court-circuit phase-neutre ; voltmètre AC ≈ 230 V", () => {
+test("elec-08 : le fusible de 10 A coupe un court-circuit phase-neutre ; voltmètre AC ≈ 220 V", () => {
   const tp = charger("elec-08-va-et-vient");
   const s = banc(tp);
   // Navettes : sorties de S1 (14,5) et (14,7) vers celles de S2 (22,5) et (22,7).

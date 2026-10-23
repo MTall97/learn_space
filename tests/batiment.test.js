@@ -10,13 +10,14 @@ require(path.join(__dirname, "..", "assets", "js", "sims", "batiment.js"));
 const LS = global.LS;
 const proche = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg || ""} attendu ${b}, obtenu ${a}`);
 
-test("chute de tension : 2 000 W à 50 m en 1,5 mm² cuivre ≈ 13,0 V (5,7 %)", () => {
-  const r = LS.chuteTension({ I: 2000 / 230, longueur: 50, section: 1.5, matiere: "cuivre", cosphi: 1 });
-  proche(r.dU, 2 * 0.0225 * 50 / 1.5 * 2000 / 230, 1e-9, "ΔU");
-  proche(r.dU, 13.04, 0.01, "ΔU en V");
-  proche(r.pourcent, 5.67, 0.05, "%");
+test("chute de tension : 2 000 W sous 220 V à 50 m en 1,5 mm² cuivre ≈ 13,6 V (6,2 %)", () => {
+  assert.strictEqual(LS.U_RESEAU, 220, "réseau malien");
+  const r = LS.chuteTension({ I: 2000 / 220, longueur: 50, section: 1.5, matiere: "cuivre", cosphi: 1 });
+  proche(r.dU, 2 * 0.0225 * 50 / 1.5 * 2000 / 220, 1e-9, "ΔU");
+  proche(r.dU, 13.64, 0.01, "ΔU en V");
+  proche(r.pourcent, 6.20, 0.05, "%");
   // L'aluminium chute 1,6 fois plus à section égale.
-  const a = LS.chuteTension({ I: 2000 / 230, longueur: 50, section: 1.5, matiere: "alu", cosphi: 1 });
+  const a = LS.chuteTension({ I: 2000 / 220, longueur: 50, section: 1.5, matiere: "alu", cosphi: 1 });
   proche(a.dU / r.dU, 0.036 / 0.0225, 1e-9, "rapport alu/cuivre");
 });
 
@@ -39,11 +40,11 @@ test("déclencheur thermique : points conventionnels de la CEI 60898", () => {
 
 test("défaut d'isolement en TT : Uc = Id × RA", () => {
   const r = LS.defautTT({ Rd: 0, RA: 30, RB: 10, touche: false });
-  proche(r.Id, 230 / 40, 1e-9, "Id");
-  proche(r.Uc, 230 / 40 * 30, 1e-9, "Uc");
+  proche(r.Id, 220 / 40, 1e-9, "Id");
+  proche(r.Uc, 220 / 40 * 30, 1e-9, "Uc");
   // Sans terre, tout passe par la personne.
   const p = LS.defautTT({ Rd: 0, RA: Infinity, RB: 10, Rh: 1000, touche: true });
-  proche(p.Ib, 230 / 1010, 1e-9, "courant dans le corps");
+  proche(p.Ib, 220 / 1010, 1e-9, "courant dans le corps");
   // Pas de défaut : rien.
   assert.strictEqual(LS.defautTT({ Rd: Infinity, RA: 30, touche: true, Rh: 2000 }).Id, 0);
 });
@@ -56,7 +57,7 @@ test("différentiel et zones d'effets du courant", () => {
   assert.strictEqual(LS.zoneCourant(0.3, 10), "AC-1");
   assert.strictEqual(LS.zoneCourant(5, 10), "AC-2");
   assert.strictEqual(LS.zoneCourant(80, 10), "AC-4");   // 80 mA pendant 10 s
-  assert.strictEqual(LS.zoneCourant(230, 0.04), "AC-3"); // 230 mA coupés en 40 ms
+  assert.strictEqual(LS.zoneCourant(218, 0.04), "AC-3"); // 218 mA coupés en 40 ms
 });
 
 test("surcharge : In ≤ Iz et I2 ≤ 1,45 Iz, et ce qu'elles tolèrent", () => {
@@ -65,8 +66,8 @@ test("surcharge : In ≤ Iz et I2 ≤ 1,45 Iz, et ce qu'elles tolèrent", () => 
   assert.ok(!LS.conditionSurcharge(32, 1.5).ok, "32 A sur 1,5 mm² non conforme");
   // Un fusible gG (I2 ≈ 1,6 In) de 16 A sur 1,5 mm² ne respecte pas la seconde condition.
   assert.ok(!LS.conditionSurcharge(16, 1.5, 1.6).c2, "fusible gG 16 A sur 1,5 mm²");
-  // Conforme ne veut pas dire « jamais au-dessus de 70 °C » : 18,3 A sur 1,5 mm² protégé en 16 A.
-  const I = 4200 / 230;
+  // Conforme ne veut pas dire « jamais au-dessus de 70 °C » : 19,1 A sur 1,5 mm² protégé en 16 A.
+  const I = 4200 / 220;
   assert.ok(LS.temperatureCable(I, 1.5) > 70, "le câble dépasse 70 °C");
   assert.ok(LS.tempsThermique(I, 16) > 86400, "et le disjoncteur met plus d'un jour à couper");
   // À I2 = 1,45 In, la coupure est garantie en moins d'1 h.

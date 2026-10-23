@@ -14,7 +14,7 @@ LS.ajouterTP({
   ],
   questions: [
     { q: "Combien de radians dans 60° ?", choix: ["π/6", "π/3", "π/2"], bonne: 1, explication: "60 × π / 180 = π/3 ≈ 1,05 rad." },
-    { q: "Une tension sinusoïdale de 230 V efficaces a une amplitude de…", choix: ["230 V", "325 V", "163 V"], bonne: 1, explication: "U_max = U_eff × √2 = 230 × 1,414 ≈ 325 V." },
+    { q: "Le réseau malien fournit 220 V efficaces. Quelle est l'amplitude de la tension ?", choix: ["220 V", "311 V", "156 V"], bonne: 1, explication: "U_max = U_eff × √2 = 220 × 1,414 ≈ 311 V." },
     { q: "À 60 Hz (réseau américain), la période vaut :", choix: ["16,7 ms", "20 ms", "60 ms"], bonne: 0, explication: "T = 1/60 s ≈ 16,7 ms." }
   ],
   notions: [["maths", "Radian"], ["maths", "Cercle trigonométrique"], ["maths", "Sinus, cosinus, tangente"], ["maths", "Sinusoïde"], ["maths", "Pulsation"], ["maths", "Déphasage"]],
