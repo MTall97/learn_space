@@ -3,6 +3,7 @@ LS.ajouterTP({
   titre: "Bac à sable",
   domaine: "electricite", niveau: 1, duree: "libre",
   sim: "circuit",
+  intro1: "Une grande plaque et plein de composants : construis ce que tu veux ! Essaie une pile, un interrupteur et une lampe, puis ajoute un moteur ou une LED. Si quelque chose grille, appuie sur « Réparer ».",
   intro: "Tous les composants, une grande plaque, aucun objectif : monte ce que tu veux, mesure, casse (puis « Réparer »). Ton montage est gardé dans ce navigateur. Idées : un fusible qui protège un court-circuit, un moteur commandé par un relais et un transistor, un clignotant avec un condensateur, un pont de diodes…",
   config: { largeur: 52, hauteur: 30, schema: { compos: [], fils: [] } },
   objectifs: [],

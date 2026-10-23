@@ -3,6 +3,8 @@ LS.ajouterTP({
   titre: "Premier circuit : pile, interrupteur, lampe",
   domaine: "electricite", niveau: 1, duree: "15 min",
   sim: "circuit",
+  intro1: "Voici une **pile**, un **interrupteur** et une **lampe**, reliés par des fils. Les petits points jaunes montrent le courant qui avance. Appuie deux fois sur l'interrupteur **K1** pour le fermer, puis regarde la lampe.",
+  intro2: "Voici le circuit le plus simple : une **pile** (le générateur), un **interrupteur** et une **lampe** (le récepteur), reliés par des fils. Les points jaunes montrent le courant. Appuie sur K1 pour le choisir, puis encore une fois (ou sur « Basculer ») pour le fermer. Ensuite, compare une lampe seule et deux lampes en série.",
   intro: "Voici le circuit le plus simple : une **pile** (le générateur), un **interrupteur** et une **lampe** (le récepteur), reliés par des fils. Les petits points jaunes représentent le courant. Appuie sur l'interrupteur pour le sélectionner, puis appuie encore dessus (ou sur « Basculer ») pour le fermer.",
   config: {
     palette: ["pile", "lampe", "interrupteur", "resistance"],
@@ -28,6 +30,13 @@ LS.ajouterTP({
         if (k && k.p.ferme) m.ferme = true;
         return !!(m.ferme && k && !k.p.ferme && s.liste("lampe").every(l => Math.abs(s.I(l)) < 1e-4));
       } },
+    { texte: "Interrupteur fermé, **enlève un fil** (appuie dessus puis sur « Supprimer ») : la lampe s'éteint. Remets un fil au même endroit : elle se rallume.", niv: [1, 1],
+      indice: "Pour remettre un fil, choisis « Fil », puis glisse d'une borne à l'autre.",
+      verif: (s, m) => {
+        const k = s.liste("interrupteur")[0], allume = s.liste("lampe").some(l => Math.abs(s.I(l)) > 0.04);
+        if (k && k.p.ferme && s.schema.fils.length < 3 && !allume) m.coupe = true;
+        return !!(m.coupe && allume);
+      }, bravo: "Bravo ! Sans chemin complet, le courant ne passe pas : c'est pour ça qu'un fil cassé dans une lampe torche l'empêche de marcher." },
     { texte: "Ajoute une **deuxième lampe en série** avec la première (sur le même chemin) et ferme le circuit. Compare l'éclat des lampes avec le montage à une seule lampe.",
       indice: "Supprime un fil (appuie dessus puis « Supprimer »), pose une lampe, puis relie ses deux bornes pour refermer le circuit. Appuie sur une lampe pour lire sa tension et son courant.",
       verif: s => {
@@ -35,20 +44,24 @@ LS.ajouterTP({
         if (l.length < 2) return false;
         const i0 = Math.abs(s.I(l[0]));
         return l.every(x => Math.abs(Math.abs(s.I(x)) - i0) < 0.01 * i0);
-      }, bravo: "Le même courant traverse les deux lampes : c'est la signature d'un montage en série. Chaque lampe ne reçoit que la moitié de la tension, elle éclaire moins." },
+      }, niv: 2, bravo: "Le même courant traverse les deux lampes : c'est la signature d'un montage en série. Chaque lampe ne reçoit que la moitié de la tension, elle éclaire moins." },
     { texte: "Expérience à ne jamais faire en vrai : relie **directement** les deux bornes de la pile par un fil (court-circuit) et lis l'alerte en appuyant sur la pile. Retire ensuite ce fil.",
       verif: (s, m) => {
         const g = s.liste("pile")[0];
         if (g && g.etat && /Court-circuit/.test(g.etat.alerte || "")) m.vu = true;
         return !!(m.vu && g && !(g.etat && g.etat.alerte));
-      }, bravo: "Le courant n'est limité que par la résistance interne de la pile : il devient énorme. En vrai, la pile chauffe et peut exploser ; une batterie de voiture peut faire fondre un outil." }
+      }, niv: 2, bravo: "Le courant n'est limité que par la résistance interne de la pile : il devient énorme. En vrai, la pile chauffe et peut exploser ; une batterie de voiture peut faire fondre un outil." }
   ],
   questions: [
-    { q: "Interrupteur ouvert, quelle est la tension entre ses deux bornes ?", choix: ["0 V : aucun courant ne passe", "Environ la tension de la pile (4,5 V)", "La moitié de la tension de la pile"], bonne: 1,
+    { q: "Pour que la lampe s'allume, le chemin du courant doit être…", niv: [1, 1], choix: ["fermé, sans coupure", "coupé quelque part"], bonne: 0,
+      explication: "Le courant doit faire tout le tour : de la pile à la lampe, puis retour à la pile." },
+    { q: "Peut-on relier directement les deux bouts d'une pile avec un fil ?", niv: [1, 1], choix: ["Oui, c'est sans danger", "Non : le fil chauffe et la pile s'abîme"], bonne: 1,
+      explication: "C'est un court-circuit : le courant devient énorme. Ne le fais jamais en vrai." },
+    { q: "Interrupteur ouvert, quelle est la tension entre ses deux bornes ?", niv: 2, choix: ["0 V : aucun courant ne passe", "Environ la tension de la pile (4,5 V)", "La moitié de la tension de la pile"], bonne: 1,
       explication: "Aucun courant ne passe, donc la lampe n'a aucune tension à ses bornes (U = R·I = 0) : toute la tension de la pile se retrouve aux bornes de la coupure. Vérifie-le avec le multimètre (bouton « Multimètre »)." },
-    { q: "Dans un fil, dans quel sens se déplacent les électrons ?", choix: ["De la borne + vers la borne −", "De la borne − vers la borne +, à l'extérieur de la pile", "Ils ne bougent pas"], bonne: 1,
+    { q: "Dans un fil, dans quel sens se déplacent les électrons ?", niv: 2, choix: ["De la borne + vers la borne −", "De la borne − vers la borne +, à l'extérieur de la pile", "Ils ne bougent pas"], bonne: 1,
       explication: "Le sens conventionnel du courant (+ vers −) a été choisi avant la découverte de l'électron, qui est négatif et va dans l'autre sens. Coche « sens des électrons » pour le voir." },
-    { q: "Deux lampes identiques en série sur 4,5 V : quelle tension aux bornes de chacune ?", choix: ["4,5 V", "2,25 V", "9 V"], bonne: 1, explication: "Les tensions s'additionnent en série : 2,25 + 2,25 = 4,5 V (loi des mailles)." }
+    { q: "Deux lampes identiques en série sur 4,5 V : quelle tension aux bornes de chacune ?", niv: 2, choix: ["4,5 V", "2,25 V", "9 V"], bonne: 1, explication: "Les tensions s'additionnent en série : 2,25 + 2,25 = 4,5 V (loi des mailles)." }
   ],
   notions: [["elec-bases", "Circuit fermé"], ["elec-bases", "Courant électrique"], ["elec-bases", "Sens conventionnel"], ["elec-bases", "Court-circuit"], ["elec-bases", "En série"]],
   suite: "Essaie une pile de 12 V avec une seule lampe 6 V : que se passe-t-il ? (bouton « Réparer » pour changer la lampe)."

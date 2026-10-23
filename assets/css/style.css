@@ -743,3 +743,8 @@ body[data-niveau="primaire"] .outil-avance,
 body[data-niveau="primaire"] .reglages-plus { display: none !important; }
 body[data-niveau="primaire"] .btn { padding: 11px 18px; }
 body[data-niveau="primaire"] .objectif .texte { font-size: 1.08rem; }
+@media (max-width: 440px) {
+  .entete { gap: 8px; }
+  .entete .logo span:last-child { display: none; }
+  .puce-joueur { padding: 4px 8px; gap: 6px; }
+}
