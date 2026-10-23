@@ -100,7 +100,7 @@ code, .mono { font-family: var(--mono); font-size: .9em; }
 .bouton-theme { display: inline-grid; place-items: center; }
 .onglet:hover { color: var(--texte); background: var(--fond); }
 .onglet.actif { color: var(--texte); background: var(--carte); box-shadow: inset 0 -2px 0 var(--accent); }
-.puce-joueur { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 99px; background: var(--ecran); color: var(--ecran-texte); text-decoration: none; font-family: var(--mono); font-size: .82rem; font-weight: 700; }
+.puce-joueur { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 99px; background: var(--ecran); color: var(--ecran-texte); text-decoration: none; font-family: var(--mono); font-size: .82rem; font-weight: 700; }
 .puce-barre { width: 46px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--ecran-texte) 20%, transparent); overflow: hidden; }
 .puce-barre > span { display: block; height: 100%; background: var(--ecran-texte); transition: width .5s; }
 .puce-serie { color: #ffd36b; }
@@ -706,3 +706,40 @@ button[data-confirme] { border-color: var(--alerte); color: var(--alerte); }
 .carte-mere { padding-top: 36px; }
 .carte-mere .pistes-cuivre { top: 36px; }
 @media (max-width: 720px) { .carte-mere { padding-top: 40px; } .carte-mere .pistes-cuivre { top: 40px; } .serigraphie-consigne { left: 30px; right: 10px; white-space: normal; font-size: .66rem; } }
+
+/* =================== Niveaux =================== */
+.puce-niveau { display: inline-flex; align-items: center; min-height: 32px; padding: 2px 12px; border-radius: 99px; border: 2px solid var(--accent); color: var(--texte); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.puce-niveau:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@media (pointer: coarse) { .puce-niveau { min-height: 44px; } }
+@media (max-width: 720px) { .puce-niveau { padding: 2px 10px; font-size: .9rem; } .puce-joueur .puce-barre { display: none; } }
+.niveau-tp { text-decoration: none; border-color: var(--accent); color: var(--texte); }
+/* Choix du niveau sur l'écran de la machine : un clavier de grosses touches */
+.ecran-choix h1 { margin-bottom: 6px; }
+.clavier-niveaux { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.clavier-niveaux.deux { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 520px; }
+.touche-niveau { display: grid; gap: 2px; text-align: left; padding: 12px 14px; min-height: 56px; border-radius: 8px; cursor: pointer; font: inherit; color: #eafff1;
+  background: #13241b; border: 2px solid #2f5a44; box-shadow: 0 4px 0 #050c08; transition: transform .06s, box-shadow .06s; }
+.touche-niveau strong { font-family: var(--police-titre); font-size: 1.35rem; line-height: 1.1; }
+.touche-niveau span { font-size: .92rem; color: #b7e9c9; }
+.touche-niveau small { font-size: .85rem; color: #8fd0a8; }
+.touche-niveau:hover { border-color: #6dffaa; }
+.touche-niveau:active { transform: translateY(4px); box-shadow: 0 0 0 #050c08; }
+.touche-niveau.actif { border-color: #6dffaa; box-shadow: 0 4px 0 #050c08, 0 0 14px rgba(109,255,170,.3); }
+.touche-test { justify-self: start; margin-top: 10px; min-height: 44px; padding: 8px 14px; border-radius: 8px; border: 2px dashed #6dffaa; background: none; color: #c9f7da; font: inherit; font-weight: 700; cursor: pointer; }
+.question-test { font-size: clamp(1.25rem, 3.6vw, 1.8rem) !important; }
+.reponses-test { display: grid; gap: 10px; margin-top: 8px; }
+.reponses-test .touche-niveau { font-size: 1.05rem; }
+@media (max-width: 860px) { .clavier-niveaux { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Piste : étapes au-dessus du niveau de l'élève */
+.plot.plus-tard .pastille { border-style: dashed; }
+.plot.plus-tard .plot-lien { color: var(--texte-doux); }
+.plus-tard-etiquette { font-size: .85rem; font-weight: 700; color: var(--texte-doux); border: 1px dashed var(--bordure); border-radius: 4px; padding: 0 6px; }
+.niveau-atelier { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: .95rem; color: var(--texte-doux); }
+
+/* Interface adaptée au primaire : texte plus grand, pas de formule, outils avancés masqués */
+body[data-niveau="primaire"] { font-size: 18px; }
+body[data-niveau="primaire"] .formule,
+body[data-niveau="primaire"] .outil-avance,
+body[data-niveau="primaire"] .reglages-plus { display: none !important; }
+body[data-niveau="primaire"] .btn { padding: 11px 18px; }
+body[data-niveau="primaire"] .objectif .texte { font-size: 1.08rem; }

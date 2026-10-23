@@ -1,9 +1,9 @@
 /* Hors ligne : chaque fichier du site est gardé en cache dès sa première visite (le site marche ensuite
    sans réseau, utile pendant un délestage ou sans forfait). Les pages principales sont mises en cache à
    l'installation. Actif seulement quand le site est servi en http(s), pas en ouvrant les fichiers. */
-const CACHE = "learnspace-v1";
+const CACHE = "learnspace-v2";
 const DE_BASE = ["./", "index.html", "tp.html", "carte.html", "assets/css/style.css", "assets/css/carte.css", "assets/css/circuit.css",
-  "assets/js/commun.js", "assets/js/progression.js", "assets/js/jeu.js", "assets/js/tp.js", "assets/js/carte-mentale.js", "contenu/parcours.js",
+  "assets/js/commun.js", "assets/js/progression.js", "assets/js/jeu.js", "assets/js/tp.js", "assets/js/carte-mentale.js", "contenu/parcours.js", "assets/js/niveaux.js",
   "assets/fonts/atkinson-400.woff2", "assets/fonts/atkinson-700.woff2", "assets/fonts/baloo2.woff2", "assets/fonts/jetbrains-mono.woff2"];
 
 self.addEventListener("install", ev => {

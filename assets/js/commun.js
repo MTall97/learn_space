@@ -177,6 +177,7 @@
     const h = LS.el("header", { class: "entete" }, [
       LS.el("a", { class: "logo", href: racine + "index.html" }, [LS.el("span", { class: "led", "aria-hidden": "true" }), LS.el("span", { text: "Learn Space" })]),
       LS.el("nav", { class: "nav-haut", "aria-label": "Navigation" }, liens.map(lien)),
+      LS.profil ? LS.el("a", { class: "puce-niveau", href: racine + "index.html#niveau", title: "Changer de niveau", text: LS.infoNiveau(LS.niveau()).nom }) : null,
       LS.jeu ? LS.jeu.puce(racine) : null,
       theme
     ]);

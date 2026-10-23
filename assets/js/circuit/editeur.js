@@ -157,12 +157,12 @@
     this.selVitesse = vit;
     const outils = [this.btnChoix, this.btnFil, LS.el("span", { class: "sep" }), this.btnMarche, vit];
     if (this.opts.electrique) {
-      const cbE = LS.el("label", { style: "font-size:.85rem;display:flex;gap:4px;align-items:center" }, [
+      const cbE = LS.el("label", { class: "outil-avance", style: "font-size:.85rem;display:flex;gap:4px;align-items:center" }, [
         LS.el("input", { type: "checkbox", onchange: e => { self.electrons = e.target.checked; } }), "sens des électrons"]);
-      const cbC = LS.el("label", { style: "font-size:.85rem;display:flex;gap:4px;align-items:center" }, [
+      const cbC = LS.el("label", { class: "outil-avance", style: "font-size:.85rem;display:flex;gap:4px;align-items:center" }, [
         LS.el("input", { type: "checkbox", checked: this.couleursPotentiel ? "checked" : null, onchange: e => { self.couleursPotentiel = e.target.checked; } }), "couleurs des potentiels"]);
       this.btnMM = LS.el("button", { class: "btn petit secondaire", text: "Multimètre", onclick: () => self.basculerMultimetre() });
-      this.btnOsc = LS.el("button", { class: "btn petit secondaire", text: "Oscilloscope", onclick: () => self.basculerOscillo() });
+      this.btnOsc = LS.el("button", { class: "btn petit secondaire outil-avance", text: "Oscilloscope", onclick: () => self.basculerOscillo() });
       outils.push(LS.el("span", { class: "sep" }), this.btnMM, this.btnOsc, cbE, cbC);
     }
     outils.push(LS.el("span", { class: "sep" }),

@@ -12,6 +12,7 @@
   <script src="assets/js/progression.js"></script>
   <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
+  <script src="assets/js/niveaux.js"></script>
 </head>
 <body class="page-accueil">
   <main class="page">
@@ -55,10 +56,11 @@
     LS.parcours.forEach(d => d.etapes.forEach(e => { if (e.type === "carte") cartes.push(e.id); }));
     await Promise.all(cartes.map(id => LS.charger("contenu/cartes/" + id + ".js").catch(() => null)));
 
-    const avancement = e => {
+    const avancement = (e, dom) => {
       if (e.type === "carte") { const c = LS.cartes[e.id]; return c ? LS.progressionCarte(c) : { faits: 0, total: 0, ratio: 0 }; }
-      return LS.progressionTPStockee(e.id);
+      return LS.progressionTPStockee(e.id, LS.niveau(dom));
     };
+    const nomNiveau = n => LS.infoNiveau(n).nom.toLowerCase();
     const majuscule = t => t.charAt(0).toUpperCase() + t.slice(1);
     const sansCarte = t => majuscule(t.replace(/^Carte : /, ""));
     const fini = a => a.total > 0 && a.ratio >= 0.999;
@@ -68,9 +70,12 @@
     const voyants = n => LS.el("span", { class: "voyants", role: "img", "aria-label": n + " voyant(s) sur 3" }, [0, 1, 2].map(i => LS.el("i", { class: i < n ? "on" : "" })));
 
     const domaines = LS.parcours.map(d => {
-      const etapes = d.etapes.map(e => Object.assign({ domaine: d.id }, e, { a: avancement(e) }));
+      const n = LS.niveau(d.id);
+      const etapes = d.etapes.map(e => Object.assign({ domaine: d.id }, e, { a: avancement(e, d.id), portee: LS.pourNiveau(e.niv, n) }));
       const ratio = etapes.reduce((s, e) => s + e.a.ratio, 0) / etapes.length;
-      return { d, etapes, ratio, faites: etapes.filter(e => fini(e.a)).length, courante: etapes.find(e => !fini(e.a)) || null };
+      // Étape en cours : la première non terminée qui est à la portée de l'élève (sinon la première non terminée).
+      const courante = etapes.find(e => !fini(e.a) && e.portee) || etapes.find(e => !fini(e.a)) || null;
+      return { d, n, etapes, ratio, faites: etapes.filter(e => fini(e.a)).length, courante };
     });
     const parId = Object.fromEntries(domaines.map(x => [x.d.id, x]));
 
@@ -80,12 +85,14 @@
     if (der) {
       const dom = domaines.find(x => x.etapes.some(e => e.type === der.type && e.id === der.id));
       const e = dom && dom.etapes.find(x => x.type === der.type && x.id === der.id);
-      if (e && !fini(e.a)) { cible = e; raison = "Tu t'es arrêté ici"; }
+      if (e && !fini(e.a) && e.portee) { cible = e; raison = "Tu t'es arrêté ici"; }
       else if (dom && dom.courante) { cible = dom.courante; raison = "Étape suivante"; }
     }
     if (!cible) { const dom = domaines.find(x => x.d.id === "electricite" && x.courante) || domaines.find(x => x.courante); if (dom) { cible = dom.courante; raison = der ? "Prochaine étape" : "Pour commencer"; } }
     const rep = document.getElementById("reprendre");
-    if (cible) {
+    const ecranChoix = !LS.profil().niveau || location.hash === "#niveau";
+    if (ecranChoix) choixNiveau();
+    else if (cible) {
       const inf = info(cible.domaine);
       rep.style.setProperty("--h", inf.h);
       // Un écran de machine qui affiche l'étape, et un gros bouton rond pour la lancer.
@@ -98,6 +105,53 @@
         ]),
         LS.el("a", { class: "bouton-marche", href: LS.etapeHref(cible) }, [LS.el("span", { class: "capuchon", "aria-hidden": "true" }), LS.el("span", { class: "etiquette-marche", text: cible.a.faits ? "Reprendre" : "Commencer" })]));
     } else rep.append(LS.el("div", { class: "ecran" }, [LS.el("h1", { id: "titre-reprendre", text: "Tout est terminé. Bravo !" })]));
+
+    /* ---------- Choix du niveau, ou petit test de placement, sur l'écran de la machine ---------- */
+    function choixNiveau() {
+      const p = LS.profil();
+      rep.innerHTML = "";
+      const ecran = LS.el("div", { class: "ecran ecran-choix" });
+      rep.append(ecran);
+      ecran.append(
+        LS.el("span", { class: "ecran-ligne", text: p.niveau ? "Ton niveau actuel : " + nomNiveau(p.niveau) + "." : "Bonjour ! Pour te proposer les bonnes activités :" }),
+        LS.el("h1", { id: "titre-reprendre", text: "Choisis ton niveau" }),
+        LS.el("div", { class: "clavier-niveaux" }, LS.NIVEAUX.map(x => LS.el("button", { class: "touche-niveau" + (p.niveau === x.n ? " actif" : ""), onclick: () => valider(x.n) }, [
+          LS.el("strong", { text: x.nom }), LS.el("span", { text: x.ecole }), LS.el("small", { text: x.age })]))),
+        LS.el("button", { class: "touche-test", onclick: test, text: "Je ne sais pas : faire le petit test (8 questions)" }));
+    }
+    function valider(n) {
+      LS.choisirNiveau(n);
+      try { history.replaceState(null, "", "#tableau"); } catch (e) { /* cadre */ }
+      location.reload();
+    }
+    function test() {
+      const Q = LS.TEST_PLACEMENT, reps = {};
+      let niv = 1, k = 0;
+      const ecran = rep.querySelector(".ecran");
+      const suivante = () => {
+        const qs = Q.map((q, i) => i).filter(i => Q[i].niv === niv);
+        if (k >= qs.length) {
+          const justes = qs.filter(i => reps[i] === Q[i].bonne).length;
+          if (justes === 0 || niv === 4) return fin();
+          niv++; k = 0; return suivante();
+        }
+        const i = qs[k], q = Q[i];
+        ecran.innerHTML = "";
+        ecran.append(LS.el("span", { class: "ecran-ligne", text: "Petit test · question " + (Object.keys(reps).length + 1) }),
+          LS.el("h1", { id: "titre-reprendre", class: "question-test", text: q.q }),
+          LS.el("div", { class: "reponses-test" }, q.choix.map((c, j) => LS.el("button", { class: "touche-niveau", text: c, onclick: () => { reps[i] = j; k++; suivante(); } }))));
+      };
+      const fin = () => {
+        const n = LS.niveauDuTest(reps);
+        ecran.innerHTML = "";
+        ecran.append(LS.el("span", { class: "ecran-ligne", text: "Merci ! D'après tes réponses, on te propose :" }),
+          LS.el("h1", { id: "titre-reprendre", text: LS.infoNiveau(n).nom }),
+          LS.el("span", { class: "ecran-ligne", text: LS.infoNiveau(n).ecole + ". Tu pourras en changer quand tu veux." }),
+          LS.el("div", { class: "clavier-niveaux deux" }, [LS.el("button", { class: "touche-niveau actif", text: "C'est parti", onclick: () => valider(n) }),
+            LS.el("button", { class: "touche-niveau", text: "Choisir moi-même", onclick: choixNiveau })]));
+      };
+      suivante();
+    }
 
     /* ---------- Façade d'appareil : niveau, jauge du jour, série, brevets ---------- */
     const etat = J.etat();
@@ -168,11 +222,12 @@
       x.etapes.forEach(e => {
         const f = fini(e.a), cour = (cible && cible.domaine === id ? cible.id === e.id && cible.type === e.type : x.courante === e);
         if (e.type === "tp") nTP++;
-        liste.append(LS.el("li", { class: "plot" + (f ? " fait" : "") + (cour ? " courant" : "") + (e.type === "carte" ? " carte" : " tp") }, [
+        liste.append(LS.el("li", { class: "plot" + (f ? " fait" : "") + (cour ? " courant" : "") + (e.portee ? "" : " plus-tard") + (e.type === "carte" ? " carte" : " tp") }, [
           LS.el("span", { class: "pastille", "aria-hidden": "true", text: f ? "✓" : e.type === "carte" ? "" : String(nTP) }),
           LS.el("div", { class: "plot-texte" }, [
             LS.el("a", { href: LS.etapeHref(e), class: "plot-lien", text: sansCarte(e.titre) }),
             LS.el("span", { class: "plot-info" }, [cour ? LS.el("span", { class: "ici", text: "Tu en es là" }) : null,
+              e.portee ? null : LS.el("span", { class: "plus-tard-etiquette", text: "Pour plus tard (" + nomNiveau(e.niv) + ")" }),
               LS.el("span", { text: (e.type === "carte" ? "Carte mentale" : "TP " + nTP) + (e.a.total ? " · " + e.a.faits + " sur " + e.a.total : "") + (e.desc ? " · " + e.desc : "") })]),
             e.type === "tp" ? voyants(Math.round(e.a.ratio * 3)) : null
           ])
@@ -182,6 +237,10 @@
         LS.el("div", { class: "piste-tete" }, [
           LS.el("div", { class: "piste-nom" }, [LS.el("span", { class: "marquage", text: inf.code, "aria-hidden": "true" }), LS.el("h3", { text: x.d.titre }),
             LS.el("span", { class: "piste-compte mono", text: x.faites + " / " + x.etapes.length })]), bargraphe(x.ratio, x.etapes.length),
+          LS.el("label", { class: "niveau-atelier" }, [LS.el("span", { text: "Niveau pour cet atelier" }),
+            LS.el("select", { id: "niveau-atelier", onchange: ev => { LS.choisirNiveau(+ev.target.value || null, id); location.reload(); } },
+              [LS.el("option", { value: "", text: "Comme mon profil (" + nomNiveau(LS.niveau()) + ")" })].concat(LS.NIVEAUX.map(v => {
+                const o = LS.el("option", { value: v.n, text: v.nom }); if ((LS.profil().parAtelier || {})[id] === v.n) o.selected = true; return o; })))]),
           LS.el("p", { class: "legende-voyants" }, [voyants(2), LS.el("span", { text: "Sous chaque TP, les 3 voyants s'allument à mesure que tu réussis ses objectifs et ses questions." })])]),
         liste);
       if (defiler) { zonePiste.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); try { history.replaceState(null, "", "#" + id); } catch (e) { /* cadre */ } }

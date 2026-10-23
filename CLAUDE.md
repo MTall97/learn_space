@@ -67,6 +67,15 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   détecté en enveloppant `LS.marquerCompris` et `LS.enregistrerTP` (charger `jeu.js` après
   `progression.js`).
 
+## Niveaux
+- `assets/js/niveaux.js` (après `contenu/parcours.js`) : profil (niveau général et par atelier), choix
+  ou petit test de placement sur l'écran d'accueil (`index.html#niveau`), `data-niveau` sur `<body>`.
+- Écrire pour un niveau : dans une carte, `d1` (primaire, sans formule), `d2` (collège), `d` (lycée,
+  texte de base), `d4` (avancé) ; dans un TP, `intro1` / `intro2`, et `niv: 2` ou `niv: [1, 1]` sur un
+  objectif ou une question. Un TP à variantes garde son état sous `id@niveau`. Étapes du parcours :
+  4e argument de `C()` / `T()` = niveau à partir duquel elles sont « à ta portée ».
+- Primaire : texte plus grand, formules et outils avancés (`.outil-avance`) masqués.
+
 ## Juge
 Chaque étape importante est relue par une instance indépendante, en lecture seule, qui ne reçoit
 que le dépôt et la consigne d'être critique. Ses avis datés et les suites données : `docs/AVIS_DU_JUGE.md`.

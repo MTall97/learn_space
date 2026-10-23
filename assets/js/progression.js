@@ -35,8 +35,10 @@
   };
 
   /* Progression d'un TP sans charger son fichier (le total est noté à la première visite). */
-  LS.progressionTPStockee = function (id) {
-    const e = LS.etatTP(id);
+  LS.progressionTPStockee = function (id, niveau) {
+    // Un TP à variantes par niveau garde son état sous « id@niveau ».
+    const tous = LS.lire("tp", {});
+    const e = (niveau && tous[id + "@" + niveau]) || LS.etatTP(id);
     const faits = Object.keys(e.objectifs || {}).length + Object.keys(e.questions || {}).length;
     const total = e.total || 0;
     return { faits: faits, total: total, ratio: total ? Math.min(1, faits / total) : 0, visite: !!e.total };

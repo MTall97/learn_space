@@ -7,11 +7,12 @@
   // niv : niveau à partir duquel l'étape est « à ta portée » (1 primaire, 2 collège, 3 lycée, 4 avancé).
   const C = (id, titre, desc, niv) => ({ type: "carte", id, titre, desc, niv: niv || 1 });
   const T = (id, titre, desc, niv) => ({ type: "tp", id, titre, desc, niv: niv || 1 });
+  // Niveaux calés sur l'école malienne (programme générique, exemples d'abord maliens).
   LS.NIVEAUX = [
-    { n: 1, id: "primaire", nom: "Primaire", age: "6-11 ans" },
-    { n: 2, id: "college", nom: "Collège", age: "11-15 ans" },
-    { n: 3, id: "lycee", nom: "Lycée", age: "15-18 ans" },
-    { n: 4, id: "avance", nom: "Avancé", age: "études et métier" }
+    { n: 1, id: "primaire", nom: "Primaire", ecole: "Fondamental 1er cycle, 1re à 6e année", age: "6-12 ans" },
+    { n: 2, id: "college", nom: "Collège", ecole: "Fondamental 2e cycle, 7e à 9e année (DEF)", age: "12-15 ans" },
+    { n: 3, id: "lycee", nom: "Lycée", ecole: "10e à 12e (Bac), CAP, BT", age: "15-18 ans" },
+    { n: 4, id: "avance", nom: "Avancé", ecole: "Supérieur et métier", age: "18 ans et plus" }
   ];
 
   LS.parcours = [

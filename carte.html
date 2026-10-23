@@ -13,6 +13,7 @@
   <script src="assets/js/progression.js"></script>
   <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
+  <script src="assets/js/niveaux.js"></script>
   <script src="assets/js/carte-mentale.js"></script>
 </head>
 <body class="carte-page">
@@ -44,6 +45,8 @@
     catch (e) { zone.innerHTML = "<p style='padding:16px'>Carte introuvable. <a href='index.html#ateliers'>Voir les ateliers</a></p>"; return; }
     const carte = LS.cartes[id];
     if (LS.jeu) LS.jeu.visiter("carte", id);
+    document.body.dataset.domaine = LS.domaineDe("carte", id) || "";
+    if (LS.appliquerNiveau) LS.appliquerNiveau();
     document.title = carte.titre + " · Learn Space";
     document.getElementById("titre").textContent = carte.titre;
     const pan = document.getElementById("panneau"), bande = document.getElementById("bande");

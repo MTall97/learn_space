@@ -268,7 +268,8 @@
     pan.append(LS.el("h2", { text: n.t }));
     if (n.note) pan.append(LS.el("div", { class: "note", html: LS.texte(n.note) }));
     if (n.tag) pan.append(LS.el("span", { class: "etiquette", text: n.tag }));
-    if (n.d) pan.append(LS.el("div", { class: "definition", html: LS.texte(n.d) }));
+    const txt = LS.texteNiveau ? LS.texteNiveau(n, LS.niveau(LS.domaineDe("carte", this.carte.id))) : n.d;
+    if (txt) pan.append(LS.el("div", { class: "definition", html: LS.texte(txt) }));
     else pan.append(LS.el("p", { class: "vide", text: "Pas encore de définition pour cette notion." }));
     if (n.f) pan.append(LS.el("div", { class: "formule", html: LS.texte(n.f) }));
     if (n.ex) pan.append(LS.el("div", { class: "note astuce", html: "<strong>Exemple :</strong> " + LS.texte(n.ex) }));
@@ -468,7 +469,7 @@
       fiche.append(LS.el("div", { class: "etiquette", text: `${i + 1} / ${fiches.length} · ${chemin.join(" › ")}` }),
         LS.el("h2", { text: n.t }),
         LS.el("p", { text: "Explique cette notion avec tes mots, puis vérifie." }));
-      const rep = LS.el("div", { class: "reponse cache-tout", html: LS.texte(n.d) + (n.f ? `<div class="formule">${LS.texte(n.f)}</div>` : "") });
+      const rep = LS.el("div", { class: "reponse cache-tout", html: LS.texte(LS.texteNiveau ? LS.texteNiveau(n, LS.niveau(LS.domaineDe("carte", carte.id))) : n.d) + (n.f ? `<div class="formule">${LS.texte(n.f)}</div>` : "") });
       const actions = LS.el("div", { class: "actions" });
       const voir = LS.el("button", { class: "btn", text: "Voir la définition", onclick: () => {
         rep.classList.remove("cache-tout"); voir.remove();

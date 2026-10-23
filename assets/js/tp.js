@@ -62,17 +62,22 @@
     if (!id) { page.innerHTML = "<p>Aucun TP choisi. <a href='index.html#tps'>Voir la liste</a>.</p>"; return; }
     try { await LS.charger("contenu/tps/" + id + ".js"); }
     catch (e) { page.innerHTML = `<p>TP introuvable : ${LS.echapper(id)}. <a href="index.html#tps">Voir la liste</a>.</p>`; return; }
-    const tp = LS.tps[id];
+    // Le TP vu au niveau de l'élève : objectifs et questions de son niveau, texte d'accueil adapté.
+    document.body.dataset.domaine = LS.tps[id].domaine || "";
+    const niv = LS.niveau ? LS.niveau(LS.tps[id].domaine) : 3;
+    const tp = LS.tpAuNiveau ? LS.tpAuNiveau(LS.tps[id], niv) : LS.tps[id];
+    const cle = tp.cleEtat || id;
+    if (LS.appliquerNiveau) LS.appliquerNiveau();
     try { await chargerSimulation(tp.sim); } catch (e) { page.textContent = "Impossible de charger la simulation de ce TP."; return; }
     document.title = tp.titre + " · Learn Space";
     // Cartes mentales des notions liées.
     const cartes = [...new Set((tp.notions || []).map(n => n[0]))];
     await Promise.all(cartes.map(c => LS.charger("contenu/cartes/" + c + ".js").catch(() => null)));
 
-    const etat = LS.etatTP(id);
+    const etat = LS.etatTP(cle);
     etat.objectifs = etat.objectifs || {}; etat.questions = etat.questions || {};
     etat.total = (tp.objectifs || []).length + (tp.questions || []).length;
-    LS.enregistrerTP(id, etat);
+    LS.enregistrerTP(cle, etat);
     const pos = LS.positionDansParcours ? LS.positionDansParcours("tp", id) : null;
 
     if (LS.jeu) LS.jeu.visiter("tp", id);
@@ -84,7 +89,8 @@
       LS.el("div", { class: "chemin-tp" }, [
         LS.el("a", { class: "retour-atelier", href: "index.html#" + (tp.domaine || "ateliers") }, [LS.el("span", { class: "marquage mini", text: inf.code, "aria-hidden": "true" }), LS.el("span", { text: "← " + (LS.nomDomaine ? LS.nomDomaine(tp.domaine) : "Ateliers") })]),
         LS.el("span", { class: "difficulte", "aria-label": "Difficulté " + Math.min(3, tp.niveau || 1) + " sur 3" }, [LS.el("span", { text: "Difficulté" }), ...[1, 2, 3].map(k => LS.el("i", { class: k <= (tp.niveau || 1) ? "on" : "" }))]),
-        tp.duree ? LS.el("span", { class: "etiquette", text: tp.duree }) : null
+        tp.duree ? LS.el("span", { class: "etiquette", text: tp.duree }) : null,
+        LS.infoNiveau ? LS.el("a", { class: "etiquette niveau-tp", href: "index.html#niveau", title: "Changer de niveau", text: "Niveau " + LS.infoNiveau(niv).nom.toLowerCase() }) : null
       ]),
       LS.el("h1", { text: tp.titre }),
       progMission,
@@ -131,7 +137,7 @@
       blocs[i].querySelector(".retour").innerHTML = o.bravo ? "✓ " + LS.texte(o.bravo) : "";
       const champ = blocs[i].querySelector(".saisie");
       if (champ) champ.querySelectorAll("input, button").forEach(x => { x.disabled = true; });
-      LS.enregistrerTP(id, etat);
+      LS.enregistrerTP(cle, etat);
     };
     const blocs = [];
     (tp.objectifs || []).forEach((o, i) => {
@@ -152,7 +158,7 @@
           let r;
           try { r = LS.controlerReponse(o, entree.value, sim); } catch (e) { r = { ok: false }; }
           if (!String(entree.value).trim()) { retour.innerHTML = LS.texte(r.msg || ""); return; }
-          etat.essais["o" + i] = (etat.essais["o" + i] || 0) + 1; majEssais(); LS.enregistrerTP(id, etat);
+          etat.essais["o" + i] = (etat.essais["o" + i] || 0) + 1; majEssais(); LS.enregistrerTP(cle, etat);
           if (r.ok) reussir(i, o);
           else retour.innerHTML = "✗ " + LS.texte(r.msg || "Ce n'est pas ça : refais le calcul et réessaie.") + (o.aide && etat.essais["o" + i] >= 2 ? " " + LS.texte(o.aide) : "");
         };
@@ -250,7 +256,7 @@
               if (etat.essais[cle] >= 2) { etat.questionsVues[i] = true; montrer(); }
               else expl.innerHTML = q.indice ? LS.texte(q.indice) : "Pas tout à fait : essaie dans la simulation, puis réponds de nouveau (encore 1 essai).";
             }
-            LS.enregistrerTP(id, etat); majEssais();
+            LS.enregistrerTP(cle, etat); majEssais();
           } });
           choix.append(b);
         });
@@ -286,7 +292,7 @@
     majQuiz(); setInterval(majQuiz, 1000);
     // Mission accomplie : tout le TP (objectifs et questions) est réussi.
     document.addEventListener("ls:tp-termine", ev => {
-      if (ev.detail.id !== id) return;
+      if (ev.detail.id !== cle) return;
       const fermer = () => fond.remove();
       const fond = LS.el("div", { class: "fin-mission", role: "dialog", "aria-modal": "true", "aria-labelledby": "fin-titre", onclick: e => { if (e.target === fond) fermer(); } }, [
         LS.el("div", { class: "fin-carte" }, [
