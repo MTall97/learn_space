@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Confidentialité · Learn Space</title>
+  <link rel="icon" href="assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .texte-legal { max-width: 70ch; }
+    .texte-legal h2 { margin-top: 1.6em; }
+    .texte-legal li { margin: 4px 0; }
+    .etat-journal { padding: 12px 0; border-top: 2px solid var(--texte); border-bottom: 1px solid var(--bordure); display: grid; gap: 10px; }
+    .etat-journal .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .a-completer { background: color-mix(in srgb, var(--alerte) 12%, transparent); padding: 0 4px; font-weight: 700; }
+  </style>
+  <script src="assets/js/commun.js"></script>
+  <script src="assets/js/progression.js"></script>
+  <script src="assets/js/jeu.js"></script>
+  <script src="contenu/parcours.js"></script>
+  <script src="assets/js/niveaux.js"></script>
+  <script src="assets/js/journal.js"></script>
+</head>
+<body>
+  <main class="page texte-legal">
+    <h1>Confidentialité</h1>
+    <p>Learn Space est gratuit et sans compte. Pour l'améliorer, le site note comment il est utilisé, <strong>sans ton nom</strong>. Tu peux t'y opposer à tout moment ici : tout marche pareil.</p>
+
+    <section class="etat-journal" aria-live="polite">
+      <p id="etat-texte"></p>
+      <div class="actions">
+        <button type="button" class="btn secondaire" id="refuser">Je refuse le journal</button>
+        <button type="button" class="btn secondaire" id="accepter">Je l'accepte de nouveau</button>
+        <button type="button" class="btn secondaire" id="effacer-id">Effacer mon numéro d'appareil</button>
+      </div>
+    </section>
+
+    <h2>Ce qui est noté</h2>
+    <ul>
+      <li>Un <strong>numéro tiré au hasard</strong> par cet appareil (exemple : 3f9a…). Il ne dit pas qui tu es.</li>
+      <li>Les pages ouvertes (accueil, cartes, TP) et le <strong>temps passé</strong> dessus, seulement quand la page est à l'écran et que tu t'en sers.</li>
+      <li>Les TP commencés et terminés, les objectifs atteints, les questions réussies, les notions comprises, et le temps mis pour y arriver.</li>
+      <li>Le <strong>type d'appareil</strong> (téléphone, tablette ou ordinateur), sa famille de système (Android, Windows…) et la largeur de l'écran arrondie.</li>
+      <li>Le <strong>niveau scolaire</strong> choisi (primaire, collège, lycée, avancé), jamais l'âge exact.</li>
+    </ul>
+
+    <h2>Ce qui n'est jamais noté</h2>
+    <ul>
+      <li>Ton nom, ton adresse, ton numéro de téléphone, ta photo : le site ne les demande pas.</li>
+      <li>L'adresse IP : le serveur du journal ne l'enregistre jamais. Il s'en sert seulement en mémoire, quelques minutes, pour bloquer les envois abusifs.</li>
+      <li>Ce que tu écris dans les réponses des TP.</li>
+    </ul>
+
+    <h2>Pourquoi</h2>
+    <p>Pour savoir quelles pages servent, où les élèves bloquent (un objectif trop dur, une consigne pas claire) et sur quels appareils le site doit bien marcher. Les chiffres ne servent qu'à améliorer Learn Space. Ils ne sont ni vendus ni partagés.</p>
+
+    <h2>Qui les voit, et combien de temps</h2>
+    <p>Seul l'administrateur du site les voit, avec un mot de passe. Ils sont effacés automatiquement au bout de <strong>13 mois</strong>. Sans connexion, ils attendent sur l'appareil et partent dès que le réseau revient.</p>
+    <p>Quand le site est ouvert depuis un fichier de l'ordinateur, sans serveur, rien n'est envoyé.</p>
+
+    <h2>Tes droits</h2>
+    <p>Tu peux t'opposer au journal ou changer d'avis à tout moment avec les boutons ci-dessus : en cas de refus, ce qui attendait d'être envoyé est effacé et plus rien n'est noté sur cet appareil. « Effacer mon numéro d'appareil » vide ce qui attend d'être envoyé et tire un nouveau numéro : ce que tu as fait avant ne peut plus être relié à cet appareil. Pour demander l'effacement de données déjà envoyées, écris à l'adresse ci-dessous en donnant ton numéro d'appareil, affiché plus haut.</p>
+    <p>Ces règles suivent la loi malienne n° 2013-015 du 21 mai 2013 sur la protection des données à caractère personnel et, pour les visiteurs européens, le RGPD. Parents : vous pouvez exercer ces droits pour votre enfant.</p>
+
+    <h2>Contact</h2>
+    <p>Responsable du site : <span class="a-completer">[À COMPLÉTER : nom ou organisme]</span><br>
+      Adresse e-mail : <span class="a-completer">[À COMPLÉTER : adresse de contact]</span></p>
+
+    <p class="pied"><a href="index.html">Retour à l'accueil</a></p>
+  </main>
+  <script>
+  (function () {
+    const LS = window.LS, J = LS.journal;
+    LS.entete("");
+    const texte = document.getElementById("etat-texte");
+    function maj() {
+      const id = J.identifiant();
+      texte.textContent = (J.oppose() ? "Tu as refusé le journal : rien n'est noté sur cet appareil." : "Le journal est actif sur cet appareil (" + J.enAttente() + " événement(s) en attente d'envoi).") +
+        " Numéro de cet appareil : " + id + ".";
+      document.getElementById("refuser").hidden = J.oppose();
+      document.getElementById("accepter").hidden = !J.oppose();
+    }
+    document.getElementById("accepter").onclick = () => { J.opposer(false); maj(); };
+    document.getElementById("refuser").onclick = () => { J.opposer(true); maj(); LS.avis("C'est noté : le journal est arrêté sur cet appareil."); };
+    document.getElementById("effacer-id").onclick = () => { J.effacer(); maj(); LS.avis("Nouveau numéro tiré ; ce qui attendait d'être envoyé a été effacé."); };
+    maj();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "_lisez_moi": "Copier en serveur/config.json (non suivi par Git). Voir docs/JOURNAL.md.",
+  "origines": ["https://learnspace.exemple.ml"],
+  "dossierDonnees": "/home/COMPTE/learnspace-donnees",
+  "adminHash": "scrypt$16384$8$1$REMPLACER_PAR_LE_RESULTAT_DE$node serveur/app.js --hacher",
+  "base": "/api",
+  "conservationJours": 395,
+  "limiteLots10min": 120,
+  "cookieSecure": true
+}

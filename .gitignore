@@ -3,3 +3,6 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .DS_Store
+# Journal d'utilisation : configuration (mot de passe haché) et données, jamais dans Git
+serveur/config.json
+serveur/donnees/

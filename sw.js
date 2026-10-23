@@ -14,7 +14,10 @@ self.addEventListener("activate", ev => {
 });
 // Réseau d'abord (pour avoir les mises à jour), cache si le réseau ne répond pas.
 self.addEventListener("fetch", ev => {
-  if (ev.request.method !== "GET" || new URL(ev.request.url).origin !== location.origin) return;
+  const url = new URL(ev.request.url);
+  if (ev.request.method !== "GET" || url.origin !== location.origin) return;
+  // Le journal et le tableau de bord ne passent jamais par le cache.
+  if (/\/(api|admin|journal)(\/|$)/.test(url.pathname)) return;
   ev.respondWith(fetch(ev.request).then(rep => {
     if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(ev.request, copie)); }
     return rep;
