@@ -27,8 +27,13 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   profil ou par un petit test de placement, et on peut en changer (aussi par atelier). Le niveau
   adapte : les étapes proposées, les textes (version simple sans formule au primaire), l'interface et
   le guidage, la difficulté des objectifs et des quiz.
-- **Enfants** : aucun compte, aucune donnée envoyée (progression dans le navigateur seulement) ;
-  on simule, on ne manipule jamais le 230 V ni les batteries en vrai.
+- **Enfants** : aucun compte ; on simule, on ne manipule jamais le 230 V ni les batteries en vrai.
+  La progression reste dans le navigateur. Seul le journal d'utilisation (`assets/js/journal.js`,
+  serveur `serveur/app.js`, `docs/JOURNAL.md`) envoie des événements, sous un pseudonyme aléatoire
+  par appareil : jamais de nom, d'adresse IP ni d'user-agent stockés ; opposition dans
+  `confidentialite.html` ; désactivé tant que l'adresse du serveur n'est pas configurée. Ni
+  configuration ni données du journal dans Git. Base légale (loi malienne 2013-015, APDP, RGPD) à
+  faire valider avant mise en ligne (avis du juge du 23/10/2026).
 - Appareils modestes et connexion faible : pages légères, fonctionnement hors ligne.
 - Hébergement : l'utilisateur s'en charge (probablement O2switch, offre cloud). Le site reste
   statique : il suffit de copier les fichiers.

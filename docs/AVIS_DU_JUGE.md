@@ -122,6 +122,78 @@ Priorités du juge : B1, B2, B3, B4, puis I1 et I2, avant d'ajouter les quatre n
 | I9 tailles de texte | **Partiellement** : textes utiles agrandis (≥ 13-14 px) ; la sérigraphie décorative reste petite. |
 | Mineurs | Tuiles de mesures remplacées par un relevé à filets ; « Tu en es là » aligné sur « Reprendre » ; légende des voyants ; annonces de gains en bas au téléphone ; en-tête opaque ; série indulgente (un jour manqué isolé ne la casse pas) ; encart de sécurité 220 V et batteries. **Non traités** : retours d'erreur ciblés et niveaux (prochaine étape). |
 
+## Revue du journal d'utilisation (sécurité, données des enfants), 23/10/2026
+
+Juge indépendant, lecture seule, sur le commit `11d7509`. Tests : 104 réussis. Le juge a lancé le serveur et essayé des attaques simples.
+
+**Verdict : pas prêt à déployer.**
+
+### Bloquants
+- **B1. Limites de débit contournables.**
+  - Le serveur prend la première entrée de `X-Forwarded-For`, choisie par le client. La limite par appareil ne sert à rien puisque l'identifiant est choisi par l'expéditeur. Il n'y a aucun plafond global.
+  - Essai : 50 lots de 300 événements, tous acceptés, soit environ 32 Ko par requête. Le quota O2switch peut être rempli.
+  - La lecture et l'export, faits entièrement en mémoire, peuvent faire tomber le processus.
+  - À l'inverse, sans XFF, la limite devient globale et environ 30 élèves suffisent à bloquer tout le monde.
+- **B2. Base légale de la collecte par défaut, auprès de mineurs, non établie.**
+  - Loi malienne n° 2013-015 : consentement en principe et formalité préalable auprès de l'APDP. L'hébergement en France est un transfert hors du Mali.
+  - RGPD : l'intérêt légitime doit être pesé face à la protection des enfants.
+  - L'exemption CNIL n'est pas remplie : l'identifiant n'expire pas et l'export donne les données par appareil. À faire valider par l'APDP ou par un juriste.
+- **B3. Page de confidentialité incomplète.** Il manque :
+  - le responsable et le contact, encore « À COMPLÉTER » ;
+  - la base légale ;
+  - le droit de réclamation auprès de l'APDP et de la CNIL ;
+  - la mention d'O2switch comme sous-traitant ;
+  - la mention du transfert en France.
+
+### Importants
+- **I1.** Après un passage de l'onglet en arrière-plan, l'envoi reste bloqué (`enVol` n'est jamais remis à faux).
+- **I2.** L'horloge de l'appareil fait foi : un téléphone remis à l'an 2000 perd tout, sans signal.
+- **I3.** Réidentification possible :
+  - par recoupement de l'heure à la seconde avec les journaux Apache de l'hébergeur, qui gardent les IP ;
+  - en classe, par appareil, niveau, largeur d'écran et heure.
+- **I4.** Les droits ne s'exercent pas en pratique : pas d'effacement par appareil, et les sauvegardes JetBackup gardent les données.
+- **I5.** Le blocage de connexion est global : n'importe qui peut empêcher l'administrateur d'entrer.
+- **I6.** L'état gardé en mémoire (sessions, CSRF, dédoublonnage) casse si Passenger lance plusieurs processus.
+- **I7.** Le dédoublonnage couvre 7 jours alors que les événements sont acceptés jusqu'à 60 jours.
+- **I8.** Les statistiques sur 7 et 30 jours sont fausses selon la période choisie, et le dénominateur du taux de réussite par variante est incohérent.
+- **I9.** Promesses contradictoires (« Ta progression reste dans ce navigateur », CLAUDE.md « aucune donnée envoyée »). L'adresse d'envoi est active par défaut sur toute copie du site.
+- **I10.** Risque de publier la configuration et les données si `serveur/` est copié dans `public_html`.
+
+### Mineurs
+- **M1-M14 :**
+  - injection CSV ;
+  - erreurs 500 (jeton multi-octets, URL malformée) ;
+  - expiration de session incohérente ;
+  - pas de HSTS ;
+  - mot de passe dans l'historique du shell ;
+  - hash d'exemple mal signalé ;
+  - deux onglets ;
+  - quota de localStorage ;
+  - file:// qui accumule ;
+  - bandeau trop discret qui ne cite pas les exercices ;
+  - cache du service worker non renommé ;
+  - conservation réelle d'environ 15 mois ;
+  - `PASSENGER_BASE_URI` douteux.
+- **Tests non prouvés :**
+  - limite par IP ;
+  - purge acceptée ;
+  - blocage de connexion ;
+  - échappement du tableau de bord et du CSV ;
+  - client réel (visibilité) ;
+  - exclusion de `/api` du service worker.
+
+### Bien fait (selon le juge)
+- Liste blanche champ par champ : aucune IP ni user-agent n'atteint le disque.
+- Mot de passe en scrypt et comparaison à temps constant ; cookie HttpOnly, SameSite=Strict et Secure.
+- Tableau de bord échappé, avec une CSP sans script.
+- Envoi en `text/plain` sans identifiants de connexion.
+- L'opposition vide vraiment la file.
+- Aucun secret ni aucune donnée dans Git.
+
+### Suites
+- B1, B3, I1-I10 et M1-M13 : corrections confiées à l'auteur du journal (voir la section suivante quand elles sont faites).
+- B2 : décision du propriétaire du site (collecte par défaut ou accord explicite d'un parent) et formalité auprès de l'APDP avant toute mise en ligne. Côté technique : identifiant renouvelé tous les 13 mois au plus et heures arrondies.
+
 ## Limites relevées par les auteurs (22/10/2026)
 
 ### Maths utiles
