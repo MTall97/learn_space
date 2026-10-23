@@ -5,6 +5,7 @@
 | Date | Portée | État |
 |---|---|---|
 | 22/10/2026 (1 et 2) | Site existant (électricité → drones) | Pas de rapport : revues perdues (remise à zéro de la session, arrêt). |
+| 23/10/2026 (design) | Interface, téléphone, enfants | Rapport « Revue du design » ci-dessous : 4 bloquants, 9 importants. |
 | 22/10/2026 (3) | Tout le site, 17 domaines | Rapport ci-dessous : 1 bloquant, 16 importants, 17 mineurs. Suites données : voir « Suites ». |
 
 Le juge est une instance indépendante, en lecture seule, qui n'a reçu que le dépôt et la consigne d'être
@@ -70,6 +71,37 @@ Honnêtes mais incomplètes : rien n'était déclaré pour le simulateur de circ
 | Mineurs | **Corrigés** : 100 changements de sens par seconde, arrondi des résistances de LED vers le haut, ondulation à 100 Hz, RA·IΔn ≤ 25 V au mouillé, temps simulé du bilame, alerte d'entrée du PWM, deep sleep d'une DevKitC, ≈ 112 adresses I2C, puissance utile de l'alternateur, fusible du multimètre (I²t), appel de courant de la lampe (≈ 12×), Zener 8-40 Ω, ordre du parcours (elec-08 après le courant alternatif). **Non traités** : simulateur logique (entrée non reliée = 0, RS sans oscillation). | — |
 
 Erreur trouvée en corrigeant, hors rapport : tel-05 affirmait qu'un message TCP de 10 octets reçoit du bourrage (faux : trame de 68 octets) ; l'objectif passe en UDP.
+
+## Revue du design (UI/UX, public enfant), 23/10/2026
+
+Juge indépendant en lecture seule ; Chromium sans écran à 1280 et 390 px (toucher, DPR 2), clair et sombre ; accueil vide et avec progression simulée ; TP elec-06, elec-03, meca-01, tel-06, sol-04 ; carte elec-bases. [V] vérifié, [S] soupçonné.
+
+**Verdict** : direction réussie et personnelle, non générique [V] (façade d'appareil, ateliers en puces sur un circuit imprimé, piste de pastilles, polices chargées, aucun émoji, deux thèmes soignés). Réserves : tuiles de mesures des simulations et palette du circuit = « cartes génériques » ; sérigraphie en capitales de 10-12 px trop technique pour un enfant ; carte mentale = maillon faible.
+
+**Bloquants**
+- B1 [V] Pièges de défilement : canvas en `touch-action:none`, plus hauts que l'écran au téléphone (meca-01 : 900 px) ; on ne peut plus faire défiler la page.
+- B2 [V] Circuit coupé au téléphone : SVG de 640 px dans 356 px, pas de défilement ni de zoom ; elec-03 (pointes du multimètre hors champ), elec-11, elec-02 impossibles au doigt.
+- B3 [V] Carte mentale : libellés de 6-9 px, nœuds de 11-14 px, panneau qui couvre 45 % de l'écran au téléphone, deux tiers de l'écran vides sur ordinateur.
+- B4 [V] Polices chargées chez Google : contraire à « hors ligne », « pas de bibliothèque externe » et « aucune donnée envoyée » (IP envoyée à Google).
+
+**Importants**
+- I1 [V] Cibles tactiles sous 44 px : boutons de 34 px, curseurs de 16 px, cases de 13 px, onglets de 41 px, « Indice » 21 px.
+- I2 [V] Trois sens du mot « niveau » (joueur, difficulté du TP, niveau scolaire).
+- I3 [V] Consignes pour souris et clavier (« clique », « Touche R ») et « à droite » alors que c'est dessous au téléphone.
+- I4 [V] elec-06 : « pile de 9 V » mais palette en 4,5 V, et « plaque vide » alors qu'une pile y est.
+- I5 [V] Jargon et longueur (4T : 70 mots, 9 curseurs, 7 mesures) ; « Briefing », « Mission », « Plus loin » ; au téléphone, animation et curseurs séparés de 900 px.
+- I6 [V] tp.html charge 24 scripts (608 Ko) pour chaque TP.
+- I7 [V] Pas de fonctionnement hors ligne (ni service worker ni manifeste).
+- I8 [V] Contrastes faibles : « rouge » sur le multimètre 2,21:1, douille active 4,23:1, texte indicatif 3,41:1, objectifs verrouillés délavés [S].
+- I9 [V] Beaucoup de textes utiles entre 11,5 et 12,5 px.
+
+**Mineurs** : accueil mobile très long (6 835 px) ; « Tu en es là » sur la carte alors que « Reprendre » montre la loi d'Ohm ; les trois pastilles sous chaque TP ne sont pas expliquées ; retours d'erreur génériques ; annonce « +25 » posée sur les onglets ; en-tête translucide ; commencer par une carte de 43 notions motive moins qu'un TP concret.
+
+**Pour les enfants et les niveaux** : phrases courtes à un verbe d'action au primaire, sans formule ; texte ≥ 16 px et cibles ≥ 48 px au primaire et au collège ; une action principale par écran ; outils avancés masqués ; halo sur l'élément à toucher ; retours bienveillants et ciblés, indice proposé après deux échecs ; série de jours indulgente (jokers, jours par semaine) vu l'accès irrégulier au téléphone et au courant ; encart fixe « ici on simule ; ne touche jamais le 220 V ni une batterie ouverte ; demande à un adulte » sur les TP de secteur et de batterie ; objectifs et quiz par niveau (primaire : 2-3 objectifs qualitatifs, réglages verrouillés, étoiles plutôt que points) ; niveau visible et modifiable dans l'en-tête.
+
+**Ce qui marche** : identité forte ; « Commencer / Reprendre » unique et évident ; façade de progression motivante ; barre d'onglets au téléphone ; barre de mission collante ; retours immédiats ; multimètre réaliste ; focus clavier visible ; exemples maliens.
+
+Priorités du juge : B1, B2, B3, B4, puis I1 et I2, avant d'ajouter les quatre niveaux.
 
 ## Limites relevées par les auteurs (22/10/2026)
 
