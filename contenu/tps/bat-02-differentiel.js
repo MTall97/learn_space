@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "bat-02-differentiel",
   titre: "Défaut d'isolement et différentiel 30 mA",
   domaine: "batiment", niveau: 2, duree: "30 min",
-  sim: "differentiel",
+  sim: "differentiel", securite: "secteur",
   intro: "Une machine à laver à carcasse métallique a un **défaut d'isolement** : la phase touche la carcasse. L'installation est en schéma **TT** : neutre à la terre au transformateur (RB = 10 Ω), carcasse reliée à la prise de terre de la maison (RA). Fais varier la terre, la résistance du défaut, la protection et la personne qui touche (réseau malien de 220 V ; résistance du corps sous 220-230 V : environ 1 000 à 2 100 Ω selon les personnes, peau sèche, d'après la CEI 60479-1 ; on prend une valeur prudente, beaucoup moins si la peau est mouillée), et observe la tension de contact, le courant dans le corps et sa durée.\n\nLe graphe place le choc reçu (courant, durée) sur les zones d'effets de la CEI 60479-1, **très simplifiées** : la réalité dépend du trajet du courant, de la personne et de l'état de la peau.",
   config: { p: { IDn: 0, defaut: true, Rd: 1, RA: 30, touche: false, Rh: 1300 } },
   objectifs: [

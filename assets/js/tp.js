@@ -7,6 +7,27 @@
   LS.sims.circuit = (el, cfg) => LS.simCircuit(el, cfg);
   LS.sims.logique = (el, cfg) => LS.simLogique(el, cfg);
 
+  /* Scripts à charger pour chaque simulation (dans l'ordre) : la page ne charge que ce dont le TP a
+     besoin, ce qui l'allège beaucoup sur une connexion faible. tests/pedagogie.test.js vérifie la table. */
+  const CIRCUIT = ["circuit/reseau", "circuit/moteur-electrique", "circuit/composants-elec", "circuit/editeur"];
+  const fichier = f => ["sims/outils-sim"].concat(f);
+  LS.FICHIERS_SIMS = {
+    circuit: CIRCUIT, logique: CIRCUIT.concat(["circuit/logique"]),
+    moteur4t: fichier(["sims/modele-moteur", "sims/mecanique"]), multicylindre: fichier(["sims/modele-moteur", "sims/mecanique"]),
+    courbesMoteur: fichier(["sims/modele-moteur", "sims/mecanique"]), moteur2t: fichier(["sims/modele-moteur", "sims/mecanique"]),
+    thermistance: fichier(["sims/esp32", "sims/capteurs"]), ultrason: fichier(["sims/esp32", "sims/capteurs"]),
+    imu: fichier(["sims/esp32", "sims/capteurs"]), etalonnage: fichier(["sims/esp32", "sims/capteurs"])
+  };
+  [["transmission", "engrenages chaineMoto embrayage boite differentiel"], ["electromecanique", "moteurCC alternateur transformateur asynchrone pasAPas"],
+    ["telecom", "signal modulation bandePassante uart encapsulation ipv4 commutation"], ["numerique", "binaire echantillonnage"],
+    ["esp32", "esp32"], ["drone", "propulsion pidAltitude mixage"], ["maths", "trigo complexes derivees exponentielle statistiques"],
+    ["solaire", "panneauSolaire batterie regulateurSolaire installationSolaire"], ["batiment", "protection differentiel chuteTension"],
+    ["ia", "neurone surapprentissage spectrogramme evaluation fuite"]
+  ].forEach(([f, noms]) => noms.split(" ").forEach(n => { LS.FICHIERS_SIMS[n] = fichier(["sims/" + f]); }));
+  async function chargerSimulation(nom) {
+    for (const f of LS.FICHIERS_SIMS[nom] || []) await LS.charger("assets/js/" + f + ".js");
+  }
+
   /* ---------- Objectifs à réponse saisie ----------
      { texte, reponse: { valeur, tolerance, tolRel, unite }, verif? } : valeur = nombre, texte, liste
      de textes acceptés ou fonction (sim) → valeur ; « verif », si présent, doit être vrai au moment de
@@ -42,6 +63,7 @@
     try { await LS.charger("contenu/tps/" + id + ".js"); }
     catch (e) { page.innerHTML = `<p>TP introuvable : ${LS.echapper(id)}. <a href="index.html#tps">Voir la liste</a>.</p>`; return; }
     const tp = LS.tps[id];
+    try { await chargerSimulation(tp.sim); } catch (e) { page.textContent = "Impossible de charger la simulation de ce TP."; return; }
     document.title = tp.titre + " · Learn Space";
     // Cartes mentales des notions liées.
     const cartes = [...new Set((tp.notions || []).map(n => n[0]))];
@@ -61,12 +83,14 @@
     const entete = LS.el("div", { class: "tp-entete", style: "--h:" + inf.h }, [
       LS.el("div", { class: "chemin-tp" }, [
         LS.el("a", { class: "retour-atelier", href: "index.html#" + (tp.domaine || "ateliers") }, [LS.el("span", { class: "marquage mini", text: inf.code, "aria-hidden": "true" }), LS.el("span", { text: "← " + (LS.nomDomaine ? LS.nomDomaine(tp.domaine) : "Ateliers") })]),
-        LS.el("span", { class: "etiquette tp", text: "TP · niveau " + (tp.niveau || 1) }),
+        LS.el("span", { class: "difficulte", "aria-label": "Difficulté " + Math.min(3, tp.niveau || 1) + " sur 3" }, [LS.el("span", { text: "Difficulté" }), ...[1, 2, 3].map(k => LS.el("i", { class: k <= (tp.niveau || 1) ? "on" : "" }))]),
         tp.duree ? LS.el("span", { class: "etiquette", text: tp.duree }) : null
       ]),
       LS.el("h1", { text: tp.titre }),
       progMission,
-      tp.intro ? LS.el("details", { class: "briefing", open: premiereVisite ? "open" : null }, [LS.el("summary", { text: "Briefing" }), LS.el("div", { class: "intro-tp", html: LS.texte(tp.intro) })]) : null
+      tp.securite ? LS.el("p", { class: "securite", role: "note" }, [LS.el("strong", { text: "Ici, on simule. " }),
+        LS.el("span", { text: tp.securite === "batterie" ? "En vrai, n'ouvre jamais une batterie, ne la perce pas et ne la court-circuite pas : elle peut chauffer et prendre feu. Demande à un adulte." : "En vrai, ne touche jamais le 220 V : il peut tuer. Seul un électricien travaille dessus, courant coupé. Demande à un adulte." })]) : null,
+      tp.intro ? LS.el("details", { class: "briefing", open: premiereVisite ? "open" : null }, [LS.el("summary", { text: "Ce que tu vas faire" }), LS.el("div", { class: "intro-tp", html: LS.texte(tp.intro) })]) : null
     ]);
     const zoneSim = LS.el("div", { id: "simulation" });
     const consignes = LS.el("aside", { class: "tp-consignes", id: "consignes" });
@@ -83,9 +107,9 @@
     consignes.append(onglets);
     const ouvrir = cle => Object.keys(panneaux).forEach(k => { const o = panneaux[k], v = k === cle; o.pan.hidden = !v; o.b.setAttribute("aria-selected", v ? "true" : "false"); o.b.classList.toggle("actif", v); });
     const panMission = ajouterOnglet("mission", "Mission");
-    const panQuiz = tp.questions && tp.questions.length ? ajouterOnglet("quiz", "Quiz") : null;
+    const panQuiz = tp.questions && tp.questions.length ? ajouterOnglet("quiz", "Questions") : null;
     const panNotions = tp.notions && tp.notions.length ? ajouterOnglet("notions", "Notions") : null;
-    const panPlus = tp.suite || pos ? ajouterOnglet("plus", "Plus loin") : null;
+    const panPlus = tp.suite || pos ? ajouterOnglet("plus", "Aller plus loin") : null;
     ouvrir("mission");
 
     const fabrique = LS.sims[tp.sim];

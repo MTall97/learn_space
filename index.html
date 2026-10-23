@@ -4,8 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Learn Space</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/commun.js"></script>
   <script src="assets/js/progression.js"></script>
@@ -110,9 +108,9 @@
     const brevets = J.brevets(avDom), obtenus = brevets.filter(b => b.ok);
     const fac = document.getElementById("facade");
     const module = (cls, titre, contenu) => LS.el("div", { class: "module " + cls }, [LS.el("span", { class: "serigraphie", text: titre }), ...contenu]);
-    fac.append(module("m-niveau", "NIVEAU", [
-      LS.el("div", { class: "afficheur", role: "img", "aria-label": "Niveau " + etat.niveau.n }, [LS.el("span", { class: "fantome", "aria-hidden": "true", text: "88" }), LS.el("span", { class: "chiffres", text: String(etat.niveau.n).padStart(2, "0") })]),
-      LS.el("span", { class: "module-texte" }, [LS.el("strong", { text: etat.niveau.titre }), LS.el("small", { text: etat.niveau.dans + "/" + etat.niveau.pour + " pts vers N" + (etat.niveau.n + 1) })]),
+    fac.append(module("m-niveau", "RANG", [
+      LS.el("div", { class: "afficheur", role: "img", "aria-label": "Rang " + etat.niveau.n }, [LS.el("span", { class: "fantome", "aria-hidden": "true", text: "88" }), LS.el("span", { class: "chiffres", text: String(etat.niveau.n).padStart(2, "0") })]),
+      LS.el("span", { class: "module-texte" }, [LS.el("strong", { text: etat.niveau.titre }), LS.el("small", { text: etat.niveau.dans + "/" + etat.niveau.pour + " points vers le rang " + (etat.niveau.n + 1) })]),
       bargraphe(etat.niveau.ratio)
     ]));
     const r = Math.min(1, etat.jour / etat.objectifJour), ang = -90 + 180 * r;
@@ -171,7 +169,7 @@
       const liste = LS.el("ol", { class: "piste" });
       let nTP = 0;
       x.etapes.forEach(e => {
-        const f = fini(e.a), cour = x.courante === e;
+        const f = fini(e.a), cour = (cible && cible.domaine === id ? cible.id === e.id && cible.type === e.type : x.courante === e);
         if (e.type === "tp") nTP++;
         liste.append(LS.el("li", { class: "plot" + (f ? " fait" : "") + (cour ? " courant" : "") + (e.type === "carte" ? " carte" : " tp") }, [
           LS.el("span", { class: "pastille", "aria-hidden": "true", text: f ? "✓" : e.type === "carte" ? "" : String(nTP) }),
@@ -186,7 +184,8 @@
       zonePiste.append(
         LS.el("div", { class: "piste-tete" }, [
           LS.el("span", { class: "surtitre", text: "Atelier " + inf.code + " · " + x.faites + "/" + x.etapes.length + " étapes" }),
-          LS.el("h3", { text: x.d.titre }), LS.el("p", { class: "desc", text: x.d.desc }), bargraphe(x.ratio, x.etapes.length)]),
+          LS.el("h3", { text: x.d.titre }), LS.el("p", { class: "desc", text: x.d.desc }), bargraphe(x.ratio, x.etapes.length),
+          LS.el("p", { class: "legende-voyants" }, [voyants(2), LS.el("span", { text: "Sous chaque TP, les 3 voyants s'allument à mesure que tu réussis ses objectifs et ses questions." })])]),
         liste);
       if (defiler) { zonePiste.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); try { history.replaceState(null, "", "#" + id); } catch (e) { /* cadre */ } }
     }

@@ -21,7 +21,8 @@ test("niveaux : seuils 0, 100, 300, 600", () => {
 test("série : jours consécutifs jusqu'à aujourd'hui ou hier", () => {
   const auj = new Date(2026, 9, 23, 12);
   const j = d => J.jourISO(new Date(2026, 9, d, 12));
-  assert.strictEqual(J.serie({ [j(23)]: 10, [j(22)]: 5, [j(21)]: 5, [j(19)]: 5 }, auj), 3);
+  assert.strictEqual(J.serie({ [j(23)]: 10, [j(22)]: 5, [j(21)]: 5, [j(19)]: 5 }, auj), 4, "un jour manqué isolé ne casse pas la série");
+  assert.strictEqual(J.serie({ [j(23)]: 10, [j(22)]: 5, [j(19)]: 5 }, auj), 2, "deux jours manqués la cassent");
   assert.strictEqual(J.serie({ [j(22)]: 10, [j(21)]: 5 }, auj), 2, "la série tient encore si on n'a rien fait aujourd'hui");
   assert.strictEqual(J.serie({ [j(20)]: 10 }, auj), 0);
 });

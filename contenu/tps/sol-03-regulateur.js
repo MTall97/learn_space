@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "sol-03-regulateur",
   titre: "Régulateur PWM ou MPPT",
   domaine: "solaire", niveau: 2, duree: "25 min",
-  sim: "regulateurSolaire",
+  sim: "regulateurSolaire", securite: "batterie",
   intro: "Le même panneau charge une batterie 12 V à travers un régulateur **PWM** (interrupteur) ou **MPPT** (convertisseur qui suit le point de puissance maximale, rendement 96 %, 100 V et 30 A maximum). Le graphe montre où chaque régulateur place le panneau sur sa courbe ; les barres donnent l'énergie récupérée sur une journée claire (éclairement en cloche de 6 h à 18 h, batterie supposée à tension fixe).",
   objectifs: [
     { texte: "Panneau **36 cellules**, à 25 °C : passe du PWM au **MPPT** et gagne **au moins 8 %** de puissance.",

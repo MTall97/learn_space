@@ -4,9 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Carte mentale · Learn Space</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/carte.css">
   <script src="assets/js/commun.js"></script>
   <script src="assets/js/progression.js"></script>
   <script src="assets/js/jeu.js"></script>
@@ -15,18 +14,22 @@
 </head>
 <body class="carte-page">
   <div class="carte-outils">
-    <h1 id="titre">Carte mentale</h1>
-    <div class="barre" style="width:140px"><span id="prog" style="width:0"></span></div>
-    <small id="prog-texte"></small>
-    <button class="btn petit" id="revision">Réviser</button>
-    <button class="btn petit secondaire" id="deplier">Tout déplier</button>
-    <button class="btn petit secondaire" id="replier">Replier</button>
-    <button class="btn petit secondaire" id="zplus" title="Zoomer">＋</button>
-    <button class="btn petit secondaire" id="zmoins" title="Dézoomer">－</button>
-    <button class="btn petit secondaire" id="centrer" title="Recentrer">Recentrer</button>
+    <div class="carte-titre">
+      <h1 id="titre">Carte mentale</h1>
+      <div class="carte-prog"><div class="barre"><span id="prog" style="width:0"></span></div><small id="prog-texte"></small></div>
+    </div>
+    <div class="carte-boutons" role="toolbar" aria-label="Outils de la carte">
+      <button class="btn petit" id="revision">Réviser</button>
+      <button class="btn petit secondaire" id="deplier">Tout déplier</button>
+      <button class="btn petit secondaire" id="replier">Tout replier</button>
+      <button class="btn petit secondaire" id="zplus" aria-label="Zoomer">Zoom +</button>
+      <button class="btn petit secondaire" id="zmoins" aria-label="Dézoomer">Zoom −</button>
+      <button class="btn petit secondaire" id="centrer">Recentrer</button>
+    </div>
   </div>
   <div class="carte-zone" id="zone">
-    <aside class="panneau cache" id="panneau"></aside>
+    <aside class="panneau cache" id="panneau" aria-label="Définition"></aside>
+    <div class="bande-depart cache-tout" id="bande"></div>
   </div>
   <script>
   (async function () {
@@ -35,33 +38,43 @@
     const id = LS.param("id");
     const zone = document.getElementById("zone");
     try { await LS.charger("contenu/cartes/" + id + ".js"); }
-    catch (e) { zone.innerHTML = "<p style='padding:16px'>Carte introuvable. <a href='index.html#cartes'>Voir les cartes</a></p>"; return; }
+    catch (e) { zone.innerHTML = "<p style='padding:16px'>Carte introuvable. <a href='index.html#ateliers'>Voir les ateliers</a></p>"; return; }
     const carte = LS.cartes[id];
     if (LS.jeu) LS.jeu.visiter("carte", id);
     document.title = carte.titre + " · Learn Space";
     document.getElementById("titre").textContent = carte.titre;
-    const pan = document.getElementById("panneau");
+    const pan = document.getElementById("panneau"), bande = document.getElementById("bande");
     const cm = new LS.CarteMentale(zone, pan, carte);
     zone.insertBefore(cm.svg, pan);
+    const telephone = matchMedia("(max-width: 720px)").matches;
     function prog(p) {
       document.getElementById("prog").style.width = Math.round(p.ratio * 100) + "%";
       document.getElementById("prog-texte").textContent = `${p.faits}/${p.total} notions comprises`;
     }
     cm.surProgression = prog;
     prog(LS.progressionCarte(carte));
-    // Notice d'accueil
-    if (carte.intro) {
-      pan.classList.remove("cache");
+    // Bande « Commencer » (téléphone) : visible quand le panneau est fermé.
+    const premiere = carte.racine.c[0];
+    function majBande(ouvert) { bande.classList.toggle("cache-tout", ouvert || !telephone); }
+    cm.surPanneau = majBande;
+    function intro() {
+      pan.classList.remove("cache"); majBande(true);
       pan.innerHTML = "";
       const pos = LS.positionDansParcours("carte", id);
-      pan.append(LS.el("button", { class: "btn secondaire petit fermer", text: "✕", onclick: () => pan.classList.add("cache") }),
+      pan.append(LS.el("div", { class: "poignee", "aria-hidden": "true" }),
+        LS.el("button", { class: "btn secondaire petit fermer", text: "Fermer", onclick: () => cm.fermerPanneau() }),
         LS.el("h2", { text: carte.titre }), LS.el("div", { html: LS.texte(carte.intro) }),
-        LS.el("p", { class: "note astuce", html: "Clique sur une notion pour lire sa définition, sur le petit rond pour déplier ses branches. <strong>Notion suivante →</strong> te fait parcourir la carte dans l'ordre. « TP » = un TP pratique existe." }),
-        LS.el("button", { class: "btn", text: "Commencer : " + carte.racine.c[0].t + " →", onclick: () => cm.choisir(carte.racine.c[0], true) }));
+        LS.el("p", { class: "note astuce", html: "Touche une notion pour lire ce qu'elle veut dire. Touche le bouton <strong>+</strong> à côté d'une notion pour voir ce qu'elle contient. <strong>Notion suivante</strong> te fait lire la carte dans l'ordre. L'étiquette <strong>TP</strong> veut dire qu'un exercice pratique existe." }),
+        LS.el("button", { class: "btn", text: "Commencer : " + premiere.t + " →", onclick: () => cm.choisir(premiere, true) }));
       if (pos && pos.suivant) pan.append(LS.el("p", {}, [LS.el("a", { href: pos.suivant.href, text: "Étape suivante du parcours : " + pos.suivant.titre + " →" })]));
+      cm._gestePanneau();
     }
+    bande.append(LS.el("button", { class: "btn", text: "Commencer : " + premiere.t, onclick: () => cm.choisir(premiere, true) }),
+      carte.intro ? LS.el("button", { class: "btn secondaire", text: "Lire l'intro", onclick: intro }) : null);
     const n = LS.param("n");
     if (n && carte._index[n]) cm.choisir(carte._index[n], true);
+    else if (carte.intro && !telephone) { intro(); cm.centrer(); }
+    else majBande(false);
     document.getElementById("deplier").onclick = () => cm.toutDeplier(true);
     document.getElementById("replier").onclick = () => cm.toutDeplier(false);
     document.getElementById("zplus").onclick = () => cm.zoom(1.2);

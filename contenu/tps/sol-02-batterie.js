@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "sol-02-batterie",
   titre: "Charger et décharger une batterie",
   domaine: "solaire", niveau: 2, duree: "30 min",
-  sim: "batterie",
+  sim: "batterie", securite: "batterie",
   intro: "Une batterie 12 V, au **plomb AGM** ou au **lithium fer phosphate** (LiFePO4). Le modèle tient compte de la tension selon l'état de charge (courbes au repos typiques), de la résistance interne, de la **loi de Peukert**, du rendement de charge et d'un chargeur **CC/CV**. Le temps est accéléré : règle la vitesse. Les durées de vie viennent de courbes « cycles selon profondeur de décharge » typiques de fabricants à 25 °C, corrigées par la température (plomb : divisée par 2 tous les 10 °C au-dessus de 25 °C ; LiFePO4 : effet plus faible, ordre de grandeur). Les limites de courant sont celles d'une fiche typique : le BMS d'une LiFePO4 coupe au-delà d'environ 1 C ; le plomb, sans BMS, accepte tout mais s'abîme. La température n'agit ici que sur la durée de vie et la charge du lithium, pas sur la capacité instantanée.",
   objectifs: [
     { texte: "Batterie **plomb pleine**, décharge-la à **50 A** jusqu'à la coupure : elle fournit **moins de 80 %** de sa capacité nominale.",

@@ -4,6 +4,13 @@
    Mise en page : en-tête collant + onglets en bas sur téléphone ; contenu en une colonne qui
    s'élargit en grilles sur grand écran. */
 
+/* Polices locales (hors ligne, aucune requête vers un service tiers) : voir assets/fonts/LICENCES.md */
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap; src: url("../fonts/atkinson-400.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/atkinson-700.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: italic; font-weight: 400; font-display: swap; src: url("../fonts/atkinson-400-italique.woff2") format("woff2"); }
+@font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 400 800; font-display: swap; src: url("../fonts/baloo2.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: swap; src: url("../fonts/jetbrains-mono.woff2") format("woff2"); }
+
 :root {
   --fond: #eef1ec;
   --fond-2: #e2e8df;
@@ -74,13 +81,13 @@ h2 { font-size: 1.3rem; font-weight: 700; margin: 1.2em 0 .5em; }
 h3 { font-size: 1.08rem; font-weight: 600; margin: 1em 0 .4em; }
 code, .mono { font-family: var(--mono); font-size: .9em; }
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: 2px; }
-.surtitre { font-family: var(--mono); font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--texte-doux); }
+.surtitre { font-family: var(--mono); font-size: .82rem; letter-spacing: .12em; text-transform: uppercase; color: var(--texte-doux); }
 
 /* ---------- En-tête et navigation ---------- */
 .entete {
   display: flex; align-items: center; gap: 14px;
   padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  background: color-mix(in srgb, var(--fond-2) 92%, transparent); backdrop-filter: blur(6px);
+  background: var(--fond-2);
   border-bottom: 1px solid var(--bordure);
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
 }
@@ -276,7 +283,8 @@ select, input[type="text"], input[type="number"], input[type="search"] {
 .sim { background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon); overflow: hidden; }
 .sim-barre { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; border-bottom: 1px solid var(--bordure); background: var(--fond-2); }
 .sim-barre .sep { width: 1px; align-self: stretch; background: var(--bordure); margin: 0 4px; }
-.sim canvas { display: block; width: 100%; touch-action: none; }
+.sim canvas { display: block; width: 100%; touch-action: pan-y; }
+.sim canvas.manipulable { touch-action: none; }
 .controles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); padding: 12px; }
 .controle label { display: flex; justify-content: space-between; font-size: .9rem; gap: 6px; }
 .controle label b { font-family: var(--mono); color: var(--accent-fort); }
@@ -395,7 +403,8 @@ button[data-confirme] { border-color: var(--alerte); color: var(--alerte); }
 .objectif .saisie input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .objectif .saisie input:disabled { opacity: .7; }
 .essais { font-size: .8rem; color: var(--texte-doux); }
-.objectif.verrouille { opacity: .55; }
+.objectif.verrouille .texte { color: var(--texte-doux); }
+.objectif.verrouille .etat { border-style: dashed; }
 .question .choix button:disabled { cursor: default; }
 
 /* =================== Accueil =================== */
@@ -403,7 +412,7 @@ button[data-confirme] { border-color: var(--alerte); color: var(--alerte); }
 .section-tete { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin-bottom: 16px; }
 .section-tete h2 { margin: 0; font-size: 1.6rem; }
 .section-tete p { margin: 0; color: var(--texte-doux); max-width: 62ch; }
-.desc { color: var(--texte-doux); font-size: .9rem; }
+.desc { color: var(--texte-doux); font-size: .95rem; }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .btn.gros { padding: 12px 26px; font-size: 1.08rem; border-radius: 12px; }
 
@@ -524,7 +533,7 @@ button[data-confirme] { border-color: var(--alerte); color: var(--alerte); }
 @media (prefers-reduced-motion: no-preference) { .plot.courant .pastille { animation: pouls 1.8s ease-in-out infinite; } }
 @keyframes pouls { 50% { box-shadow: 0 0 0 11px color-mix(in srgb, var(--accent) 6%, transparent); } }
 .plot-texte { display: grid; gap: 2px; padding-top: 2px; min-width: 0; }
-.plot-type { font-size: .72rem; letter-spacing: .1em; color: var(--texte-doux); }
+.plot-type { font-size: .82rem; letter-spacing: .1em; color: var(--texte-doux); }
 .plot.courant .plot-type { color: var(--accent-fort); font-weight: 700; }
 .plot-lien { font-family: var(--police-titre); font-weight: 600; font-size: 1.15rem; color: var(--texte); text-decoration: none; justify-self: start; }
 .plot-lien:hover { color: var(--accent-fort); text-decoration: underline; }
@@ -626,3 +635,46 @@ button[data-confirme] { border-color: var(--alerte); color: var(--alerte); }
   box-shadow: inset 0 1px 0 rgba(255,255,255,.12); border-bottom: 3px solid var(--c);
 }
 .marquage.mini { width: 32px; height: 28px; font-size: .72rem; border-bottom-width: 2px; }
+
+
+/* =================== Suites de la revue du design =================== */
+/* Mesures des simulations : un relevé d'instrument à filets, pas des tuiles */
+.mesures { gap: 0; padding: 4px 12px 12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.mesure { background: none; border-radius: 0; border-top: 1px solid var(--bordure); padding: 8px 10px 8px 0; }
+.mesure .nom { font-size: .88rem; }
+.mesure.alerte .val { color: var(--alerte); }
+.reglages-plus { margin: 0 12px 10px; border-top: 1px dashed var(--bordure); }
+.reglages-plus > summary { cursor: pointer; padding: 10px 0; color: var(--accent-fort); font-weight: 700; }
+.reglages-plus > .controles { padding: 0 0 6px; }
+/* Difficulté d'un TP (1 à 3) */
+.difficulte { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; font-weight: 700; color: var(--texte-doux); }
+.difficulte span { margin-right: 4px; }
+.difficulte i { width: 9px; height: 14px; border-radius: 2px; background: color-mix(in srgb, var(--texte) 16%, transparent); }
+.difficulte i.on { background: var(--accent); }
+/* Encart de sécurité sur les TP de secteur et de batterie */
+.securite { margin: 4px 0; max-width: 900px; padding: 10px 14px; border-left: 5px solid var(--alerte); background: color-mix(in srgb, var(--alerte) 9%, var(--fond)); font-size: .98rem; }
+.legende-voyants { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; font-size: .9rem; color: var(--texte-doux); }
+::placeholder { color: var(--texte-doux); opacity: 1; }
+.essais { font-size: .85rem; }
+.etiquette-compo small { font-size: .8rem; }
+.module-texte small { font-size: .82rem; }
+
+/* Cibles tactiles : au moins 44 px au doigt */
+@media (pointer: coarse) {
+  .btn, .btn.petit { min-height: 44px; }
+  .onglet, .onglet-tp { min-height: 48px; }
+  .puce-joueur, .entete .logo { min-height: 44px; }
+  .bouton-theme { min-width: 44px; min-height: 44px; }
+  select, input[type="text"], input[type="number"], input[type="search"] { min-height: 44px; }
+  summary { min-height: 44px; display: flex; align-items: center; }
+  input[type="checkbox"] { width: 22px; height: 22px; }
+  .controle label:has(input[type="checkbox"]) { min-height: 44px; align-items: center; }
+  input[type="range"] { height: 36px; }
+  input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; }
+  input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; }
+  .question .choix button { min-height: 48px; }
+  .plot-lien { padding: 6px 0; }
+}
+@media (max-width: 720px) {
+  #ls-gains { top: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); left: 50%; right: auto; transform: translateX(-50%); justify-items: center; }
+}

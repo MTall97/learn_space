@@ -31,13 +31,21 @@
     });
     if (def.titreBarre) barre.append(LS.el("strong", { text: def.titreBarre, style: "margin-left:auto" }));
 
-    const canvas = LS.el("canvas", {});
+    // Toile manipulable (pointeur) : elle garde les gestes ; sinon un doigt fait défiler la page.
+    const canvas = LS.el("canvas", { class: def.pointeur ? "manipulable" : null });
     const H = def.hauteur || 420;
     canvas.style.height = H + "px";
     const zoneControles = LS.el("div", { class: "controles" });
+    // Les réglages marqués « avance: true » sont repliés sous « Plus de réglages ».
+    const replies = (def.controles || []).filter(c => c.avance && !cache.has(c.k));
+    const zoneAvancee = LS.el("div", { class: "controles" });
+    const plus = replies.length ? LS.el("details", { class: "reglages-plus" }, [
+      LS.el("summary", { text: "Plus de réglages (" + replies.length + ") : " + replies.map(c => c.nom.replace(/ \(.*\)$/, "")).join(", ") }), zoneAvancee]) : null;
     const zoneMesures = LS.el("div", { class: "mesures" });
     const zoneExpl = LS.el("div", { class: "explication-live" });
-    conteneur.append(barre, canvas, zoneControles, zoneMesures, zoneExpl);
+    conteneur.append(barre, canvas, zoneControles);
+    if (plus) conteneur.append(plus);
+    conteneur.append(zoneMesures, zoneExpl);
     sim.canvas = canvas;
 
     const elems = {};
@@ -63,7 +71,7 @@
       }
       elems[c.k] = { c, entree, aff };
       const lab = LS.el("label", {}, [LS.el("span", { text: c.nom }), val]);
-      zoneControles.append(LS.el("div", { class: "controle", title: c.aide || "" }, c.bool ? [LS.el("label", { style: "justify-content:flex-start;gap:8px" }, [entree, LS.el("span", { text: c.nom })])] : [lab, entree]));
+      (replies.includes(c) ? zoneAvancee : zoneControles).append(LS.el("div", { class: "controle", title: c.aide || "" }, c.bool ? [LS.el("label", { style: "justify-content:flex-start;gap:8px" }, [entree, LS.el("span", { text: c.nom })])] : [lab, entree]));
     });
     sim.majControles = function () {
       Object.values(elems).forEach(({ c, entree, aff }) => {

@@ -43,14 +43,19 @@
     return { n, titre, dans: points - bas, pour: haut - bas, ratio: (points - bas) / (haut - bas), prochain: haut };
   }
   const jourISO = d => { const x = new Date(d); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
-  // Série : nombre de jours consécutifs avec de l'activité, se terminant aujourd'hui ou hier.
+  // Série : jours d'activité d'affilée, se terminant aujourd'hui ou hier. Indulgente : un jour manqué
+  // isolé (pas de courant, pas de téléphone) ne la casse pas, une fois par tranche de 7 jours actifs.
   function serie(jours, aujourdhui) {
     const actifs = new Set(Object.keys(jours).filter(k => jours[k] > 0));
     const d = new Date(aujourdhui);
     if (!actifs.has(jourISO(d))) d.setDate(d.getDate() - 1);
-    let n = 0;
-    while (actifs.has(jourISO(d))) { n++; d.setDate(d.getDate() - 1); }
-    return n;
+    let n = 0, jokers = 0;
+    for (;;) {
+      if (actifs.has(jourISO(d))) { n++; d.setDate(d.getDate() - 1); continue; }
+      const veille = new Date(d); veille.setDate(veille.getDate() - 1);
+      if (n > 0 && actifs.has(jourISO(veille)) && jokers < 1 + Math.floor(n / 7)) { jokers++; d.setDate(d.getDate() - 1); continue; }
+      return n;
+    }
   }
 
   /* ---------- Registre ---------- */
@@ -127,8 +132,8 @@
       { id: "sansfaute", code: "10/10", nom: "Sans faute", desc: "10 questions réussies du premier coup.", ok: premierCoup >= 10 },
       { id: "cartographe", code: "3×", nom: "Cartographe", desc: "Terminer 3 cartes mentales.", ok: cartesFinies >= 3 },
       { id: "polyvalent", code: "5D", nom: "Polyvalent", desc: "Réussir un objectif dans 5 domaines différents.", ok: domainesPratiques.size >= 5 },
-      { id: "niv5", code: "N5", nom: "Câbleur", desc: "Atteindre le niveau 5.", ok: niv >= 5 },
-      { id: "niv10", code: "N10", nom: "Technicien", desc: "Atteindre le niveau 10.", ok: niv >= 10 }
+      { id: "niv5", code: "R5", nom: "Câbleur", desc: "Atteindre le rang 5.", ok: niv >= 5 },
+      { id: "niv10", code: "R10", nom: "Technicien", desc: "Atteindre le rang 10.", ok: niv >= 10 }
     ];
     (LS.parcours || []).forEach(d => {
       const info = DOMAINES[d.id] || { code: "?", brevet: d.titre };
@@ -153,7 +158,7 @@
     setTimeout(() => m.remove(), 2600);
     if (apres > avant) {
       const n = niveau(total());
-      const p = LS.el("div", { class: "gain niveau" + (reduit() ? "" : " anime") }, [LS.el("span", { class: "gain-pts", text: "N" + n.n }), LS.el("span", { text: "Niveau atteint : " + n.titre })]);
+      const p = LS.el("div", { class: "gain niveau" + (reduit() ? "" : " anime") }, [LS.el("span", { class: "gain-pts", text: "Rang " + n.n }), LS.el("span", { text: "Nouveau rang : " + n.titre })]);
       zone.append(p); setTimeout(() => p.remove(), 4000);
     }
     majPuce();
@@ -162,14 +167,14 @@
     const p = document.getElementById("puce-joueur");
     if (!p) return;
     const e = etat();
-    p.querySelector(".puce-niv").textContent = "N" + e.niveau.n;
+    p.querySelector(".puce-niv").textContent = "Rang " + e.niveau.n;
     p.querySelector(".puce-barre > span").style.width = Math.round(e.niveau.ratio * 100) + "%";
     p.querySelector(".puce-serie").textContent = e.serie + " j";
     p.title = e.niveau.titre + " · " + e.points + " points · " + e.serie + " jour(s) d'affilée";
   }
   function puce(racine) {
     return LS.el("a", { id: "puce-joueur", class: "puce-joueur", href: (racine || "") + "index.html#tableau" }, [
-      LS.el("span", { class: "puce-niv", text: "N1" }),
+      LS.el("span", { class: "puce-niv", text: "Rang 1" }),
       LS.el("span", { class: "puce-barre", "aria-hidden": "true" }, [LS.el("span", {})]),
       LS.el("span", { class: "puce-serie", text: "0 j" })]);
   }

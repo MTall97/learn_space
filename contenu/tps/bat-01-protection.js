@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "bat-01-protection",
   titre: "Disjoncteur et section des câbles",
   domaine: "batiment", niveau: 1, duree: "30 min",
-  sim: "protection",
+  sim: "protection", securite: "secteur",
   intro: "Un circuit de la maison : un disjoncteur au tableau, un câble en cuivre, et des appareils que tu allumes. Le courant chauffe le câble ; le disjoncteur doit le protéger. La norme (CEI 60364, NF C 15-100) demande **In ≤ Iz** (calibre inférieur au courant admissible du câble) et **I2 ≤ 1,45 Iz** (I2 : courant qui fait sûrement déclencher en 1 h, 1,45 In pour un disjoncteur domestique). Elle admet ainsi qu'une **surcharge modérée** fasse passer le câble au-dessus de 70 °C pendant un temps qui peut être long : l'isolant le supporte temporairement. Le temps est accéléré (60 fois par défaut) : la mesure « Temps simulé » donne la durée réelle pour l'installation.\n\nModèle : échauffement du câble du premier ordre (70 °C atteints au courant admissible Iz, pose encastrée), bilame ajusté sur les points conventionnels de la CEI 60898, seuil magnétique au milieu de la plage de la courbe. Ce sont des ordres de grandeur : la norme de ton pays fixe les valeurs exactes.",
   objectifs: [
     { texte: "Allume assez d'appareils pour dépasser **nettement** le calibre (environ 2 In) : le disjoncteur déclenche après un moment, par son **thermique**.",

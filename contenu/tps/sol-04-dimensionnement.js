@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "sol-04-dimensionnement",
   titre: "Dimensionner un kit solaire autonome",
   domaine: "solaire", niveau: 3, duree: "40 min",
-  sim: "installationSolaire",
+  sim: "installationSolaire", securite: "batterie",
   intro: "Une maison équipée d'un kit solaire autonome : panneaux, régulateur, batterie, onduleur 220 V (rendement 92 %, 10 W de veille). Règle les appareils, le lieu et le mois, puis le matériel. La simulation calcule **heure par heure sur 7 jours** : production (irradiation mensuelle d'ordre de grandeur PVGIS, durée du jour selon la latitude, pertes de chaleur et de poussière), consommation, état de charge, **délestage** quand la batterie atteint sa limite. Les jours couverts reçoivent 20 % de l'irradiation normale. Les prix sont des ordres de grandeur à vérifier localement.",
   objectifs: [
     { texte: "À **Bamako** en juillet, avec les appareils proposés : **aucun délestage** pendant 7 jours de soleil.",

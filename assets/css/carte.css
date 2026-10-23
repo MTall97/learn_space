@@ -1,0 +1,83 @@
+/* Carte mentale : lisible et utilisable au doigt.
+   Texte des notions ≥ 14 px à l'écran (16 unités, zoom minimal 0,875), zones de toucher ≥ 44 px,
+   panneau du bas limité à 40 % de l'écran au téléphone. Couleurs : jetons de style.css. */
+
+.carte-page { height: 100vh; height: 100dvh; }
+
+/* Barre d'outils */
+.carte-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); }
+.carte-titre { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; min-width: 0; }
+.carte-outils h1 { margin: 0; font-size: 1.3rem; line-height: 1.2; }
+.carte-prog { display: flex; align-items: center; gap: 8px; }
+.carte-prog .barre { width: 120px; }
+.carte-prog small { font-size: .9rem; color: var(--texte-doux); }
+.carte-boutons { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.carte-boutons .btn { min-height: 44px; padding-inline: 12px; font-size: .95rem; }
+
+/* Notions */
+.carte-svg .noeud > text { font-size: 16px; font-weight: 600; }
+.carte-svg .noeud.racine > text { font-size: 24px; }
+.carte-svg .noeud.n1 > text { font-size: 19px; }
+/* Racine : texte clair sur cuivre foncé (contraste ≥ 4,5:1 dans les deux thèmes). */
+.carte-svg .noeud.racine .fond { fill: var(--accent-fort); }
+.carte-svg .noeud.racine > text { fill: var(--sur-accent); }
+.carte-svg .noeud .zone-toucher, .carte-svg .noeud:hover .zone-toucher, .carte-svg .noeud.feuille:hover .zone-toucher { fill: transparent !important; stroke: none !important; }
+.carte-svg .noeud.feuille .fond { fill: transparent; }
+.carte-svg .noeud.feuille:hover .fond, .carte-svg .noeud.feuille:focus-visible .fond { fill: var(--fond-2); }
+.carte-svg .noeud:hover .fond { stroke: var(--accent-fort); }
+.carte-svg .noeud.choisi .fond { stroke: var(--accent-fort); stroke-width: 3; }
+.carte-svg .noeud.compris .fond { stroke: var(--ok); }
+.carte-svg .noeud:focus { outline: none; }
+.carte-svg .noeud:focus-visible .fond { stroke: var(--accent); stroke-width: 3; }
+.carte-svg .noeud .etiquette-tp rect, .carte-svg .noeud.feuille:hover .etiquette-tp rect { fill: color-mix(in srgb, var(--pcb) 78%, #000) !important; stroke: none !important; }
+.carte-svg .noeud .etiquette-tp text { fill: var(--pcb-texte); font-size: 16px; font-weight: 700; font-family: var(--police); }
+.carte-svg .coche { fill: var(--ok); font-size: 18px; font-weight: 700; }
+.carte-svg .bulle text { font-size: 16px; }
+.carte-svg .noeud .tag rect, .carte-svg .noeud.feuille:hover .tag rect { fill: var(--fond-2) !important; stroke: var(--bordure) !important; }
+.carte-svg .tag text { fill: var(--texte); font-size: 16px; }
+
+/* Bouton déplier / replier */
+.carte-svg .plier { cursor: pointer; }
+.carte-svg .plier .zone-toucher { fill: transparent; stroke: none; }
+.carte-svg .plier rect { fill: var(--carte); stroke: var(--accent-fort); stroke-width: 2; }
+.carte-svg .plier text { fill: var(--accent-fort); font-size: 16px; font-weight: 700; font-family: var(--mono); pointer-events: none; }
+.carte-svg .plier.ferme rect { fill: var(--noeud); stroke: var(--noeud); }
+.carte-svg .plier.ferme text { fill: var(--noeud-texte); }
+.carte-svg .plier:hover rect, .carte-svg .plier:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+.carte-svg .plier:focus { outline: none; }
+
+/* Panneau de définition */
+.panneau .fermer { min-height: 44px; min-width: 44px; }
+.panneau .poignee { display: none; }
+.panneau .enfants button { min-height: 40px; padding: 6px 12px; font-size: .95rem; }
+.panneau label.compris { min-height: 44px; }
+.panneau label.compris input { width: 24px; height: 24px; }
+.nav-notions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.nav-notions .btn { min-height: 44px; }
+.panneau .chemin { font-size: .9rem; }
+
+/* Bande « Commencer » au téléphone, quand le panneau est fermé */
+.bande-depart {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: var(--fond-2); border-top: 2px solid var(--accent);
+}
+.bande-depart .btn { min-height: 44px; flex: 1 1 auto; margin-bottom: 3px; }
+
+@media (max-width: 720px) {
+  .carte-outils { padding-block: 6px; gap: 4px; }
+  .carte-titre { width: 100%; flex-direction: column; align-items: flex-start; gap: 0; }
+  .carte-outils h1 { font-size: 1.1rem; }
+  .carte-prog .barre { width: 70px; }
+  /* Les outils restent sur une ligne qu'on fait défiler du doigt plutôt que de prendre 3 lignes. */
+  .carte-boutons { flex-wrap: nowrap; overflow-x: auto; margin-left: 0; width: 100%; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .carte-boutons .btn { flex: none; }
+  .panneau { max-height: 40%; padding-top: 0; }
+  .panneau .poignee { display: block; position: sticky; top: 0; height: 22px; margin: 0 -16px 4px; background: var(--carte); cursor: grab; touch-action: none; z-index: 1; }
+  .panneau .poignee::after { content: ""; display: block; width: 44px; height: 5px; border-radius: 3px; margin: 9px auto 0; background: var(--bordure); }
+  .panneau .fermer { position: sticky; top: 22px; z-index: 1; }
+  .panneau h2 { font-size: 1.25rem; }
+}
+@media (pointer: coarse) {
+  .carte-boutons .btn, .bande-depart .btn { min-height: 48px; }
+}

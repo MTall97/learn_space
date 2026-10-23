@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "em-04-transformateur",
   titre: "Le transformateur",
   domaine: "electromecanique", niveau: 2, duree: "20 min",
-  sim: "transformateur",
+  sim: "transformateur", securite: "secteur",
   intro: "Le chargeur de téléphone (ancien modèle), les postes électriques, le transformateur de la lampe halogène : deux bobinages sur un même noyau de fer. Rapport : **U2 / U1 = N2 / N1**.",
   objectifs: [
     { texte: "Fabrique un transformateur **220 V → 12 V** (réseau malien, à vide ou presque) : règle N2.", verif: s => s.p.U1 === 220 && Math.abs(220 * s.p.N2 / s.p.N1 - 12) < 0.3 },
