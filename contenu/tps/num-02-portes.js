@@ -19,7 +19,7 @@ LS.ajouterTP({
   titre: "Les portes logiques",
   domaine: "numerique", niveau: 1, duree: "25 min",
   sim: "logique",
-  intro: "En numérique, un fil ne porte que deux états : **0** (0 V) ou **1** (5 V ou 3,3 V). Une **porte logique** calcule une sortie à partir de ses entrées. Clique sur les entrées **A** et **B** pour les basculer ; un fil vert vaut 1. Pose une porte de la palette entre les entrées et le voyant **S**, relie-la, puis essaie **les 4 combinaisons** de A et B : c'est la **table de vérité**.",
+  intro: "En numérique, un fil ne porte que deux états : **0** (0 V) ou **1** (5 V ou 3,3 V). Une **porte logique** calcule une sortie à partir de ses entrées. Appuie sur les entrées **A** et **B** pour les basculer ; un fil vert vaut 1. Pose une porte de la palette entre les entrées et le voyant **S**, relie-la, puis essaie **les 4 combinaisons** de A et B : c'est la **table de vérité**.",
   config: {
     palette: ["et", "ou", "non", "non_et", "non_ou", "oux"],
     schema: {

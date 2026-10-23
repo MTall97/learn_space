@@ -10,7 +10,7 @@ LS.ajouterTP({
   titre: "Se servir d'un multimètre",
   domaine: "electricite", niveau: 1, duree: "30 min",
   sim: "circuit",
-  intro: "Le **multimètre** est l'outil de base de l'électricien. Il est ouvert à droite de la plaque : choisis la fonction avec le **sélecteur**, mets le cordon rouge dans la bonne **douille**, puis **fais glisser les pointes** rouge et noire sur les points à mesurer (bornes ou fils). Le cordon noir reste toujours dans **COM**.",
+  intro: "Le **multimètre** est l'outil de base de l'électricien. Il est ouvert à côté de la plaque (en dessous sur un téléphone) : choisis la fonction avec le **sélecteur**, mets le cordon rouge dans la bonne **douille**, puis **fais glisser les pointes** rouge et noire sur les points à mesurer (bornes ou fils). Le cordon noir reste toujours dans **COM**.",
   config: {
     multimetre: true,
     palette: ["resistance", "diode", "led"],

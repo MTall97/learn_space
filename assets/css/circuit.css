@@ -1,0 +1,60 @@
+/* Éditeur de circuits : vue adaptée à l'écran, tiroir à composants, cibles tactiles.
+   Chargé après style.css ; toutes les règles visent .editeur-circuit (le conteneur de l'éditeur). */
+
+/* ---------- Plaque : la vue s'adapte à la largeur, pas de défilement interne ---------- */
+.editeur-circuit .circuit-zone { overflow: hidden; max-height: none; }
+/* À un doigt, sur une zone vide, la page défile verticalement ; l'éditeur bloque ce défilement
+   lui-même (touchstart) quand on touche un composant, un fil, une borne ou une pointe. */
+.editeur-circuit .circuit-zone > .circuit-svg { touch-action: pan-y; }
+
+/* Libellés du dessin : au moins 11 unités (lisibles à l'échelle 1) */
+.editeur-circuit .circuit-svg .nom-compo { font-size: 11px; }
+.editeur-circuit .circuit-svg .compo .txt.petit { font-size: 11px; }
+
+/* ---------- Tiroir à composants : une réglette de casiers, pas des cartes ---------- */
+.editeur-circuit .palette {
+  display: flex; flex-wrap: wrap; gap: 0;
+  border: 2px solid var(--texte-doux); border-radius: 4px; background: var(--fond);
+  background-image: linear-gradient(var(--bordure), var(--bordure));
+  background-size: 100% 3px; background-repeat: no-repeat; background-position: 0 100%;
+  overflow: hidden;
+}
+.editeur-circuit .palette button {
+  flex: 0 0 auto; min-width: 76px; border: none; border-right: 2px solid var(--bordure); border-radius: 0;
+  background: transparent; box-shadow: none; padding: 6px 6px 8px; color: var(--texte);
+  font-family: var(--mono); font-size: .76rem; letter-spacing: .02em;
+}
+.editeur-circuit .palette button:last-child { border-right: none; }
+.editeur-circuit .palette button:hover { background: var(--fond-2); }
+.editeur-circuit .palette button.actif { background: var(--noeud); color: var(--noeud-texte); box-shadow: inset 0 -4px 0 var(--accent); }
+.editeur-circuit .palette button svg { width: 60px; height: 38px; }
+@media (max-width: 720px) {
+  /* Au téléphone : barre d'outils et tiroir sur une seule ligne qui défile de côté, pour garder la plaque en vue */
+  .editeur-circuit > .sim-barre:first-child { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+  .editeur-circuit > .sim-barre:first-child > * { flex: 0 0 auto; }
+  .editeur-circuit > .sim-barre:first-child label { white-space: nowrap; }
+  .editeur-circuit .palette { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+  .editeur-circuit .palette button { scroll-snap-align: start; }
+}
+
+/* ---------- Multimètre : contrastes ---------- */
+.editeur-circuit .mm-rouge { color: #8f0f0f; }
+.editeur-circuit .multimetre .mm-douille { font-size: .8rem; font-weight: 700; }
+.editeur-circuit .multimetre .mm-douille.actif { background: #b71c1c; border-color: #b71c1c; color: #fff; }
+
+/* ---------- Écran tactile : cibles d'au moins 44 px ---------- */
+@media (pointer: coarse) {
+  .editeur-circuit .sim-barre .btn,
+  .editeur-circuit .proprietes .btn,
+  .editeur-circuit .sim-barre select,
+  .editeur-circuit .proprietes select,
+  .editeur-circuit .proprietes input[type="text"] { min-height: 44px; }
+  .editeur-circuit .sim-barre .btn, .editeur-circuit .proprietes .btn { padding-left: 14px; padding-right: 14px; font-size: .95rem; }
+  .editeur-circuit .sim-barre label { min-height: 44px; padding: 0 6px; }
+  .editeur-circuit .sim-barre input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
+  .editeur-circuit .proprietes input[type="range"] { height: 44px; }
+  .editeur-circuit .palette button { min-height: 64px; min-width: 84px; }
+  .editeur-circuit .mm-pos { min-height: 44px; font-size: .95rem; }
+  .editeur-circuit .mm-douille { min-width: 48px; min-height: 48px; }
+  .editeur-circuit .mm-douilles { gap: 8px; }
+}

@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "La loi d'Ohm",
   domaine: "electricite", niveau: 1, duree: "20 min",
   sim: "circuit",
-  intro: "Une pile réglable alimente une résistance **R1**. Un **ampèremètre** (en série) mesure le courant, un **voltmètre** (en parallèle) mesure la tension aux bornes de R1. Clique sur la pile ou sur R1 pour changer leurs valeurs avec le curseur, ou tape une valeur (ex. `220`, `4.7k`).",
+  intro: "Une pile réglable alimente une résistance **R1**. Un **ampèremètre** (en série) mesure le courant, un **voltmètre** (en parallèle) mesure la tension aux bornes de R1. Appuie sur la pile ou sur R1 pour changer leurs valeurs avec le curseur, ou tape une valeur (ex. `220`, `4.7k`).",
   config: {
     palette: [],
     schema: {
@@ -31,7 +31,7 @@ LS.ajouterTP({
       bravo: "Le courant double : à résistance fixe, I est proportionnel à U." },
     { texte: "Garde 12 V et choisis R1 pour obtenir **un courant entre 50 et 60 mA**.", indice: "R = U / I = 12 / 0,055 ≈ 218 Ω : la valeur normalisée la plus proche est 220 Ω.",
       verif: s => { const i = s.trouver("A1")._mesure; return Math.abs(s.trouver("G1").p.U - 12) < 0.05 && i >= 0.05 && i <= 0.06; } },
-    { texte: "Avec R1 = 100 Ω, monte la tension jusqu'à ce que R1 **chauffe** (alerte « Chauffe » en cliquant sur R1), puis choisis une résistance de 5 W.",
+    { texte: "Avec R1 = 100 Ω, monte la tension jusqu'à ce que R1 **chauffe** (alerte « Chauffe » en appuyant sur R1), puis choisis une résistance de 5 W.",
       indice: "Règle d'abord R1 sur une puissance maximale de 0,25 W. P = U²/R : à 12 V sur 100 Ω, P = 1,44 W.",
       verif: (s, m) => { const r = s.trouver("R1"); if (r.etat && /Chauffe|brûlée/.test(r.etat.alerte || "")) m.vu = true; return !!(m.vu && r.p.Pmax >= 5); },
       bravo: "Une résistance a une puissance maximale : au-delà, elle chauffe puis brûle. Pour la même valeur en ohms, on choisit un boîtier plus gros." }

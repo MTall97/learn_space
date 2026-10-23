@@ -30,7 +30,7 @@ LS.ajouterTP({
       verif: s => { const r2 = s.trouver("R2"); return s.liste("resistance").some(r => r !== r2 && r.nom !== "R1" && s.memeNet(r, 0, r2, 0) && s.memeNet(r, 1, r2, 1) || r !== r2 && r.nom !== "R1" && s.memeNet(r, 0, r2, 1) && s.memeNet(r, 1, r2, 0)); },
       bravo: "La charge est en parallèle sur R2 : la résistance du bas diminue, la tension aussi. Un diviseur ne convient que pour une charge de résistance bien plus grande que R2 (ou pour une entrée de mesure)." },
     { texte: "Remplace le diviseur par un **potentiomètre** (borne gauche au +, borne droite au −, curseur vers un voltmètre) et règle **5 V ± 0,1 V** sur le curseur.",
-      indice: "Le curseur est la borne du haut (flèche). Clique sur le potentiomètre pour déplacer le curseur avec la glissière.",
+      indice: "Le curseur est la borne du haut (flèche). Appuie sur le potentiomètre pour déplacer le curseur avec la glissière.",
       verif: s => s.liste("potentiometre").some(p => s.liste("voltmetre").some(v => (s.memeNet(p, 2, v, 0) || s.memeNet(p, 2, v, 1)) && Math.abs(Math.abs(v._mesure) - 5) <= 0.1)) }
   ],
   questions: [

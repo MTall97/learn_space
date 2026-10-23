@@ -1,6 +1,6 @@
 (function () {
   // On ne signale pas au hasard : il faut avoir posé les pointes du multimètre, et au plus un faux signalement.
-  // Mesure = multimètre allumé et pointe rouge déplacée depuis sa position de départ (hors de la plaque).
+  // Mesure = multimètre allumé et pointe rouge déplacée depuis sa position de départ (à droite du montage).
   function aMesure(s) {
     if (!s.sondes) return !!s._aMesure;
     const rouge = JSON.stringify(s.sondes.rouge);
@@ -23,7 +23,7 @@
   titre: "Recherche de panne",
   domaine: "electricite", niveau: 3, duree: "30 min",
   sim: "circuit",
-  intro: "Ce tableau d'éclairage a **deux pannes** : trois lampes devraient s'allumer quand K1 est fermé, mais certaines restent éteintes. Comme en vrai, tu **ne vois pas** le courant : le seul moyen est de **mesurer** avec le multimètre.\n\nMéthode de l'électricien :\n- **sous tension**, en V⎓ : on suit la tension du + vers la lampe ; là où elle disparaît, il y a une coupure ;\n- **hors tension** (K1 ouvert), en continuité •)) : un fil sain bipe, un fil coupé non ; une lampe saine bipe presque (quelques dizaines d'ohms), une lampe grillée affiche OL.\n\nQuand tu as trouvé un élément en panne, clique dessus puis sur **C'est la panne !**.",
+  intro: "Ce tableau d'éclairage a **deux pannes** : trois lampes devraient s'allumer quand K1 est fermé, mais certaines restent éteintes. Comme en vrai, tu **ne vois pas** le courant : le seul moyen est de **mesurer** avec le multimètre.\n\nMéthode de l'électricien :\n- **sous tension**, en V⎓ : on suit la tension du + vers la lampe ; là où elle disparaît, il y a une coupure ;\n- **hors tension** (K1 ouvert), en continuité •)) : un fil sain bipe, un fil coupé non ; une lampe saine bipe presque (quelques dizaines d'ohms), une lampe grillée affiche OL.\n\nQuand tu as trouvé un élément en panne, appuie dessus puis sur **C'est la panne !**.",
   sauver: false,
   config: {
     multimetre: true, masquerCourant: true, signalement: true,

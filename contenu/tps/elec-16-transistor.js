@@ -27,7 +27,7 @@ LS.ajouterTP({
     }
   },
   objectifs: [
-    { texte: "Ferme **K1** : la LED s'allume. Clique sur T1 et lis Ib, Ic et le régime.",
+    { texte: "Ferme **K1** : la LED s'allume. Appuie sur T1 et lis Ib, Ic et le régime.",
       verif: s => s.I(s.trouver("D1")) > 0.015 },
     { texte: "Observe que **Ic / Ib** est bien inférieur à β (≈ 30 au lieu de 100) : le transistor est **saturé**, Ic n'est limité que par Rc et la LED.",
       verif: (s, m) => { const t = s.trouver("T1"); if (s.choix === t && t._i && t._i[0] > 5e-4) m.ok = true; return !!m.ok; } },

@@ -3,16 +3,16 @@ LS.ajouterTP({
   titre: "Allumer une LED sans la griller",
   domaine: "electricite", niveau: 2, duree: "20 min",
   sim: "circuit",
-  intro: "Une **LED** (diode électroluminescente) ne laisse passer le courant que dans un sens : de l'**anode** (A, côté triangle) vers la **cathode** (K, côté barre). Au-dessus de sa **tension de seuil** (≈ 1,9 V pour une rouge, ≈ 3 V pour une bleue), son courant monte très vite : sans **résistance de protection**, elle grille. La plaque est vide : à toi de construire.",
+  intro: "Une **LED** (diode électroluminescente) ne laisse passer le courant que dans un sens : de l'**anode** (A, côté triangle) vers la **cathode** (K, côté barre). Au-dessus de sa **tension de seuil** (≈ 1,9 V pour une rouge, ≈ 3 V pour une bleue), son courant monte très vite : sans **résistance de protection**, elle grille. Sur la plaque, il n'y a encore que la pile de 9 V : à toi de construire le reste.",
   config: {
-    palette: ["pile", "led", "resistance", "interrupteur", "amperemetre", "voltmetre"],
+    palette: ["led", "resistance", "interrupteur", "amperemetre", "voltmetre"],
     schema: { compos: [{ type: "pile", x: 6, y: 16, p: { U: 9, r: 0.5 }, nom: "G1" }], fils: [] }
   },
   objectifs: [
     { texte: "Branche une LED **rouge** avec une résistance en série sur la pile de 9 V, avec un courant **entre 12 et 22 mA**.",
       indice: "R = (9 − 1,9) / 0,02 ≈ 355 Ω : prends la valeur normalisée **au-dessus**, 390 Ω (≈ 18 mA). En dessous (330 Ω), on dépasserait 20 mA. Attention au sens de la LED : anode vers le +.",
       verif: s => s.liste("led").some(l => l.p.couleur === "rouge" && !(l.etat && l.etat.grille) && s.I(l) > 0.012 && s.I(l) < 0.022) },
-    { texte: "Retourne la LED (bouton ⟳ deux fois) : elle s'éteint. C'est une diode : elle bloque le courant en inverse.",
+    { texte: "Retourne la LED (bouton « Tourner » deux fois) : elle s'éteint. C'est une diode : elle bloque le courant en inverse.",
       verif: (s, m) => s.liste("led").some(l => s.U(l) < -1 && Math.abs(s.I(l)) < 1e-5) },
     { texte: "Passe la LED en **bleue** (seuil ≈ 3 V) et recalcule la résistance pour 12–22 mA.",
       verif: s => s.liste("led").some(l => l.p.couleur === "bleue" && !(l.etat && l.etat.grille) && s.I(l) > 0.012 && s.I(l) < 0.022) },

@@ -134,7 +134,7 @@
   /* ---------- Construction de l'interface ---------- */
   E._construireDOM = function (conteneur) {
     const self = this;
-    conteneur.classList.add("sim");
+    conteneur.classList.add("sim", "editeur-circuit");
     const barre = LS.el("div", { class: "sim-barre" });
     // Palette par catégorie
     const types = (this.opts.palette || Object.keys(this.reg)).filter(t => this.reg[t] && !this.reg[t].cache);
@@ -168,13 +168,19 @@
     outils.push(LS.el("span", { class: "sep" }),
       LS.el("button", { class: "btn petit secondaire", text: "Réparer", title: "Remplace les composants grillés", onclick: () => self.reparer() }),
       LS.el("button", { class: "btn petit secondaire", text: "Recommencer", title: "Revenir au montage de départ", onclick: ev => LS.confirmer(ev.currentTarget, () => self.reinitialiser(), "Revenir au départ ?") }));
+    // Vue de la plaque : zoom et cadrage (indispensables au téléphone, où la plaque est plus large que l'écran).
+    outils.push(LS.el("span", { class: "sep" }),
+      LS.el("button", { class: "btn petit secondaire", text: "Zoom +", title: "Agrandir la plaque", "aria-label": "Agrandir la plaque", onclick: () => self.zoomer(1 / 1.4) }),
+      LS.el("button", { class: "btn petit secondaire", text: "Zoom −", title: "Réduire la plaque", "aria-label": "Réduire la plaque", onclick: () => self.zoomer(1.4) }),
+      LS.el("button", { class: "btn petit secondaire", text: "Tout voir", title: "Cadrer tout le montage", onclick: () => self.toutVoir() }));
     barre.append(...outils);
     const barrePalette = LS.el("div", { class: "sim-barre" }, [this.palette]);
     if (!types.length) barrePalette.classList.add("cache-tout");
 
     this.zone = LS.el("div", { class: "circuit-zone" });
-    this.svg = svg("svg", { class: "circuit-svg", viewBox: `-10 -10 ${this.largeur * P + 20} ${this.hauteur * P + 20}`, width: this.largeur * P + 20, height: this.hauteur * P + 20 });
-    this.svg.style.width = "100%"; this.svg.style.minWidth = "640px"; this.svg.style.height = "auto";
+    this.svg = svg("svg", { class: "circuit-svg", viewBox: `-10 -10 ${this.largeur * P + 20} ${this.hauteur * P + 20}` });
+    this.svg.style.width = "100%"; this.svg.style.display = "block";
+    this.vue = { x: -10, y: -10, w: this.largeur * P + 20, h: this.hauteur * P + 20 };
     const defs = svg("defs", {}, this.svg);
     const pat = svg("pattern", { id: "grille-pts-" + Math.random().toString(36).slice(2, 7), width: P, height: P, patternUnits: "userSpaceOnUse", x: -1.5, y: -1.5 }, defs);
     svg("circle", { cx: 1.5, cy: 1.5, r: 1.3, class: "grille-pt" }, pat);
@@ -192,7 +198,19 @@
     this.proprietes = LS.el("div", { class: "proprietes" });
     conteneur.append(barre, barrePalette, LS.el("div", { class: "circuit-et-mm" }, [this.zone, this.panneauMM]), this.panneauOsc, this.proprietes);
     this._evenements();
+    this._gestesTactiles();
     document.addEventListener("ls:theme", () => self.rendu());
+    // Cadrage initial, puis de nouveau quand la largeur change (tant que l'apprenant n'a pas zoomé lui-même).
+    requestAnimationFrame(() => self.toutVoir(true));
+    if (window.ResizeObserver) {
+      let largeurAvant = 0;
+      new ResizeObserver(() => {
+        const l = self.zone.clientWidth;
+        if (Math.abs(l - largeurAvant) < 2) return;
+        largeurAvant = l;
+        if (self.vueManuelle) self._appliquerVue(); else self.toutVoir(true);
+      }).observe(this.zone);
+    }
   };
 
   E._mode = function (m) {
@@ -378,6 +396,115 @@
     requestAnimationFrame(image);
   };
 
+  /* ---------- Vue de la plaque : cadrage, zoom ---------- */
+  // Rectangle (en unités du dessin) qui contient tout le montage : composants, fils et pointes du multimètre.
+  E._cadreContenu = function () {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const ajouter = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
+    this.schema.compos.forEach(c => {
+      if (c.virtuel) return;
+      (this.reg[c.type].bornes || []).forEach(b => { const q = LS.positionBorne(c, b); ajouter(q[0] * P, q[1] * P); });
+      ajouter(c.x * P, c.y * P);
+    });
+    this.schema.fils.forEach(f => f.pts.forEach(q => ajouter(q[0] * P, q[1] * P)));
+    if (this.multimetre && this.sondes && !this.panneauMM.classList.contains("cache-tout"))
+      ["rouge", "noire"].forEach(k => { const q = this.sondes[k]; ajouter(q[0] * P, q[1] * P); ajouter(q[0] * P, q[1] * P - 50); });
+    if (!isFinite(x0)) return null;
+    return { x: x0 - 60, y: y0 - 50, w: x1 - x0 + 120, h: y1 - y0 + 100 };
+  };
+  // Cadre tout le montage. Sur grand écran : toute la plaque ; sur petit écran : le montage, avec de la marge.
+  E.toutVoir = function (auto) {
+    const cw = this.zone.clientWidth || 640, Wp = this.largeur * P + 20, Hp = this.hauteur * P + 20;
+    let v = { x: -10, y: -10, w: Wp, h: Hp };
+    const c = cw < Wp * 0.9 ? this._cadreContenu() : null;
+    if (c) {
+      v = { x: c.x, y: c.y, w: Math.max(c.w, 20 * P), h: Math.max(c.h, 11 * P) };
+      v.x -= (v.w - c.w) / 2; v.y -= (v.h - c.h) / 2;
+      // La plaque ne doit pas dépasser environ 60 % de la hauteur de l'écran (sinon on ne voit plus les consignes).
+      const hMax = 0.6 * (window.innerHeight || 800);
+      if (cw * v.h / v.w > hMax) { const w2 = v.h * cw / hMax; v.x -= (w2 - v.w) / 2; v.w = w2; }
+      v.x = Math.max(-10, Math.min(v.x, Wp - 10 - v.w)); v.y = Math.max(-10, Math.min(v.y, Hp - 10 - v.h));
+      if (v.w > Wp) { v.x = -10; v.w = Wp; }
+    }
+    this.vue = v;
+    this.vueManuelle = false;
+    this._appliquerVue();
+    void auto;
+  };
+  // Zoom d'un facteur f (f < 1 : on agrandit) autour d'un point du dessin (centre de la vue par défaut).
+  E.zoomer = function (f, ux, uy) {
+    const v = this.vue, Wp = this.largeur * P + 20, Hp = this.hauteur * P + 20, r = v.h / v.w;
+    if (ux === undefined) { ux = v.x + v.w / 2; uy = v.y + v.h / 2; }
+    const w = Math.max(6 * P, Math.min(Wp * 1.3, v.w * f)), h = w * r;
+    const fx = (ux - v.x) / v.w, fy = (uy - v.y) / v.h;
+    this.vue = this._borner({ x: ux - fx * w, y: uy - fy * h, w, h });
+    this.vueManuelle = true;
+    this._appliquerVue();
+  };
+  // La vue reste toujours en partie sur la plaque.
+  E._borner = function (v) {
+    const Wp = this.largeur * P + 20, Hp = this.hauteur * P + 20;
+    const mx = v.w * 0.4, my = v.h * 0.4;
+    v.x = Math.max(-10 - mx, Math.min(v.x, Wp - 10 - v.w + mx));
+    v.y = Math.max(-10 - my, Math.min(v.y, Hp - 10 - v.h + my));
+    return v;
+  };
+  E._appliquerVue = function () {
+    const v = this.vue;
+    this.svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
+    const cw = this.zone.clientWidth || this.svg.clientWidth || 640;
+    this.svg.style.height = Math.round(cw * v.h / v.w) + "px";
+  };
+  // Unités du dessin par pixel d'écran.
+  E._uniteParPixel = function () { return this.vue.w / (this.svg.clientWidth || this.zone.clientWidth || 640); };
+  E._tolerance = function (ev) { return Math.max(8, (ev && ev.pointerType === "touch" ? 22 : 10) * this._uniteParPixel()); };
+
+  /* Gestes à deux doigts : pincer pour zoomer, glisser pour déplacer la vue. À un doigt, sur une zone
+     vide, la page défile normalement ; sur un composant, un fil, une borne ou une pointe, ou en mode
+     « Fil » / pose d'un composant, le doigt agit sur la plaque. */
+  E._gestesTactiles = function () {
+    const self = this, s = this.svg;
+    let pince = null;
+    const infos = t => {
+      const a = t[0], b = t[1], r = s.getBoundingClientRect();
+      return { cx: (a.clientX + b.clientX) / 2 - r.left, cy: (a.clientY + b.clientY) / 2 - r.top, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1 };
+    };
+    s.addEventListener("touchstart", ev => {
+      if (ev.touches.length >= 2) {
+        ev.preventDefault();
+        self._annulerAction && self._annulerAction();
+        const i = infos(ev.touches), k = self._uniteParPixel();
+        pince = { i, vue: Object.assign({}, self.vue), k, ux: self.vue.x + i.cx * k, uy: self.vue.y + i.cy * k };
+        return;
+      }
+      const t = ev.touches[0];
+      const surElement = ev.target.closest && ev.target.closest("[data-id],[data-fil],[data-sonde]");
+      const pt = self._point(t);
+      const tol = Math.max(8, 22 * self._uniteParPixel());
+      if (surElement || self.mode === "fil" || self.mode === "placer" || self.debutFil || self._borneProche(pt, tol)) ev.preventDefault();
+    }, { passive: false });
+    s.addEventListener("touchmove", ev => {
+      if (!pince || ev.touches.length < 2) return;
+      ev.preventDefault();
+      const i = infos(ev.touches), Wp = self.largeur * P + 20;
+      const k = Math.max(6 * P, Math.min(Wp * 1.3, pince.vue.w * pince.i.d / i.d)) / (s.clientWidth || 1);
+      const w = k * (s.clientWidth || 1), h = w * pince.vue.h / pince.vue.w;
+      self.vue = self._borner({ x: pince.ux - i.cx * k, y: pince.uy - i.cy * k, w, h });
+      self.vueManuelle = true;
+      self._appliquerVue();
+    }, { passive: false });
+    const fin = ev => { if (ev.touches.length < 2) pince = null; };
+    s.addEventListener("touchend", fin);
+    s.addEventListener("touchcancel", fin);
+    // Molette avec Ctrl (ou geste de pincement du pavé tactile) : zoom autour du pointeur.
+    s.addEventListener("wheel", ev => {
+      if (!ev.ctrlKey) return;
+      ev.preventDefault();
+      const p = self._point(ev);
+      self.zoomer(ev.deltaY > 0 ? 1.15 : 1 / 1.15, p.px, p.py);
+    }, { passive: false });
+  };
+
   /* ---------- Souris / doigt ---------- */
   E._point = function (ev) {
     const pt = this.svg.createSVGPoint();
@@ -385,9 +512,9 @@
     const p = pt.matrixTransform(this.svg.getScreenCTM().inverse());
     return { px: p.x, py: p.y, x: Math.round(p.x / P), y: Math.round(p.y / P) };
   };
-  E._borneProche = function (pt) {
-    // Borne ou extrémité de fil à moins de 8 px : point de départ d'un fil.
-    let best = null, dmin = 8;
+  E._borneProche = function (pt, tol) {
+    // Borne ou extrémité de fil à portée (plus large au doigt et quand la plaque est réduite).
+    let best = null, dmin = tol || this._tol || 8;
     this.schema.compos.forEach(c => {
       if (c.virtuel) return;
       (this.reg[c.type].bornes).forEach(b => {
@@ -407,8 +534,10 @@
   E._evenements = function () {
     const self = this, s = this.svg;
     let action = null;
+    this._annulerAction = () => { action = null; self.calqueApercu.innerHTML = ""; };
     s.addEventListener("pointerdown", ev => {
-      if (ev.button > 0) return;
+      if (ev.button > 0 || !ev.isPrimary) return;
+      self._tol = self._tolerance(ev);
       const pt = self._point(ev);
       const cible = ev.target.closest("[data-id],[data-fil],[data-sonde]");
       // Pointes du multimètre
@@ -418,7 +547,8 @@
         return;
       }
       if (self.mode === "placer") { action = { type: "placer" }; return; }
-      const borne = self._borneProche(pt);
+      // Sur le corps d'un composant, on ne part d'une borne que si on la touche vraiment (sinon on déplace le composant).
+      const borne = self._borneProche(pt, cible && cible.dataset.id ? Math.max(8, 10 * self._uniteParPixel()) : self._tol);
       if (self.mode === "fil" || (borne && self.mode === "choix")) {
         if (!self.debutFil) self.debutFil = borne ? [borne[0], borne[1]] : [pt.x, pt.y];
         action = { type: "fil" };
@@ -443,6 +573,8 @@
       action = { type: "fond" };
     });
     s.addEventListener("pointermove", ev => {
+      if (!ev.isPrimary) return;
+      if (!action) self._tol = self._tolerance(ev);
       const pt = self._point(ev);
       self.calqueApercu.innerHTML = "";
       if (self.mode === "placer" && self.placer) {
@@ -455,7 +587,7 @@
       }
       if (!action) {
         const b = self._borneProche(pt);
-        if (b) svg("circle", { cx: b[0] * P, cy: b[1] * P, r: 7, class: "cible" }, self.calqueApercu);
+        if (b && ev.pointerType !== "touch") svg("circle", { cx: b[0] * P, cy: b[1] * P, r: 7, class: "cible" }, self.calqueApercu);
         return;
       }
       if (action.type === "compo" && !action.c.fixe) {
@@ -475,6 +607,7 @@
       }
     });
     s.addEventListener("pointerup", ev => {
+      if (!ev.isPrimary) return;
       const pt = self._point(ev);
       const a = action; action = null;
       if (!a) return;
@@ -606,14 +739,18 @@
   };
 
   /* ---------- Panneau des propriétés et mesures ---------- */
+  // Écran tactile : on parle de « toucher » et on n'affiche pas les raccourcis clavier.
+  const tactile = () => typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   E._afficherProprietes = function () {
     const self = this, pan = this.proprietes, x = this.choix;
     pan.innerHTML = "";
     this.zoneMesures = null;
     if (!x) {
+      const t = tactile(), clic = t ? "touche" : "clique";
       pan.append(LS.el("p", { class: "aide", html: this.opts.aide || (this.opts.electrique
-        ? "<strong>Mode d'emploi :</strong> choisis un composant dans la palette puis clique sur la plaque. Pour relier deux points, <strong>glisse depuis une borne</strong> (petit rond noir) jusqu'à une autre borne. Clique sur un composant pour le régler et lire ses mesures ; clique une 2ᵉ fois sur un interrupteur pour le basculer. Touche R : tourner ; Suppr : effacer. Les points jaunes montrent le courant."
-        : "Choisis une porte dans la palette, pose-la, relie les bornes en glissant. Clique deux fois sur une entrée pour la basculer.") }));
+        ? `<strong>Mode d'emploi :</strong> choisis un composant dans le tiroir puis ${clic} la plaque pour le poser. Pour relier deux points, <strong>glisse depuis une borne</strong> (petit rond noir) jusqu'à une autre borne. ${t ? "Touche" : "Clique sur"} un composant pour le régler et lire ses mesures ; ${clic} une 2ᵉ fois un interrupteur pour le basculer. Les points jaunes montrent le courant.` +
+          (t ? " Deux doigts : pincer pour zoomer, glisser pour déplacer la vue." : " Touche R : tourner ; Suppr : effacer ; Ctrl + molette : zoom.")
+        : `Choisis une porte dans le tiroir, pose-la, relie les bornes en glissant. ${t ? "Touche" : "Clique"} deux fois une entrée pour la basculer.`) }));
       return;
     }
     if (!x.type) {
@@ -631,7 +768,7 @@
     const actions = LS.el("div", { class: "ligne" });
     if (def.cliquable && def.action) actions.append(LS.el("button", { class: "btn petit", text: "Basculer", onclick: () => { def.action(x); self.rendu(); self._sauver(); self._signaler(); self._afficherProprietes(); } }));
     if (!x.fixe) {
-      actions.append(LS.el("button", { class: "btn petit secondaire", text: "⟳ Tourner (R)", onclick: () => self.tourner(x) }));
+      actions.append(LS.el("button", { class: "btn petit secondaire", text: tactile() ? "Tourner" : "Tourner (R)", onclick: () => self.tourner(x) }));
       actions.append(LS.el("button", { class: "btn petit secondaire", text: "Supprimer", onclick: () => self.supprimer(x) }));
     } else actions.append(LS.el("span", { class: "etiquette", text: "élément imposé par le TP" }));
     if (this.opts.electrique) {
@@ -753,7 +890,7 @@
       const bt = LS.el("button", { class: "btn petit secondaire", text: x.g === "I" ? "→ U" : "→ I", title: "Basculer tension / courant", onclick: () => { x.g = x.g === "I" ? "U" : "I"; this.osc.donnees = []; this._legendeOsc(); } });
       this.oscLegende.append(s, bt);
     });
-    if (!v[0] && !v[1]) this.oscLegende.textContent = " — clique sur un composant puis « Voie 1 » ou « Voie 2 ».";
+    if (!v[0] && !v[1]) this.oscLegende.textContent = " — " + (tactile() ? "touche" : "clique sur") + " un composant puis « Voie 1 » ou « Voie 2 ».";
   };
   /* Appelé par le simulateur après chaque pas. */
   E.echantillonner = function (t) {
@@ -819,7 +956,14 @@
     this.btnMM && this.btnMM.classList.toggle("actif", vis);
     if (vis && !this.multimetre) {
       this.multimetre = { sel: "V⎓", douille: "VΩ" };
-      this.sondes = this.sondes || { rouge: [this.largeur - 6, 2], noire: [this.largeur - 3, 2] };
+      // Pointes posées juste à droite du montage, pour qu'elles restent dans la vue au téléphone.
+      if (!this.sondes) {
+        let xMax = 0, yMin = this.hauteur;
+        this.schema.compos.forEach(c => { if (c.virtuel) return; (this.reg[c.type].bornes || []).forEach(b => { const q = LS.positionBorne(c, b); xMax = Math.max(xMax, q[0]); yMin = Math.min(yMin, q[1]); }); });
+        this.schema.fils.forEach(f => f.pts.forEach(q => { xMax = Math.max(xMax, q[0]); yMin = Math.min(yMin, q[1]); }));
+        const x = Math.min(this.largeur - 4, xMax + 3), y = Math.max(3, yMin);
+        this.sondes = { rouge: [x, y], noire: [x + 3, y] };
+      }
       this._construireMultimetre();
     }
     this._installerMultimetre();
@@ -861,7 +1005,7 @@
     pan.append(LS.el("div", { class: "mm-boitier" }, [
       LS.el("div", { class: "mm-titre", text: "Multimètre" }), this.ecranMM,
       LS.el("div", { class: "mm-mode", text: desc ? desc[1] : "" }), sel, douilles, this.alerteMM,
-      LS.el("p", { class: "aide", html: "Fais glisser les pointes <b style='color:#e53935'>rouge</b> et <b>noire</b> sur la plaque pour toucher le circuit. Pour un courant, il faut <b>ouvrir</b> le circuit et y insérer l'appareil." }),
+      LS.el("p", { class: "aide", html: "Fais glisser les pointes <b class='mm-rouge'>rouge</b> et <b>noire</b> sur la plaque pour toucher le circuit. Pour un courant, il faut <b>ouvrir</b> le circuit et y insérer l'appareil." }),
       LS.el("button", { class: "btn petit secondaire", text: "Changer le fusible", onclick: () => { if (self._mm) { self._mm.etat.fusible = null; self._signaler(); } } })
     ]));
   };
@@ -877,7 +1021,7 @@
       const s = svg("g", { "data-sonde": k, transform: `translate(${x},${y})`, style: "cursor:grab" }, g);
       svg("path", { d: "M0,0 L-4,-10 L-6,-34 L6,-34 L4,-10 Z", fill: coul, stroke: "#000", "stroke-width": 1 }, s);
       svg("rect", { x: -9, y: -48, width: 18, height: 16, rx: 3, fill: coul }, s);
-      svg("circle", { cx: 0, cy: 0, r: 12, fill: "transparent" }, s);
+      svg("circle", { cx: 0, cy: -16, r: 22, fill: "transparent" }, s);
     });
   };
   E._majMultimetre = function () {

@@ -20,7 +20,7 @@ LS.ajouterTP({
     }
   },
   objectifs: [
-    { texte: "Clique sur **L1** puis sur **L2** : compare leurs courants et leurs tensions.",
+    { texte: "Appuie sur **L1** puis sur **L2** : compare leurs courants et leurs tensions.",
       verif: (s, m) => { if (s.choix && s.choix.nom) m[s.choix.nom] = true; return !!(m.L1 && m.L2); },
       bravo: "En série : même courant (≈ 41 mA), la tension de 6 V se partage (3 V chacune). Chaque lampe brille faiblement." },
     { texte: "Supprime le fil entre L1 et L2 : les deux lampes s'éteignent. Remets le fil.",
@@ -37,7 +37,7 @@ LS.ajouterTP({
       }, bravo: "Chaque branche est indépendante : c'est pourquoi on câble les appareils d'une maison en parallèle." }
   ],
   questions: [
-    { q: "En parallèle, le courant débité par la pile est…", choix: ["le même que dans une lampe", "la somme des courants des lampes", "nul"], bonne: 1, explication: "Loi des nœuds : I = I1 + I2. Clique sur la pile pour le vérifier : ≈ 167 mA = 83 + 83 mA." },
+    { q: "En parallèle, le courant débité par la pile est…", choix: ["le même que dans une lampe", "la somme des courants des lampes", "nul"], bonne: 1, explication: "Loi des nœuds : I = I1 + I2. Appuie sur la pile pour le vérifier : ≈ 167 mA = 83 + 83 mA." },
     { q: "Deux résistances de 100 Ω en parallèle équivalent à…", choix: ["200 Ω", "100 Ω", "50 Ω"], bonne: 2, explication: "1/R = 1/100 + 1/100 → R = 50 Ω : il y a deux chemins, le courant passe plus facilement." },
     { q: "Dans une guirlande en série, une ampoule grille. Que se passe-t-il ?", choix: ["Les autres brillent plus", "Tout s'éteint", "Rien ne change"], bonne: 1 }
   ],

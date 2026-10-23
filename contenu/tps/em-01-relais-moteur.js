@@ -26,9 +26,9 @@ LS.ajouterTP({
     }
   },
   objectifs: [
-    { texte: "Maintiens **BP1** appuyé (garde le clic enfoncé) : le relais colle et le moteur démarre.",
+    { texte: "Maintiens **BP1** appuyé (garde le doigt ou le bouton de la souris appuyé) : le relais colle et le moteur démarre.",
       verif: s => Math.abs(s.trouver("M1")._w || 0) * 60 / (2 * Math.PI) > 1500 },
-    { texte: "Compare le courant de la **bobine** (clique sur KA1) et celui du **moteur** (clique sur M1) : une petite puissance en commande une grande.",
+    { texte: "Compare le courant de la **bobine** (appuie sur KA1) et celui du **moteur** (appuie sur M1) : une petite puissance en commande une grande.",
       verif: (s, m) => { if (s.choix && s.choix.nom === "KA1") m.a = true; if (s.choix && s.choix.nom === "M1") m.b = true; return !!(m.a && m.b); } },
     { texte: "Remplace BP1 par un **interrupteur** pour une marche continue, puis augmente la **charge** du moteur à 100 % : la vitesse baisse et le courant monte.",
       verif: s => s.trouver("M1").p.charge >= 95 && s.liste("interrupteur").some(k => k.p.ferme) && Math.abs(s.trouver("M1")._i0 || 0) > 2 },

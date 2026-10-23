@@ -2,7 +2,7 @@ LS.ajouterTP({
   id: "elec-08-va-et-vient",
   titre: "Le va-et-vient de la maison",
   domaine: "electricite", niveau: 2, duree: "25 min",
-  sim: "circuit",
+  sim: "circuit", securite: "secteur",
   intro: "Dans un couloir, on veut allumer et éteindre la même lampe depuis **deux endroits**. On utilise deux **interrupteurs va-et-vient** (à trois bornes : une borne commune et deux sorties) reliés par deux fils appelés **navettes**. Ici, le réseau est simulé par un générateur alternatif de **220 V efficaces** (311 V crête, 50 Hz), comme le réseau malien (230 V en Europe), protégé par un fusible F1 de 10 A, et une lampe de 220 V, 60 W. Ces trois éléments sont imposés (réglages verrouillés).\n\n⚠ En vrai : on coupe le disjoncteur avant de câbler, et la **phase** passe par les interrupteurs, jamais le neutre.",
   config: {
     palette: ["vaetvient", "interrupteur", "lampe", "voltmetre", "amperemetre", "fusible"],
@@ -26,7 +26,7 @@ LS.ajouterTP({
     { texte: "Relie les deux interrupteurs par les **navettes** (les deux sorties de S1 aux deux sorties de S2) et allume la lampe.",
       verif: s => (s.trouver("L1")._ueff || 0) > 100 },
     { texte: "Vérifie le fonctionnement : chaque interrupteur doit **inverser** l'état de la lampe, quelle que soit la position de l'autre. Essaie les **4 combinaisons**.",
-      indice: "Clique sur S1 puis reclique pour le basculer ; pareil pour S2. Avec le courant alternatif, observe l'éclat de la lampe.",
+      indice: "Appuie sur S1 puis appuie de nouveau pour le basculer ; pareil pour S2. Avec le courant alternatif, observe l'éclat de la lampe.",
       verif: (s, m) => {
         const a = s.trouver("S1"), b = s.trouver("S2"), l = s.trouver("L1");
         if (!a || !b || !l) return false;

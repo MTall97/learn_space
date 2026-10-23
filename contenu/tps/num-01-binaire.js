@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Compter en binaire",
   domaine: "numerique", niveau: 1, duree: "15 min",
   sim: "binaire",
-  intro: "Les ordinateurs, les microcontrôleurs et les réseaux ne manipulent que des 0 et des 1. Voici un **octet** : clique sur les bits pour former des nombres.",
+  intro: "Les ordinateurs, les microcontrôleurs et les réseaux ne manipulent que des 0 et des 1. Voici un **octet** : appuie sur les bits pour former des nombres.",
   objectifs: [
     { texte: "Écris le nombre **42**.", verif: s => !s.p.signe && s.etat.bits === 42 },
     { texte: "Écris le plus grand nombre possible sur un octet.", verif: s => !s.p.signe && s.etat.bits === 255 },

@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Premier circuit : pile, interrupteur, lampe",
   domaine: "electricite", niveau: 1, duree: "15 min",
   sim: "circuit",
-  intro: "Voici le circuit le plus simple : une **pile** (le générateur), un **interrupteur** et une **lampe** (le récepteur), reliés par des fils. Les petits points jaunes représentent le courant. Clique sur l'interrupteur pour le sélectionner, puis clique encore dessus (ou sur « Basculer ») pour le fermer.",
+  intro: "Voici le circuit le plus simple : une **pile** (le générateur), un **interrupteur** et une **lampe** (le récepteur), reliés par des fils. Les petits points jaunes représentent le courant. Appuie sur l'interrupteur pour le sélectionner, puis appuie encore dessus (ou sur « Basculer ») pour le fermer.",
   config: {
     palette: ["pile", "lampe", "interrupteur", "resistance"],
     schema: {
@@ -20,7 +20,7 @@ LS.ajouterTP({
     }
   },
   objectifs: [
-    { texte: "Ferme l'interrupteur **K1** : la lampe s'allume.", indice: "Clique une fois sur K1 pour le choisir, une deuxième fois pour le basculer.",
+    { texte: "Ferme l'interrupteur **K1** : la lampe s'allume.", indice: "Appuie une fois sur K1 pour le choisir, une deuxième fois pour le basculer.",
       verif: s => s.liste("lampe").some(l => Math.abs(s.I(l)) > 0.04), bravo: "Le circuit est fermé : le courant circule de la borne + vers la borne −." },
     { texte: "Ouvre à nouveau K1 et regarde les points jaunes : le courant s'arrête **partout**, pas seulement après l'interrupteur.",
       verif: (s, m) => {
@@ -29,14 +29,14 @@ LS.ajouterTP({
         return !!(m.ferme && k && !k.p.ferme && s.liste("lampe").every(l => Math.abs(s.I(l)) < 1e-4));
       } },
     { texte: "Ajoute une **deuxième lampe en série** avec la première (sur le même chemin) et ferme le circuit. Compare l'éclat des lampes avec le montage à une seule lampe.",
-      indice: "Supprime un fil (clique dessus puis « Supprimer »), pose une lampe, puis relie ses deux bornes pour refermer le circuit. Clique sur une lampe pour lire sa tension et son courant.",
+      indice: "Supprime un fil (appuie dessus puis « Supprimer »), pose une lampe, puis relie ses deux bornes pour refermer le circuit. Appuie sur une lampe pour lire sa tension et son courant.",
       verif: s => {
         const l = s.liste("lampe").filter(x => Math.abs(s.I(x)) > 0.005);
         if (l.length < 2) return false;
         const i0 = Math.abs(s.I(l[0]));
         return l.every(x => Math.abs(Math.abs(s.I(x)) - i0) < 0.01 * i0);
       }, bravo: "Le même courant traverse les deux lampes : c'est la signature d'un montage en série. Chaque lampe ne reçoit que la moitié de la tension, elle éclaire moins." },
-    { texte: "Expérience à ne jamais faire en vrai : relie **directement** les deux bornes de la pile par un fil (court-circuit) et lis l'alerte en cliquant sur la pile. Retire ensuite ce fil.",
+    { texte: "Expérience à ne jamais faire en vrai : relie **directement** les deux bornes de la pile par un fil (court-circuit) et lis l'alerte en appuyant sur la pile. Retire ensuite ce fil.",
       verif: (s, m) => {
         const g = s.liste("pile")[0];
         if (g && g.etat && /Court-circuit/.test(g.etat.alerte || "")) m.vu = true;

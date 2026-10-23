@@ -31,7 +31,7 @@ LS.ajouterTP({
     }
   },
   objectifs: [
-    { texte: "Lis A1, A2 et A3 (clique sur chacun). Vérifie la **loi des nœuds** en N : le courant qui arrive (A1) est égal à ceux qui repartent (A2 + A3).",
+    { texte: "Lis A1, A2 et A3 (appuie sur chacun). Vérifie la **loi des nœuds** en N : le courant qui arrive (A1) est égal à ceux qui repartent (A2 + A3).",
       verif: (s, m) => { if (s.choix && /^A\d$/.test(s.choix.nom || "")) m[s.choix.nom] = true; return !!(m.A1 && m.A2 && m.A3); },
       bravo: "A1 = 4 mA, A3 = 5 mA, A2 = −1 mA : 4 = 5 + (−1). Le courant dans R2 va en fait de E2 vers N : E2 fournit aussi du courant." },
     { texte: "Règle **E2** pour que le courant dans R2 soit **nul** (|A2| < 0,05 mA).",

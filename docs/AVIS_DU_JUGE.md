@@ -103,6 +103,25 @@ Juge indépendant en lecture seule ; Chromium sans écran à 1280 et 390 px (tou
 
 Priorités du juge : B1, B2, B3, B4, puis I1 et I2, avant d'ajouter les quatre niveaux.
 
+### Suites données à la revue du design (23/10/2026)
+
+| Point | Suite |
+|---|---|
+| B1 pièges de défilement | **Corrigé** : un doigt fait défiler la page sur les simulations (`touch-action: pan-y`), sauf sur celles qu'on manipule au pointeur. |
+| B2 circuit coupé au téléphone | **Corrigé** : cadrage sur le montage, Zoom + / − / Tout voir, pincer et glisser à deux doigts, page qui défile sur une zone vide, pointes du multimètre près du montage. Limite : montage entier à l'échelle 0,34-0,56, étiquettes à zoomer. |
+| B3 carte mentale | **Corrigé** : texte ≥ 14 px, nœuds ≥ 45 px, branches repliées au départ, branches des deux côtés sur ordinateur, panneau fermé au départ au téléphone (32 % une fois ouvert), pincer pour zoomer. |
+| B4 polices Google | **Corrigé** : polices locales (117 Ko, licence OFL), aucune requête vers un service tiers. |
+| I1 cibles tactiles | **Corrigé** : 44 px au doigt (boutons, onglets 48 px, listes, curseurs à poignée de 28 px, cases dans un libellé de 44 px). |
+| I2 « niveau » | **Corrigé** : le joueur a un **rang**, le TP une **difficulté** (1 à 3), « niveau » est réservé à l'école. |
+| I3 souris et clavier | **Corrigé** : « appuie », pas de raccourcis clavier au téléphone, boutons Tourner et Supprimer, « à côté (en dessous sur un téléphone) ». |
+| I4 elec-06 | **Corrigé** : tiroir cohérent avec la pile de 9 V, texte juste. |
+| I5 jargon et longueur | **Partiellement** : « Ce que tu vas faire », « Questions », « Aller plus loin » ; réglages avancés repliés (moteur 4 temps). Les textes simples par niveau restent à écrire. |
+| I6 poids de tp.html | **Corrigé** : chaque TP ne charge que sa simulation (9 à 12 scripts au lieu de 24) ; un test vérifie la table. |
+| I7 hors ligne | **Corrigé** : service worker (réseau d'abord, cache sinon) et manifeste ; vérifié hors ligne sur l'accueil, un TP et une carte servis en http. |
+| I8 contrastes | **Corrigé** : multimètre (≈ 6:1), texte indicatif, objectifs verrouillés sans transparence, carte mentale ≥ 4,5:1. |
+| I9 tailles de texte | **Partiellement** : textes utiles agrandis (≥ 13-14 px) ; la sérigraphie décorative reste petite. |
+| Mineurs | Tuiles de mesures remplacées par un relevé à filets ; « Tu en es là » aligné sur « Reprendre » ; légende des voyants ; annonces de gains en bas au téléphone ; en-tête opaque ; série indulgente (un jour manqué isolé ne la casse pas) ; encart de sécurité 220 V et batteries. **Non traités** : retours d'erreur ciblés et niveaux (prochaine étape). |
+
 ## Limites relevées par les auteurs (22/10/2026)
 
 ### Maths utiles
