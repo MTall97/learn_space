@@ -187,7 +187,7 @@
       if (cle === dernierAffiche) return;
       dernierAffiche = cle;
       progMission.innerHTML = "";
-      progMission.append(LS.el("span", { class: "surtitre", text: "Mission " + cle }), voyantsMission());
+      progMission.append(LS.el("span", { class: "mission-texte", text: "Objectifs réussis : " + cle.replace("/", " sur ") }), voyantsMission());
       panneaux.mission.b.querySelector(".compte").textContent = cle;
       const i = (tp.objectifs || []).findIndex((o, k) => !etat.objectifs[k]);
       barreObj.innerHTML = "";
@@ -291,7 +291,6 @@
       const fond = LS.el("div", { class: "fin-mission", role: "dialog", "aria-modal": "true", "aria-labelledby": "fin-titre", onclick: e => { if (e.target === fond) fermer(); } }, [
         LS.el("div", { class: "fin-carte" }, [
           LS.el("span", { class: "voyants grands", "aria-hidden": "true" }, [0, 1, 2].map(() => LS.el("i", { class: "on" }))),
-          LS.el("p", { class: "surtitre", text: "TP terminé" }),
           LS.el("h2", { id: "fin-titre", text: "Mission accomplie" }),
           LS.el("p", { text: tp.titre + " : tous les objectifs et toutes les questions sont réussis." }),
           LS.el("div", { class: "fin-actions" }, [
