@@ -1,0 +1,11 @@
+{
+  "name": "Learn Space",
+  "short_name": "Learn Space",
+  "description": "Apprendre l'électricité, la mécanique, l'énergie, les capteurs et plus, en pratiquant sur des simulations.",
+  "lang": "fr",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#eef1ec",
+  "theme_color": "#1e5b44",
+  "icons": [{ "src": "assets/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

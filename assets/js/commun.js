@@ -32,6 +32,10 @@
   };
   LS.appliquerTheme();
 
+  /* Hors ligne : service worker, seulement quand le site est servi en http(s). */
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator && /^https?:$/.test(location.protocol))
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => { /* navigateur qui refuse : tant pis */ }));
+
   /* ---------- Messages et confirmations dans la page ----------
      (alert et confirm sont bloqués dans certains cadres, dont les pages publiées sur claude.ai) */
   LS.avis = function (texte, duree) {
