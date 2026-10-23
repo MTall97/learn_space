@@ -81,6 +81,11 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   4e argument de `C()` / `T()` = niveau à partir duquel elles sont « à ta portée ».
 - Primaire : texte plus grand, formules et outils avancés (`.outil-avance`) masqués.
 
+## Carnet de bord
+Tenir `docs/CARNET_DE_BORD.md` à jour à chaque décision ou changement (demande de l'utilisateur
+le 23/10/2026) : ce qui est décidé, par qui (utilisateur, auteur, juge), ce qui est écarté et pourquoi,
+commits. Ne jamais y présenter comme fait ce qui n'a pas été lancé ou vérifié.
+
 ## Juge
 Chaque étape importante est relue par une instance indépendante, en lecture seule, qui ne reçoit
 que le dépôt et la consigne d'être critique. Ses avis datés et les suites données : `docs/AVIS_DU_JUGE.md`.
