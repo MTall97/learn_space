@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Confidentialité · Learn Space</title>
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icones/icone-180.png">
+  <meta name="theme-color" content="#1e5b44">
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
     .texte-legal { max-width: 70ch; }
@@ -16,6 +19,7 @@
     .a-completer { background: color-mix(in srgb, var(--alerte) 12%, transparent); padding: 0 4px; font-weight: 700; }
   </style>
   <script src="assets/js/commun.js"></script>
+  <script src="assets/js/pwa.js"></script>
   <script src="assets/js/progression.js"></script>
   <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
@@ -26,55 +30,61 @@
 <body>
   <main class="page texte-legal">
     <h1>Confidentialité</h1>
-    <p>Learn Space est gratuit et sans compte. Ta progression reste dans ce navigateur. Pour améliorer le site, il peut aussi noter comment il est utilisé, <strong>sans ton nom</strong>. Tu peux t'y opposer à tout moment ici : tout marche pareil.</p>
+    <p>Learn Space est gratuit et sans compte. Ta progression reste dans ce navigateur. Pour améliorer le site, il compte comment il est utilisé, <strong>sans rien qui dise qui tu es</strong>. Tu peux refuser ici : tout marche pareil.</p>
 
     <section class="etat-journal" aria-live="polite">
       <p id="etat-texte"></p>
-      <p id="ancien-texte" hidden></p>
       <div class="actions" id="actions-journal">
         <button type="button" class="btn secondaire" id="refuser">Je refuse le journal</button>
         <button type="button" class="btn secondaire" id="accepter">Je l'accepte de nouveau</button>
-        <button type="button" class="btn secondaire" id="effacer-id">Changer mon numéro d'appareil</button>
       </div>
     </section>
 
-    <h2>Ce qui est noté</h2>
+    <h2>En bref</h2>
     <ul>
-      <li>Un <strong>numéro tiré au hasard</strong> par cet appareil (exemple : 3f9a…). Il ne dit pas qui tu es. Il change tout seul au moins une fois par an.</li>
-      <li>Les pages ouvertes (accueil, cartes, TP) et le <strong>temps passé</strong> dessus, seulement quand la page est à l'écran et que tu t'en sers.</li>
-      <li>Les <strong>résultats des exercices</strong> : TP commencés et terminés, objectifs atteints, questions réussies, notions comprises, et le temps mis pour y arriver.</li>
-      <li>Le <strong>type d'appareil</strong> (téléphone, tablette ou ordinateur), sa famille de système (Android, Windows…) et la largeur de l'écran arrondie.</li>
-      <li>Le <strong>niveau scolaire</strong> choisi (primaire, collège, lycée, avancé), jamais l'âge exact.</li>
-      <li>L'heure de chaque événement, arrondie à la minute.</li>
+      <li>Le site <strong>ne sait pas qui tu es</strong> : pas de nom, pas de compte, pas de numéro qui te suit.</li>
+      <li>Il garde seulement des <strong>totaux par jour</strong>, comme « 120 visites mardi », « le TP de la lampe a été ouvert 40 fois ».</li>
+      <li>Tu peux <strong>refuser</strong> avec le bouton ci-dessus.</li>
     </ul>
 
-    <h2>Ce qui n'est jamais noté par le site</h2>
+    <h2>Ce qui est compté</h2>
+    <ul>
+      <li>Les pages ouvertes (accueil, cartes, TP) et le <strong>temps passé</strong> dessus, seulement quand la page est à l'écran et que tu t'en sers.</li>
+      <li>Les <strong>résultats des exercices</strong> : TP ouverts et terminés, objectifs réussis, essais ratés, réponses justes ou fausses aux questions, notions comprises.</li>
+      <li>Pour chaque visite : le <strong>type d'appareil</strong> (téléphone, tablette ou ordinateur), sa famille de système (Android, Windows…), une tranche de largeur d'écran, le <strong>niveau scolaire</strong> choisi (jamais l'âge), une tranche de durée, et si c'est une première visite ou un retour (moins de 7 jours, 7 à 30 jours, plus de 30 jours).</li>
+    </ul>
+    <p>Tout cela est ajouté à des totaux par jour (et par tranche d'une heure pour les visites). Le serveur ne garde ni la liste des événements, ni leur heure exacte.</p>
+
+    <h2>Ce qui n'est jamais envoyé ni gardé</h2>
     <ul>
       <li>Ton nom, ton adresse, ton numéro de téléphone, ta photo : le site ne les demande pas.</li>
+      <li><strong>Aucun numéro d'appareil.</strong> Pendant une visite, ton navigateur tire un numéro au hasard pour savoir ce qui fait partie de la même visite. Ce numéro <strong>ne quitte jamais l'appareil</strong> et se perd quand tu fermes l'onglet (ou après 30 minutes sans rien faire).</li>
+      <li>La <strong>date de ta dernière visite</strong> reste sur ton appareil : seule la catégorie (« revenu en moins de 7 jours »…) part.</li>
       <li>L'adresse IP : le serveur du journal ne l'écrit jamais. Il s'en sert seulement en mémoire, quelques minutes, pour bloquer les envois abusifs.</li>
       <li>Ce que tu écris dans les réponses des TP.</li>
     </ul>
-    <p>Attention, pour être honnête : comme tout hébergeur, l'hébergeur du site garde de son côté des journaux techniques de chaque visite, avec l'adresse IP, pendant une durée qu'il fixe (<span class="a-completer">[À COMPLÉTER : durée indiquée par l'hébergeur]</span>). Le site ne s'en sert pas.</p>
+    <p>Pour être honnête : comme tout hébergeur, l'hébergeur du site garde de son côté des journaux techniques de chaque visite, avec l'adresse IP, pendant une durée qu'il fixe (<span class="a-completer">[À COMPLÉTER : durée indiquée par l'hébergeur]</span>). Le site ne s'en sert pas, et comme le journal ne contient aucun numéro qui te suit, ces journaux techniques ne peuvent pas être reliés à tes résultats.</p>
 
     <h2>Pourquoi, et sur quelle base</h2>
-    <p>Pour savoir quelles pages servent, où les élèves bloquent (un objectif trop dur, une consigne pas claire) et sur quels appareils le site doit bien marcher. Les chiffres ne servent qu'à améliorer Learn Space. Ils ne sont ni vendus ni partagés, ni recoupés avec d'autres sites.</p>
-    <p>Base légale : l'intérêt légitime du responsable du site à mesurer l'audience et améliorer un service éducatif gratuit, avec droit d'opposition. <span class="a-completer">[À FAIRE VALIDER : base légale à confirmer auprès de l'APDP avant la mise en ligne]</span></p>
+    <p>Pour savoir quelles pages servent, où les élèves se trompent (un objectif trop dur, une consigne pas claire) et sur quels appareils le site doit bien marcher. Les totaux ne servent qu'à améliorer Learn Space. Ils ne sont ni vendus ni partagés.</p>
+    <p>Les données sont <strong>anonymisées</strong> : le serveur reçoit des événements sans identifiant et n'en garde que des totaux, qui ne permettent pas de retrouver une personne. Base légale : mesure d'audience anonyme d'un service éducatif gratuit, avec droit de refus. <span class="a-completer">[À FAIRE CONFIRMER PAR L'APDP avant la mise en ligne]</span></p>
 
     <h2>Qui les voit, où, et combien de temps</h2>
-    <p>Seul l'administrateur du site les voit, avec un mot de passe. Ils sont effacés automatiquement <strong>13 mois</strong> après la date de chaque événement ; les sauvegardes de l'hébergeur sont gardées en plus <span class="a-completer">[À COMPLÉTER : durée des sauvegardes de l'hébergeur]</span>. Sans connexion, ils attendent sur l'appareil et partent dès que le réseau revient.</p>
-    <p>Le site est hébergé par <strong>O2switch</strong> (Clermont-Ferrand, <strong>France</strong>), qui agit comme sous-traitant : les données quittent donc le Mali pour être stockées en France, dans l'Union européenne. <span class="a-completer">[À COMPLÉTER si l'hébergeur change]</span></p>
-    <p>Quand le site est ouvert depuis un fichier de l'ordinateur, sans serveur, ou tant que le journal n'est pas configuré, rien n'est noté ni envoyé.</p>
+    <p>Seul l'administrateur du site voit les totaux, avec un mot de passe. Ils sont gardés <strong>25 mois</strong> puis effacés ; les sauvegardes de l'hébergeur sont gardées en plus <span class="a-completer">[À COMPLÉTER : durée des sauvegardes de l'hébergeur]</span>.</p>
+    <p>Sans connexion, les événements attendent sur ton appareil (sans numéro qui te désigne) et partent dès que le réseau revient.</p>
+    <p>Le site est hébergé par <strong>O2switch</strong> (Clermont-Ferrand, <strong>France</strong>), qui agit comme sous-traitant : les totaux sont stockés en France, dans l'Union européenne. <span class="a-completer">[À COMPLÉTER si l'hébergeur change]</span></p>
+    <p>Quand le site est ouvert depuis un fichier de l'ordinateur, sans serveur, ou tant que le journal n'est pas configuré, rien n'est compté ni envoyé.</p>
 
     <h2>Tes droits</h2>
-    <p>Tu peux t'opposer au journal ou changer d'avis à tout moment avec les boutons ci-dessus : en cas de refus, ce qui attendait d'être envoyé est effacé et plus rien n'est noté sur cet appareil.</p>
-    <p>« Changer mon numéro d'appareil » efface ce qui attend d'être envoyé et tire un nouveau numéro : la suite ne peut plus être reliée à ce qui a déjà été envoyé. Pour consulter ou faire effacer ce qui a déjà été envoyé, écris à l'adresse ci-dessous en donnant ton numéro d'appareil (et l'ancien si tu l'as changé : il est affiché plus haut).</p>
-    <p>Tu peux aussi adresser une réclamation à l'<strong>APDP</strong> (Autorité de protection des données à caractère personnel du Mali) et, si tu habites dans l'Union européenne, à l'autorité de ton pays (en France : la <strong>CNIL</strong>, cnil.fr).</p>
-    <p>Ces règles suivent la loi malienne n° 2013-015 du 21 mai 2013 sur la protection des données à caractère personnel et, pour les visiteurs européens, le RGPD. Parents : vous pouvez exercer ces droits pour votre enfant.</p>
+    <p>Tu peux refuser le journal ou changer d'avis à tout moment avec les boutons ci-dessus : en cas de refus, ce qui attendait d'être envoyé est effacé et plus rien n'est compté sur cet appareil. Ton refus est gardé sur l'appareil, comme un réglage.</p>
+    <p>Comme le site ne garde que des totaux anonymes, il ne peut pas retrouver « tes » données pour te les montrer ou les effacer : il n'en a pas.</p>
+    <p>Tu peux adresser une réclamation à l'<strong>APDP</strong> (Autorité de protection des données à caractère personnel du Mali) et, si tu habites dans l'Union européenne, à l'autorité de ton pays (en France : la <strong>CNIL</strong>, cnil.fr). Parents : vous pouvez le faire pour votre enfant.</p>
+    <p>Ces règles suivent la loi malienne n° 2013-015 du 21 mai 2013 sur la protection des données à caractère personnel et, pour les visiteurs européens, le RGPD.</p>
 
     <h2>Responsable et contact</h2>
     <p>Responsable du site : <span class="a-completer">[À COMPLÉTER : nom ou organisme]</span><br>
       Adresse e-mail : <span class="a-completer">[À COMPLÉTER : adresse de contact]</span><br>
-      Formalité APDP : <span class="a-completer">[À COMPLÉTER : numéro de déclaration ou d'autorisation]</span></p>
+      Formalité APDP : <span class="a-completer">[À COMPLÉTER : réponse ou numéro de l'APDP]</span></p>
 
     <p class="pied"><a href="index.html">Retour à l'accueil</a></p>
   </main>
@@ -82,27 +92,19 @@
   (function () {
     const LS = window.LS, J = LS.journal;
     LS.entete("");
-    const texte = document.getElementById("etat-texte"), ancienTexte = document.getElementById("ancien-texte");
+    const texte = document.getElementById("etat-texte");
     function maj() {
       if (!J.configure()) {
-        texte.textContent = "Le journal n'est pas activé ici (site ouvert depuis un fichier ou journal non configuré) : rien n'est noté ni envoyé.";
+        texte.textContent = "Le journal n'est pas activé ici (site ouvert depuis un fichier ou journal non configuré) : rien n'est compté ni envoyé.";
         document.getElementById("actions-journal").hidden = true;
         return;
       }
-      texte.textContent = (J.oppose() ? "Tu as refusé le journal : rien n'est noté sur cet appareil." : "Le journal est actif sur cet appareil (" + J.enAttente() + " événement(s) en attente d'envoi).") +
-        " Numéro actuel de cet appareil : " + J.identifiant() + ".";
-      const ancien = J.ancienIdentifiant();
-      ancienTexte.hidden = !ancien;
-      if (ancien) ancienTexte.textContent = "Ancien numéro (avant ton dernier changement) : " + ancien + ". Garde-le si tu veux faire effacer ce qui a été envoyé avec lui.";
+      texte.textContent = J.oppose() ? "Tu as refusé le journal : rien n'est compté sur cet appareil." : "Le journal est actif sur cet appareil (" + J.enAttente() + " événement(s) en attente d'envoi, sans numéro qui te désigne).";
       document.getElementById("refuser").hidden = J.oppose();
       document.getElementById("accepter").hidden = !J.oppose();
     }
     document.getElementById("accepter").onclick = () => { J.opposer(false); maj(); };
     document.getElementById("refuser").onclick = () => { J.opposer(true); maj(); LS.avis("C'est noté : le journal est arrêté sur cet appareil."); };
-    document.getElementById("effacer-id").onclick = () => {
-      if (!confirm("Ton numéro actuel est " + J.identifiant() + ". Note-le si tu veux faire effacer ce qui a déjà été envoyé. Le remplacer ?")) return;
-      J.effacer(); maj(); LS.avis("Nouveau numéro tiré ; ce qui attendait d'être envoyé a été effacé.");
-    };
     maj();
   })();
   </script>

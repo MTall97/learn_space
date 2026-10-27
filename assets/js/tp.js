@@ -159,6 +159,7 @@
           try { r = LS.controlerReponse(o, entree.value, sim); } catch (e) { r = { ok: false }; }
           if (!String(entree.value).trim()) { retour.innerHTML = LS.texte(r.msg || ""); return; }
           etat.essais["o" + i] = (etat.essais["o" + i] || 0) + 1; majEssais(); LS.enregistrerTP(cle, etat);
+          document.dispatchEvent(new CustomEvent("ls:essai", { detail: { tp: cle, objet: "o", i, ok: !!r.ok } }));
           if (r.ok) reussir(i, o);
           else retour.innerHTML = "✗ " + LS.texte(r.msg || "Ce n'est pas ça : refais le calcul et réessaie.") + (o.aide && etat.essais["o" + i] >= 2 ? " " + LS.texte(o.aide) : "");
         };
@@ -249,6 +250,7 @@
           const b = LS.el("button", { html: LS.texte(c), onclick: () => {
             if (etat.questions[i] || etat.questionsVues[i]) return;
             etat.essais[cle] = (etat.essais[cle] || 0) + 1;
+            document.dispatchEvent(new CustomEvent("ls:essai", { detail: { tp: tp.cleEtat || id, objet: "q", i, ok: j === q.bonne } }));
             choix.querySelectorAll("button").forEach(x => x.classList.remove("faux"));
             if (j === q.bonne) { etat.questions[i] = true; montrer(); }
             else {

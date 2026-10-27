@@ -1,11 +1,14 @@
-/* Serveur du journal d'utilisation de Learn Space (Node.js 18, 20 ou 22, sans dépendance npm).
-   - POST <base>/journal : reçoit des lots d'événements pseudonymes envoyés par assets/js/journal.js.
+/* Serveur du journal d'utilisation ANONYME de Learn Space (Node.js 18, 20 ou 22, sans dépendance npm).
+   - POST <base>/journal : reçoit des lots d'événements sans identifiant (assets/js/journal.js) et les
+     ajoute aussitôt à des TOTAUX PAR JOUR (agregats/AAAA-MM-JJ.json). Aucune ligne brute n'est gardée,
+     aucune heure d'événement (seulement le jour et la tranche horaire des visites), rien qui relie deux
+     visites : le navigateur n'envoie aucun numéro d'appareil ni de visite.
+   - lots/AAAA-MM-JJ.txt : identifiants aléatoires des lots déjà reçus (un lot renvoyé après une coupure
+     n'est pas compté deux fois), sans lien avec rien d'autre, effacés au bout de 31 jours.
    - <base><cheminAdmin> : tableau de bord réservé à l'administrateur (mot de passe scrypt, cookie de
-     session signé HMAC, jeton CSRF), export CSV, effacement d'un appareil, purge, diagnostic du proxy.
-   Stockage : evenements/AAAA-MM-JJ.jsonl (une ligne par lot, jour de réception) et lots/AAAA-MM-JJ.txt
-   (identifiants des lots reçus, pour ne jamais compter deux fois un lot renvoyé), dans un dossier de
-   données hors du dossier public. Aucune adresse IP n'est écrite : l'adresse ne sert, en mémoire, qu'aux
-   limites de débit et aux essais de connexion. Plafonds par jour et pour le dossier entier.
+     session signé HMAC, jeton CSRF) : totaux, tendances par jour, export CSV des totaux, purge,
+     diagnostic du proxy.
+   L'adresse IP ne sert qu'en mémoire (limites de débit, essais de connexion) et n'est jamais écrite.
    Lancement : `node serveur/app.js` (port dans PORT ; sur O2switch, Passenger le fournit).
    Hacher un mot de passe : `node serveur/app.js --hacher` puis taper le mot de passe. Voir docs/JOURNAL.md. */
 "use strict";
@@ -13,7 +16,6 @@ const http = require("http");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const readline = require("readline");
 
 /* ---------- Mot de passe (scrypt) ---------- */
 const FORME_HASH = /^scrypt\$(\d{4,7})\$(\d{1,2})\$(\d{1,2})\$([A-Za-z0-9+/]{22}==)\$([A-Za-z0-9+/]{86}==)$/;
@@ -66,6 +68,7 @@ function lireConfig() {
   const env = process.env;
   const val = (nomEnv, cle, defaut) => env[nomEnv] !== undefined ? env[nomEnv] : c[cle] !== undefined ? c[cle] : defaut;
   const chemin = s => { s = String(s || "").trim().replace(/\/+$/, ""); return s && !s.startsWith("/") ? "/" + s : s; };
+  const secure = String(val("LS_COOKIE_SECURE", "cookieSecure", true));
   return {
     fichier,
     origines: [].concat(env.LS_ORIGINES !== undefined ? env.LS_ORIGINES.split(",") : c.origines || []).map(s => String(s).trim().replace(/\/$/, "")).filter(Boolean),
@@ -74,60 +77,103 @@ function lireConfig() {
     secretSession: String(val("LS_SECRET_SESSION", "secretSession", "")),
     base: chemin(val("LS_BASE", "base", "")),
     cheminAdmin: chemin(val("LS_CHEMIN_ADMIN", "cheminAdmin", "/admin")) || "/admin",
-    conservationJours: +val("LS_CONSERVATION_JOURS", "conservationJours", 395),
-    limiteLots10min: +val("LS_LIMITE_LOTS", "limiteLots10min", 120),
-    limiteIp10min: +val("LS_LIMITE_IP", "limiteIp10min", 600),
+    conservationJours: +val("LS_CONSERVATION_JOURS", "conservationJours", 760),
+    limiteLots10min: +val("LS_LIMITE_LOTS", "limiteLots10min", 600),
     plafondOctetsJour: +val("LS_PLAFOND_OCTETS_JOUR", "plafondOctetsJour", 50e6),
     plafondLotsJour: +val("LS_PLAFOND_LOTS_JOUR", "plafondLotsJour", 200000),
     plafondDossierOctets: +val("LS_PLAFOND_DOSSIER", "plafondDossierOctets", 2e9),
-    cookieSecure: String(val("LS_COOKIE_SECURE", "cookieSecure", true)) !== "false" && String(val("LS_COOKIE_SECURE", "cookieSecure", true)) !== "non"
+    cookieSecure: secure !== "false" && secure !== "non"
   };
 }
 // Un dossier servi par Apache (public_html, www, htdocs) ne doit contenir ni les données ni la configuration.
 const sousDossierPublic = p => path.resolve(p).split(path.sep).some(s => ["public_html", "www", "htdocs"].includes(s.toLowerCase()));
 
 /* ---------- Validation (liste blanche) ---------- */
-const EVENEMENTS = new Set(["page", "temps", "tp_debut", "tp_fin", "objectif", "question", "notion", "carte_finie"]);
 const PAGES = new Set(["accueil", "carte", "tp", "autre"]);
 const TYPES = new Set(["telephone", "tablette", "ordinateur"]);
 const SYSTEMES = new Set(["android", "ios", "windows", "macos", "linux", "chromeos", "autre"]);
+const LARGEURS = new Set(["<400", "400-599", "600-899", "900-1279", "1280+"]);
+const RETOURS = new Set(["premiere", "moins7", "7a30", "plus30"]);
+const PALIERS = new Set([1, 5, 15, 30, 60]);
 const entier = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
-const MAX_RETARD = 60 * 86400; // un événement gardé hors ligne peut arriver jusqu'à 60 jours plus tard
-// maintenant en secondes. L'horloge de l'appareil peut être fausse : son heure d'envoi (`envoi`) sert à
-// recaler les heures des événements. Heures arrondies à la minute, réception à l'heure.
+const ID = /^[a-z0-9@-]{0,64}$/;
+const MAX_RETARD = 30 * 86400; // un événement gardé hors ligne peut arriver jusqu'à 30 jours plus tard
+// Rend [{ jour, h, ev }] : l'heure de l'appareil (qui peut être fausse) est recalée grâce à son heure
+// d'envoi, puis réduite au jour et à l'heure ronde ; elle n'est jamais stockée telle quelle.
 function valider(lot, maintenant) {
-  if (!lot || typeof lot !== "object" || lot.v !== 1) return null;
-  if (typeof lot.appareil !== "string" || !/^[0-9a-f]{32}$/.test(lot.appareil)) return null;
+  if (!lot || typeof lot !== "object" || lot.v !== 2) return null;
   if (typeof lot.lot !== "string" || !/^[0-9a-f]{32}$/.test(lot.lot)) return null;
   if (!Array.isArray(lot.evs) || lot.evs.length === 0 || lot.evs.length > 300) return null;
-  let decalage = 0;
-  if (entier(lot.envoi, 0, 1e11) && Math.abs(maintenant - lot.envoi) > 60) decalage = maintenant - lot.envoi;
-  const cat = lot.cat && typeof lot.cat === "object" ? lot.cat : {};
-  const propre = {
-    lot: lot.lot, a: lot.appareil, r: Math.floor(maintenant / 3600) * 3600,
-    type: TYPES.has(cat.type) ? cat.type : null, os: SYSTEMES.has(cat.os) ? cat.os : null,
-    largeur: entier(cat.largeur, 0, 10000) ? Math.round(cat.largeur / 50) * 50 : null,
-    niveau: entier(lot.niveau, 1, 4) ? lot.niveau : null, evs: []
-  };
+  const decalage = entier(lot.envoi, 0, 1e11) && Math.abs(maintenant - lot.envoi) > 60 ? maintenant - lot.envoi : 0;
+  const propres = [];
   for (const ev of lot.evs) {
-    if (!ev || typeof ev !== "object" || !EVENEMENTS.has(ev.e) || !entier(ev.t, 0, 1e11)) continue;
+    if (!ev || typeof ev !== "object" || !entier(ev.t, 0, 1e11)) continue;
     const t = ev.t + decalage;
     if (t < maintenant - MAX_RETARD || t > maintenant + 300) continue;
-    const x = { t: Math.floor(t / 60) * 60, e: ev.e };
-    if (PAGES.has(ev.p)) x.p = ev.p;
-    if (ev.e === "notion") {
-      if (typeof ev.noeud !== "string" || !/^[a-z0-9-]{1,40}\/[a-z0-9-]{1,120}$/.test(ev.noeud)) continue;
-      x.c = ev.noeud;
-    } else if (ev.id !== undefined) {
-      if (typeof ev.id !== "string" || !/^[a-z0-9@-]{0,64}$/.test(ev.id)) continue;
-      x.c = ev.id;
+    const id = typeof ev.id === "string" && ID.test(ev.id) ? ev.id : null;
+    const ms = entier(ev.ms, 0, 86400000) ? ev.ms : null;
+    const i = entier(ev.i, 0, 99) ? ev.i : null;
+    let x = null;
+    switch (ev.e) {
+      case "visite":
+        if (RETOURS.has(ev.retour) && TYPES.has(ev.type) && SYSTEMES.has(ev.os) && LARGEURS.has(ev.largeur))
+          x = { e: "visite", retour: ev.retour, niveau: entier(ev.niveau, 1, 4) ? ev.niveau : 0, type: ev.type, os: ev.os, largeur: ev.largeur };
+        break;
+      case "page": if (PAGES.has(ev.p) && id !== null) x = { e: "page", p: ev.p, id }; break;
+      case "temps": if (PAGES.has(ev.p) && id !== null && ms !== null) x = { e: "temps", p: ev.p, id, ms }; break;
+      case "palier": if (PALIERS.has(ev.m)) x = { e: "palier", m: ev.m }; break;
+      case "tp_debut": if (id) x = { e: "tp_debut", id }; break;
+      case "tp_fin": if (id) x = { e: "tp_fin", id, ms }; break;
+      case "objectif": if (id && i !== null) x = { e: "objectif", id, i, ms }; break;
+      case "essai": if (id && i !== null && (ev.o === "o" || ev.o === "q") && typeof ev.ok === "boolean") x = { e: "essai", id, o: ev.o, i, ok: ev.ok }; break;
+      case "notion": if (typeof ev.noeud === "string" && /^[a-z0-9-]{1,40}\/[a-z0-9-]{1,120}$/.test(ev.noeud)) x = { e: "notion", noeud: ev.noeud }; break;
+      case "carte_finie": if (id) x = { e: "carte_finie", id }; break;
     }
-    if (entier(ev.i, 0, 99)) x.i = ev.i;
-    if (entier(ev.ms, 0, 86400000)) x.ms = ev.ms;
-    if (ev.e === "temps" && x.ms === undefined) continue;
-    propre.evs.push(x);
+    if (x) { const d = new Date(t * 1000); propres.push({ jour: d.toISOString().slice(0, 10), h: d.getUTCHours(), ev: x }); }
   }
-  return propre;
+  return { lot: lot.lot, evs: propres };
+}
+
+/* ---------- Totaux d'un jour ---------- */
+const MAX_CLES = 3000; // au-delà, les nouvelles clés d'une rubrique vont dans « (autres) »
+const nouveauJour = () => ({ lots: 0, octets: 0, visites: { total: 0, retour: {}, niveau: {}, type: {}, os: {}, largeur: {}, typeOs: {} }, heures: {}, paliers: {},
+  pages: {}, tps: {}, objectifs: {}, questions: {}, notions: {}, cartes: {} });
+function rubrique(m, k, init) {
+  if (!(k in m) && Object.keys(m).length >= MAX_CLES) k = "(autres)";
+  if (!(k in m)) m[k] = init();
+  return m[k];
+}
+const plus = (m, k, n) => { rubrique(m, String(k), () => 0); const kk = String(k) in m ? String(k) : "(autres)"; m[kk] += n === undefined ? 1 : n; };
+function ajouterAuJour(j, { h, ev }) {
+  const nomPage = p => ev.p + (ev.id ? "·" + ev.id : "");
+  switch (ev.e) {
+    case "visite": {
+      const v = j.visites;
+      v.total++; plus(v.retour, ev.retour); plus(v.niveau, ev.niveau); plus(v.type, ev.type); plus(v.os, ev.os); plus(v.largeur, ev.largeur); plus(v.typeOs, ev.type + "·" + ev.os);
+      plus(j.heures, h);
+      break;
+    }
+    case "page": rubrique(j.pages, nomPage(), () => ({ vues: 0, ms: 0 })).vues++; break;
+    case "temps": rubrique(j.pages, nomPage(), () => ({ vues: 0, ms: 0 })).ms += ev.ms; break;
+    case "palier": plus(j.paliers, ev.m); break;
+    case "tp_debut": rubrique(j.tps, ev.id, () => ({ ouverts: 0, finis: 0, msFin: 0 })).ouverts++; break;
+    case "tp_fin": { const x = rubrique(j.tps, ev.id, () => ({ ouverts: 0, finis: 0, msFin: 0 })); x.finis++; x.msFin += ev.ms || 0; break; }
+    case "objectif": { const x = rubrique(j.objectifs, ev.id + "|" + ev.i, () => ({ reussis: 0, ms: 0, essais: 0, rates: 0 })); x.reussis++; x.ms += ev.ms || 0; break; }
+    case "essai":
+      if (ev.o === "o") { const x = rubrique(j.objectifs, ev.id + "|" + ev.i, () => ({ reussis: 0, ms: 0, essais: 0, rates: 0 })); x.essais++; if (!ev.ok) x.rates++; }
+      else { const x = rubrique(j.questions, ev.id + "|" + ev.i, () => ({ justes: 0, fausses: 0 })); if (ev.ok) x.justes++; else x.fausses++; }
+      break;
+    case "notion": plus(j.notions, ev.noeud); break;
+    case "carte_finie": plus(j.cartes, ev.id); break;
+  }
+}
+// Additionne des totaux (pour une période) : nombres et objets de nombres, récursivement.
+function additionner(a, b) {
+  for (const k of Object.keys(b)) {
+    if (typeof b[k] === "number") a[k] = (a[k] || 0) + b[k];
+    else if (b[k] && typeof b[k] === "object") additionner(a[k] = a[k] || {}, b[k]);
+  }
+  return a;
 }
 
 /* ---------- Démarrage ---------- */
@@ -142,8 +188,10 @@ function demarrer() {
   const CONFIG = lireConfig();
   for (const [nom, p] of [["dossier de données", CONFIG.dossierDonnees], ["fichier de configuration", CONFIG.fichier]])
     if (sousDossierPublic(p)) { console.error("Refus de démarrer : le " + nom + " (" + p + ") est dans un dossier public. Voir docs/JOURNAL.md."); process.exit(1); }
-  const DOSSIER = path.join(CONFIG.dossierDonnees, "evenements"), IDS = path.join(CONFIG.dossierDonnees, "lots");
-  for (const d of [CONFIG.dossierDonnees, DOSSIER, IDS]) fs.mkdirSync(d, { recursive: true, mode: 0o700 });
+  const AGG = path.join(CONFIG.dossierDonnees, "agregats"), IDS = path.join(CONFIG.dossierDonnees, "lots");
+  for (const d of [CONFIG.dossierDonnees, AGG, IDS]) fs.mkdirSync(d, { recursive: true, mode: 0o700 });
+  // Données brutes d'une version précédente (lignes par lot avec numéro d'appareil) : effacées.
+  fs.rmSync(path.join(CONFIG.dossierDonnees, "evenements"), { recursive: true, force: true });
   let SECRET = CONFIG.secretSession;
   if (SECRET.length < 32) {
     SECRET = crypto.randomBytes(32).toString("hex");
@@ -151,65 +199,50 @@ function demarrer() {
   }
   const SEL_MEMOIRE = crypto.randomBytes(16); // empreintes d'adresses, en mémoire seulement
   const BASE_ADMIN = CONFIG.base + CONFIG.cheminAdmin;
-
-  /* --- Fichiers --- */
   const jour = s => new Date(s * 1000).toISOString().slice(0, 10);
   const maintenantS = () => Math.floor(Date.now() / 1000);
-  const fichiersJours = d => fs.readdirSync(d).filter(f => /^\d{4}-\d{2}-\d{2}\.(jsonl|txt)$/.test(f)).sort();
+  const fichiers = (d, ext) => fs.readdirSync(d).filter(f => new RegExp("^\\d{4}-\\d{2}-\\d{2}\\." + ext + "$").test(f)).sort();
   const taille = f => { try { return fs.statSync(f).size; } catch (e) { return 0; } };
-  // Lecture en flux : chaque lot des fichiers reçus depuis `depuis` (secondes).
-  async function parcourir(depuis, fn) {
-    const premier = jour(depuis);
-    for (const f of fichiersJours(DOSSIER)) {
-      if (f.slice(0, 10) < premier) continue;
-      const lignes = readline.createInterface({ input: fs.createReadStream(path.join(DOSSIER, f), { encoding: "utf8" }), crlfDelay: Infinity });
-      for await (const ligne of lignes) {
-        if (!ligne) continue;
-        let lot; try { lot = JSON.parse(ligne); } catch (e) { continue; } // ligne tronquée : ignorée
-        if (fn(lot) === false) { lignes.close(); return; }
-      }
-    }
+  const lireJour = j => { try { return additionner(nouveauJour(), JSON.parse(fs.readFileSync(path.join(AGG, j + ".json"), "utf8"))); } catch (e) { return nouveauJour(); } };
+  function ecrireJour(j, donnees) {
+    const p = path.join(AGG, j + ".json"), tmp = p + ".tmp" + process.pid;
+    fs.writeFileSync(tmp, JSON.stringify(donnees), { mode: 0o600 });
+    fs.renameSync(tmp, p);
   }
-  // Réécrit un fichier en flux : `filtre(lot)` rend le lot (éventuellement modifié) ou null pour l'enlever.
-  async function reecrire(fichier, filtre) {
-    const tmp = fichier + ".tmp" + process.pid, sortie = fs.createWriteStream(tmp, { mode: 0o600 });
-    let garde = 0, change = false;
-    const lignes = readline.createInterface({ input: fs.createReadStream(fichier, { encoding: "utf8" }), crlfDelay: Infinity });
-    for await (const ligne of lignes) {
-      if (!ligne) continue;
-      let lot; try { lot = JSON.parse(ligne); } catch (e) { change = true; continue; }
-      const nouveau = filtre(lot);
-      if (!nouveau) { change = true; continue; }
-      if (nouveau !== lot) change = true;
-      if (!sortie.write(JSON.stringify(nouveau) + "\n")) await new Promise(r => sortie.once("drain", r));
-      garde++;
+  // Verrou entre processus (création exclusive d'un fichier) autour de chaque lecture-modification-écriture.
+  const attente = new Int32Array(new SharedArrayBuffer(4));
+  function avecVerrou(fn) {
+    const v = path.join(CONFIG.dossierDonnees, ".verrou"), debut = Date.now();
+    for (;;) {
+      let fd;
+      try { fd = fs.openSync(v, "wx", 0o600); }
+      catch (e) {
+        if (e.code !== "EEXIST") throw e;
+        try { if (Date.now() - fs.statSync(v).mtimeMs > 10000) fs.unlinkSync(v); } catch (x) { /* déjà libéré */ }
+        if (Date.now() - debut > 5000) throw new Error("verrou indisponible");
+        Atomics.wait(attente, 0, 0, 5);
+        continue;
+      }
+      try { return fn(); } finally { fs.closeSync(fd); try { fs.unlinkSync(v); } catch (e) { /* déjà retiré */ } }
     }
-    await new Promise(r => sortie.end(r));
-    if (!change) { fs.unlinkSync(tmp); return; }
-    if (garde) fs.renameSync(tmp, fichier); else { fs.unlinkSync(tmp); fs.unlinkSync(fichier); }
-    version++;
   }
 
-  /* --- Lots déjà reçus (dédoublonnage sur 60 jours, partagé entre processus par les fichiers lots/) --- */
+  /* --- Lots déjà reçus (31 jours, partagés entre processus par les fichiers lots/) --- */
   const lotsVus = new Map(); // identifiant -> jour
   const lus = new Map();     // fichier lots/ -> octets déjà lus
+  const GARDE_IDS = MAX_RETARD + 86400;
   function rafraichirIds() {
-    const limite = jour(maintenantS() - MAX_RETARD - 86400);
-    for (const f of fichiersJours(IDS)) {
+    const limite = jour(maintenantS() - GARDE_IDS);
+    for (const f of fichiers(IDS, "txt")) {
       if (f.slice(0, 10) < limite) continue;
       const p = path.join(IDS, f), t = taille(p), deja = lus.get(f) || 0;
       if (t <= deja) continue;
       const fd = fs.openSync(p, "r"), tampon = Buffer.alloc(t - deja);
       fs.readSync(fd, tampon, 0, tampon.length, deja); fs.closeSync(fd);
-      const texte = tampon.toString("utf8"), fin = texte.lastIndexOf("\n") + 1; // ligne incomplète : relue plus tard
+      const texte = tampon.toString("utf8"), fin = texte.lastIndexOf("\n") + 1;
       for (const id of texte.slice(0, fin).split("\n")) if (id) lotsVus.set(id, f.slice(0, 10));
       lus.set(f, deja + Buffer.byteLength(texte.slice(0, fin)));
     }
-  }
-  function elaguerIds() {
-    const limite = jour(maintenantS() - MAX_RETARD - 86400);
-    for (const [id, j] of lotsVus) if (j < limite) lotsVus.delete(id);
-    for (const f of fichiersJours(IDS)) if (f.slice(0, 10) < limite) { fs.unlinkSync(path.join(IDS, f)); lus.delete(f); }
   }
   rafraichirIds();
 
@@ -218,45 +251,45 @@ function demarrer() {
   function tailleDossier() {
     if (Date.now() - tailleDossierCache.t > 600000) {
       let n = 0;
-      for (const d of [DOSSIER, IDS]) for (const f of fs.readdirSync(d)) n += taille(path.join(d, f));
+      for (const d of [AGG, IDS]) for (const f of fs.readdirSync(d)) n += taille(path.join(d, f));
       tailleDossierCache = { t: Date.now(), octets: n };
     }
     return tailleDossierCache.octets;
   }
-  // Rend la raison du refus, ou null. Les tailles lues sur le disque valent pour tous les processus.
-  function plafondAtteint(octets, j) {
-    if (taille(path.join(DOSSIER, j + ".jsonl")) + octets > CONFIG.plafondOctetsJour) return "octets du jour";
-    if (taille(path.join(IDS, j + ".txt")) / 33 >= CONFIG.plafondLotsJour) return "lots du jour";
-    if (tailleDossier() + octets > CONFIG.plafondDossierOctets) return "taille du dossier";
-    return null;
-  }
-  function enregistrer(lot) {
-    const ligne = JSON.stringify(lot) + "\n", j = jour(lot.r);
-    const refus = plafondAtteint(Buffer.byteLength(ligne), j);
-    if (refus) return refus;
-    if (lot.evs.length) fs.appendFileSync(path.join(DOSSIER, j + ".jsonl"), ligne, { mode: 0o600 });
-    fs.appendFileSync(path.join(IDS, j + ".txt"), lot.lot + "\n", { mode: 0o600 });
-    lotsVus.set(lot.lot, j);
-    tailleDossierCache.octets += Buffer.byteLength(ligne) + 33;
-    version++;
-    return null;
+  // Enregistre un lot validé : totaux des jours concernés + identifiant du lot, sous verrou.
+  // Rend "deja", une raison de refus (plafond), ou null.
+  function enregistrer(lot, octets) {
+    return avecVerrou(() => {
+      rafraichirIds();
+      if (lotsVus.has(lot.lot)) return "deja";
+      const auj = jour(maintenantS()), totaux = lireJour(auj);
+      if (totaux.octets + octets > CONFIG.plafondOctetsJour) return "octets du jour";
+      if (totaux.lots >= CONFIG.plafondLotsJour) return "lots du jour";
+      if (tailleDossier() + octets > CONFIG.plafondDossierOctets) return "taille du dossier";
+      const parJour = new Map([[auj, totaux]]);
+      for (const x of lot.evs) { if (!parJour.has(x.jour)) parJour.set(x.jour, lireJour(x.jour)); ajouterAuJour(parJour.get(x.jour), x); }
+      totaux.lots++; totaux.octets += octets;
+      for (const [j, d] of parJour) ecrireJour(j, d);
+      fs.appendFileSync(path.join(IDS, auj + ".txt"), lot.lot + "\n", { mode: 0o600 });
+      lotsVus.set(lot.lot, auj);
+      tailleDossierCache.octets += 33; // les totaux grossissent peu ; la taille réelle est relue toutes les 10 min
+      version++;
+      return null;
+    });
   }
 
-  /* --- Purge : par date d'événement (exacte), au démarrage puis chaque jour --- */
-  async function purger(jours) {
-    const limite = maintenantS() - jours * 86400, jLimite = jour(limite), jFin = jour(limite + MAX_RETARD + 86400);
-    for (const f of fichiersJours(DOSSIER)) {
-      const j = f.slice(0, 10), p = path.join(DOSSIER, f);
-      if (j < jLimite) { fs.unlinkSync(p); version++; }
-      else if (j <= jFin) await reecrire(p, lot => {
-        const evs = lot.evs.filter(ev => ev.t >= limite);
-        return evs.length === lot.evs.length ? lot : evs.length ? Object.assign({}, lot, { evs }) : null;
-      });
-    }
-    elaguerIds();
+  /* --- Purge : totaux au-delà de la conservation, identifiants de lots au-delà de 31 jours --- */
+  function purger() {
+    const limite = jour(maintenantS() - CONFIG.conservationJours * 86400), limiteIds = jour(maintenantS() - GARDE_IDS);
+    let n = 0;
+    for (const f of fichiers(AGG, "json")) if (f.slice(0, 10) < limite) { fs.unlinkSync(path.join(AGG, f)); n++; }
+    for (const f of fichiers(IDS, "txt")) if (f.slice(0, 10) < limiteIds) { fs.unlinkSync(path.join(IDS, f)); lus.delete(f); }
+    for (const [id, j] of lotsVus) if (j < limiteIds) lotsVus.delete(id);
+    version++; tailleDossierCache.t = 0;
+    return n;
   }
-  purger(CONFIG.conservationJours).catch(e => console.error("purge :", e.message));
-  setInterval(() => purger(CONFIG.conservationJours).catch(e => console.error("purge :", e.message)), 24 * 3600 * 1000).unref();
+  purger();
+  setInterval(purger, 24 * 3600 * 1000).unref();
 
   /* --- Adresse du client : en mémoire seulement --- */
   // Derrière le proxy d'O2switch (connexion locale), la DERNIÈRE entrée de X-Forwarded-For est celle
@@ -279,46 +312,22 @@ function demarrer() {
     return n > max;
   }
 
-  /* --- Agrégats du tableau de bord (lecture en flux, petit cache) --- */
+  /* --- Totaux d'une période (petit cache) --- */
   let cache = { cle: "", valeur: null, t: 0 };
-  async function agregats(jours) {
+  function periode(jours) {
     const cle = jours + ":" + version;
     if (cache.cle === cle && Date.now() - cache.t < 60000) return cache.valeur;
-    const maintenant = maintenantS(), depuis = maintenant - jours * 86400;
-    // Les appareils actifs sur 24 h, 7 et 30 jours ne dépendent pas de la période choisie.
-    const actifs = [["aujourd'hui (24 h)", 86400, new Set()], ["7 jours", 7 * 86400, new Set()], ["30 jours", 30 * 86400, new Set()]];
-    const pages = new Map(), tps = new Map(), objectifs = new Map(), appareils = new Map();
-    const ligne = (m, k, init) => { if (!m.has(k)) m.set(k, init()); return m.get(k); };
-    const nouveauTP = () => ({ debut: new Set(), fin: new Set(), ms: [] });
-    await parcourir(Math.min(depuis, maintenant - 30 * 86400), l => {
-      for (const ev of l.evs) {
-        for (const [, duree, s] of actifs) if (maintenant - ev.t <= duree) s.add(l.a);
-        if (ev.t < depuis) continue;
-        appareils.set(l.a, { type: l.type, os: l.os, niveau: l.niveau });
-        const nomPage = (ev.p || "") + (ev.c && ev.e !== "notion" ? " · " + ev.c : "");
-        const nouvellePage = () => ({ vues: 0, appareils: new Set(), ms: 0 });
-        if (ev.e === "page") { const x = ligne(pages, nomPage, nouvellePage); x.vues++; x.appareils.add(l.a); }
-        if (ev.e === "temps") ligne(pages, nomPage, nouvellePage).ms += ev.ms;
-        // TP et objectifs par variante (identifiant « id@niveau ») : numérateur et dénominateur de la même variante.
-        if (ev.e === "tp_debut") ligne(tps, ev.c, nouveauTP).debut.add(l.a);
-        if (ev.e === "tp_fin") { const x = ligne(tps, ev.c, nouveauTP); x.fin.add(l.a); if (ev.ms !== undefined) x.ms.push(ev.ms); }
-        if (ev.e === "objectif") { const x = ligne(objectifs, ev.c + "|" + (ev.i || 0), () => ({ c: ev.c, i: ev.i || 0, appareils: new Set(), ms: [] })); x.appareils.add(l.a); if (ev.ms !== undefined) x.ms.push(ev.ms); }
-      }
-    });
-    const moyenne = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
-    const compte = cleF => { const m = new Map(); for (const [, a] of appareils) { const k = cleF(a); m.set(k, (m.get(k) || 0) + 1); } return [...m].sort((x, y) => y[1] - x[1]); };
-    const NIV = { 1: "Primaire", 2: "Collège", 3: "Lycée", 4: "Avancé" };
-    const valeur = {
-      actifs: actifs.map(([k, , s]) => [k, s.size]),
-      pages: [...pages].map(([nom, x]) => [nom, x.vues, x.appareils.size, x.vues ? x.ms / x.vues : 0]).sort((a, b) => b[1] - a[1]).slice(0, 40),
-      tps: [...tps].map(([nom, x]) => [nom, x.debut.size, x.fin.size, x.debut.size ? Math.min(100, Math.round(100 * x.fin.size / x.debut.size)) : null, moyenne(x.ms)]).sort((a, b) => b[1] - a[1]).slice(0, 60),
-      objectifs: [...objectifs.values()].map(x => { const d = tps.has(x.c) ? tps.get(x.c).debut.size : 0; return [x.c, x.i + 1, d, x.appareils.size, d ? Math.min(100, Math.round(100 * x.appareils.size / d)) : null, moyenne(x.ms)]; })
-        .sort((a, b) => (a[4] === null ? 999 : a[4]) - (b[4] === null ? 999 : b[4])).slice(0, 60),
-      niveaux: compte(a => a.niveau ? NIV[a.niveau] : "non choisi"),
-      appareils: compte(a => (a.type || "?") + " · " + (a.os || "?"))
-    };
-    cache = { cle, valeur, t: Date.now() };
-    return valeur;
+    const premier = jour(maintenantS() - (jours - 1) * 86400), parJour = [];
+    const total = nouveauJour();
+    for (const f of fichiers(AGG, "json")) {
+      const j = f.slice(0, 10);
+      if (j < premier) continue;
+      const d = lireJour(j);
+      additionner(total, d);
+      parJour.push([j, d]);
+    }
+    cache = { cle, valeur: { total, parJour }, t: Date.now() };
+    return cache.valeur;
   }
 
   /* --- Session : cookie signé HMAC (tient avec plusieurs processus), expiration incluse --- */
@@ -355,23 +364,39 @@ function demarrer() {
 
   /* --- Rendu --- */
   const echap = s => String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const duree = ms => { const s = Math.round((ms || 0) / 1000); return s >= 60 ? Math.floor(s / 60) + " min " + String(s % 60).padStart(2, "0") + " s" : s + " s"; };
+  const duree = ms => { const s = Math.round((ms || 0) / 1000); return s >= 3600 ? Math.floor(s / 3600) + " h " + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + " min" : s >= 60 ? Math.floor(s / 60) + " min " + String(s % 60).padStart(2, "0") + " s" : s + " s"; };
+  const pc = (a, b) => b ? Math.min(100, Math.round(100 * a / b)) + " %" : "";
   function pageHtml(titre, corps) {
     return "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><title>" + echap(titre) + "</title><style>" +
       "body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#eef1ec;color:#17221c}main{max-width:1100px;margin:0 auto;padding:16px}h1{font-size:1.6rem;margin:.2em 0}" +
-      "h2{font-size:1.2rem;margin:1.6em 0 .4em;border-bottom:2px solid #17221c}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #cdd6cb}th{background:#e2e8df}" +
+      "h2{font-size:1.2rem;margin:1.6em 0 .4em;border-bottom:2px solid #17221c}h3{font-size:1rem;margin:1em 0 .3em}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #cdd6cb}th{background:#e2e8df}" +
       "td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.chiffres{display:flex;gap:28px;flex-wrap:wrap}.chiffres div{font-size:2rem;font-weight:700}.chiffres span{display:block;font-size:.85rem;font-weight:400;color:#55635a}" +
       "form.ligne{display:inline-flex;gap:8px;align-items:center;margin:4px 8px 4px 0;flex-wrap:wrap}button,input,select{font:inherit;padding:8px 12px;min-height:44px}button{cursor:pointer}.alerte{color:#c3352a;font-weight:700}.tableau{overflow-x:auto}" +
+      ".colonnes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 24px}.barre{display:inline-block;height:10px;background:#1e5b44;vertical-align:middle;margin-right:6px}" +
       "dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px}dt{font-weight:700}" +
       "</style></head><body><main>" + corps + "</main></body></html>";
   }
-  function tableau(entetes, numeriques, lignes) {
-    if (!lignes.length) return "<p>Aucune donnée sur la période.</p>";
+  function tableau(entetes, numeriques, lignes, vide) {
+    if (!lignes.length) return "<p>" + (vide || "Aucune donnée sur la période.") + "</p>";
     return "<div class=\"tableau\"><table><thead><tr>" + entetes.map((e, k) => "<th" + (numeriques[k] ? " class=\"n\"" : "") + ">" + echap(e) + "</th>").join("") + "</tr></thead><tbody>" +
-      lignes.map(l => "<tr>" + l.map((v, k) => "<td" + (numeriques[k] ? " class=\"n\"" : "") + ">" + echap(v) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
+      lignes.map(l => "<tr>" + l.map((v, k) => "<td" + (numeriques[k] ? " class=\"n\"" : "") + ">" + (typeof v === "object" && v && v.html ? v.html : echap(v)) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
+  }
+  // Répartition : libellé, nombre, part, petite barre.
+  function repartition(titre, m, noms) {
+    const lignes = Object.entries(m || {}).sort((a, b) => b[1] - a[1]), tot = lignes.reduce((s, x) => s + x[1], 0);
+    return "<div><h3>" + echap(titre) + "</h3>" + tableau(["", "Visites", "Part"], [0, 1, 1],
+      lignes.map(([k, n]) => [(noms && noms[k]) || k, n, { html: "<span class=\"barre\" style=\"width:" + Math.round(60 * n / (tot || 1)) + "px\"></span>" + echap(pc(n, tot)) }])) + "</div>";
   }
   // Cellule CSV : guillemets doublés, et apostrophe devant = + - @ (formules des tableurs).
   const celluleCsv = v => { let s = v === undefined || v === null ? "" : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+  // Totaux d'un jour aplatis en lignes (rubrique, clé, mesure, valeur).
+  function aplatir(d) {
+    const l = [["jour", "", "lots", d.lots], ["visites", "", "total", d.visites.total]];
+    for (const r of ["retour", "niveau", "type", "os", "largeur", "typeOs"]) for (const [k, n] of Object.entries(d.visites[r])) l.push(["visites_" + r, k, "visites", n]);
+    for (const r of ["heures", "paliers", "notions", "cartes"]) for (const [k, n] of Object.entries(d[r])) l.push([r, k, "nombre", n]);
+    for (const r of ["pages", "tps", "objectifs", "questions"]) for (const [k, x] of Object.entries(d[r])) for (const [m, n] of Object.entries(x)) l.push([r, k, m, n]);
+    return l;
+  }
 
   /* --- HTTP --- */
   function lireCorps(req, max) {
@@ -407,18 +432,17 @@ function demarrer() {
       if (req.method === "OPTIONS") return repondre(res, origineOk ? 204 : 403, "", Object.assign(cors, { "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" }));
       if (req.method !== "POST") return repondre(res, 405, "", { Allow: "POST" });
       if (!origineOk) return repondre(res, 403);
-      if (tropDeLots("ip:" + empreinte(req), CONFIG.limiteIp10min)) return repondre(res, 429, "", Object.assign(cors, { "Retry-After": "600" }));
+      // Sans identifiant d'appareil, la limite de débit se fait par adresse (en mémoire seulement).
+      if (tropDeLots("ip:" + empreinte(req), CONFIG.limiteLots10min)) return repondre(res, 429, "", Object.assign(cors, { "Retry-After": "600" }));
       let corps;
       try { corps = await lireCorps(req, 128 * 1024); } catch (e) { return repondre(res, 413, "", cors); }
       let lot;
       try { lot = valider(JSON.parse(corps), maintenantS()); } catch (e) { lot = null; }
       if (!lot) return repondre(res, 400, "", cors);
-      if (!lotsVus.has(lot.lot)) rafraichirIds(); // reçu par un autre processus ?
-      if (lotsVus.has(lot.lot)) return repondre(res, 204, "", cors); // déjà reçu : on confirme sans recompter
-      if (tropDeLots("a:" + lot.a, CONFIG.limiteLots10min)) return repondre(res, 429, "", Object.assign(cors, { "Retry-After": "600" }));
-      const refus = enregistrer(lot);
-      if (refus) { console.error("journal : plafond atteint (" + refus + "), lot refusé"); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "3600" })); }
-      return repondre(res, 204, "", cors);
+      let refus;
+      try { refus = enregistrer(lot, Buffer.byteLength(corps)); } catch (e) { console.error("journal :", e.message); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "60" })); }
+      if (refus && refus !== "deja") { console.error("journal : plafond atteint (" + refus + "), lot refusé"); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "3600" })); }
+      return repondre(res, 204, "", cors); // reçu (ou déjà reçu : confirmé sans recompter)
     }
     if (chemin === "/sante") return repondre(res, 200, "ok", { "Content-Type": "text/plain" });
 
@@ -433,39 +457,27 @@ function demarrer() {
     const cookie = (v, age) => "ls_admin=" + v + "; Path=" + BASE_ADMIN + "; HttpOnly; SameSite=Strict; Max-Age=" + age + (CONFIG.cookieSecure ? "; Secure" : "");
 
     if (route === "/connexion" && req.method === "POST") {
-      const fp = empreinte(req), attente = delaiAvantEssai(fp);
+      const fp = empreinte(req), reste = delaiAvantEssai(fp);
       let message;
-      if (attente > 0) message = "Trop d'essais ratés : réessaie dans " + Math.ceil(attente / 1000) + " s.";
+      if (reste > 0) message = "Trop d'essais ratés : réessaie dans " + Math.ceil(reste / 1000) + " s.";
       else if (!hashValide(CONFIG.adminHash)) message = "Mot de passe non configuré : voir docs/JOURNAL.md.";
       else if (verifier(formulaire.get("mdp") || "", CONFIG.adminHash)) {
         echecs.delete(fp);
         return repondre(res, 303, "", { Location: BASE_ADMIN, "Set-Cookie": cookie(creerSession(), DUREE_SESSION) });
       } else { noterEchec(fp); message = "Mot de passe incorrect."; }
-      return repondre(res, attente > 0 ? 429 : 401, pageConnexion(message), ENTETES_ADMIN);
+      return repondre(res, reste > 0 ? 429 : 401, pageConnexion(message), ENTETES_ADMIN);
     }
     if (!s) return repondre(res, route === "/" ? 200 : 401, pageConnexion(""), ENTETES_ADMIN);
     if (route === "/deconnexion" && req.method === "POST" && csrfOk) {
       revoquees.set(s.n, s.exp);
       return repondre(res, 303, "", { Location: BASE_ADMIN, "Set-Cookie": cookie("", 0) });
     }
-    const jours = [1, 7, 30, 90, 395].includes(+parametres.get("jours")) ? +parametres.get("jours") : 30;
-    const appareilDemande = /^[0-9a-f]{32}$/.test(parametres.get("appareil") || "") ? parametres.get("appareil") : null;
+    const jours = [1, 7, 30, 90, 365, 760].includes(+parametres.get("jours")) ? +parametres.get("jours") : 30;
 
     if (route === "/export.csv") {
-      // Diffusé en flux : rien n'est gardé en mémoire.
-      const depuis = maintenantS() - jours * 86400;
-      res.writeHead(200, { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": "attachment; filename=\"journal-" + (appareilDemande ? appareilDemande.slice(0, 8) + "-" : "") + new Date().toISOString().slice(0, 10) + ".csv\"" });
-      res.write("﻿appareil;date;evenement;page;cible;numero;duree_ms;type;systeme;niveau\n");
-      let tampon = [];
-      await parcourir(appareilDemande ? 0 : depuis, l => {
-        if (appareilDemande && l.a !== appareilDemande) return;
-        for (const ev of l.evs) if (appareilDemande || ev.t >= depuis)
-          tampon.push([l.a, new Date(ev.t * 1000).toISOString(), ev.e, ev.p, ev.c, ev.i, ev.ms, l.type, l.os, l.niveau].map(celluleCsv).join(";"));
-        if (tampon.length >= 500) { res.write(tampon.join("\n") + "\n"); tampon = []; }
-      });
-      if (tampon.length) res.write(tampon.join("\n") + "\n");
-      return res.end();
+      const { parJour } = periode(jours), lignes = ["﻿jour;rubrique;cle;mesure;valeur"];
+      for (const [j, d] of parJour) for (const l of aplatir(d)) lignes.push([j].concat(l).map(celluleCsv).join(";"));
+      return repondre(res, 200, lignes.join("\n") + "\n", { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"journal-totaux-" + new Date().toISOString().slice(0, 10) + ".csv\"" });
     }
     if (route === "/diagnostic") return repondre(res, 200, pageDiagnostic(), ENTETES_ADMIN);
     let message = "";
@@ -473,23 +485,13 @@ function demarrer() {
       const quoi = formulaire.get("quoi");
       if (!csrfOk) message = "Session expirée : recharge la page.";
       else if (quoi === "tout" && formulaire.get("confirmer") === "EFFACER") {
-        for (const d of [DOSSIER, IDS]) for (const f of fichiersJours(d)) fs.unlinkSync(path.join(d, f));
-        lotsVus.clear(); lus.clear(); version++; tailleDossierCache.t = 0;
-        message = "Tout le journal a été effacé.";
-      } else if (quoi === "anciens") {
-        await purger(CONFIG.conservationJours); tailleDossierCache.t = 0;
-        message = "Les événements de plus de " + CONFIG.conservationJours + " jours ont été effacés.";
-      } else if (quoi === "appareil") {
-        const a = formulaire.get("appareil") || "";
-        if (!/^[0-9a-f]{32}$/.test(a)) message = "Numéro d'appareil invalide (32 caractères de 0 à 9 et de a à f).";
-        else {
-          for (const f of fichiersJours(DOSSIER)) await reecrire(path.join(DOSSIER, f), lot => lot.a === a ? null : lot);
-          tailleDossierCache.t = 0;
-          message = "Les données de l'appareil " + a + " ont été effacées.";
-        }
-      } else message = "Pour tout effacer, tape EFFACER dans la case.";
+        avecVerrou(() => { for (const f of fichiers(AGG, "json")) fs.unlinkSync(path.join(AGG, f)); });
+        version++; tailleDossierCache.t = 0;
+        message = "Tous les totaux ont été effacés.";
+      } else if (quoi === "anciens") message = avecVerrou(purger) + " jour(s) de plus de " + CONFIG.conservationJours + " jours effacé(s).";
+      else message = "Pour tout effacer, tape EFFACER dans la case.";
     }
-    return repondre(res, 200, await pageTableau(s, jours, message), ENTETES_ADMIN);
+    return repondre(res, 200, pageTableau(s, jours, message), ENTETES_ADMIN);
 
     function pageConnexion(msg) {
       return pageHtml("Connexion · journal", "<h1>Journal d'utilisation</h1><p>Accès réservé à l'administrateur.</p>" + (msg ? "<p class=\"alerte\">" + echap(msg) + "</p>" : "") +
@@ -504,29 +506,52 @@ function demarrer() {
         "<dt>X-Forwarded-For présent</dt><dd>" + (xff.length ? "oui, " + xff.length + " entrée(s)" : "non") + "</dd>" +
         (xff.length ? "<dt>Dernière entrée (utilisée)</dt><dd>" + echap(masquer(xff[xff.length - 1])) + "</dd>" : "") +
         "<dt>X-Forwarded-Proto</dt><dd>" + echap(req.headers["x-forwarded-proto"] || "absent") + "</dd></dl>" +
-        "<p>Compare la dernière entrée avec le début de ton adresse publique (affichée par exemple par ta box) : elles doivent correspondre. Sinon, la limite par adresse ne vise pas le bon client ; voir docs/JOURNAL.md.</p>" +
+        "<p>Compare la dernière entrée avec le début de ton adresse publique : elles doivent correspondre. Sinon, la limite par adresse ne vise pas le bon client ; voir docs/JOURNAL.md.</p>" +
         "<p><a href=\"" + echap(BASE_ADMIN) + "\">Retour au tableau de bord</a></p>");
     }
-    async function pageTableau(sess, j, msg) {
-      const a = await agregats(j), b = echap(BASE_ADMIN), jeton = "<input type=\"hidden\" name=\"csrf\" value=\"" + echap(sess.csrf) + "\">";
-      const periodes = [[1, "24 h"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"], [395, "13 mois"]].map(([n, nom]) => "<option value=\"" + n + "\"" + (n === j ? " selected" : "") + ">" + nom + "</option>").join("");
-      return pageHtml("Journal d'utilisation", "<h1>Journal d'utilisation</h1>" + (msg ? "<p class=\"alerte\">" + echap(msg) + "</p>" : "") +
+    function pageTableau(sess, j, msg) {
+      const { total: t, parJour } = periode(j), b = echap(BASE_ADMIN), jeton = "<input type=\"hidden\" name=\"csrf\" value=\"" + echap(sess.csrf) + "\">";
+      const periodes = [[1, "aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"], [365, "12 mois"], [760, "25 mois"]].map(([n, nom]) => "<option value=\"" + n + "\"" + (n === j ? " selected" : "") + ">" + nom + "</option>").join("");
+      const vues = Object.values(t.pages).reduce((s, x) => s + x.vues, 0), tempsTotal = Object.values(t.pages).reduce((s, x) => s + x.ms, 0);
+      const tpsOuverts = Object.values(t.tps).reduce((s, x) => s + x.ouverts, 0), rates = Object.values(t.objectifs).reduce((s, x) => s + x.rates, 0);
+      const ouvertsDe = id => (t.tps[id] || {}).ouverts || 0;
+      const objectifs = Object.entries(t.objectifs).map(([k, x]) => { const [id, i] = k.split("|"); return { id, i: +i + 1, x }; });
+      // Durée de visite en tranches : visites ayant atteint chaque palier, différences entre paliers.
+      const pal = m => t.paliers[m] || 0, V = t.visites.total;
+      const tranches = [["moins de 1 min", V - pal(1)], ["1 à 5 min", pal(1) - pal(5)], ["5 à 15 min", pal(5) - pal(15)], ["15 à 30 min", pal(15) - pal(30)], ["30 à 60 min", pal(30) - pal(60)], ["plus de 60 min", pal(60)]];
+      const NIV = { 0: "non choisi", 1: "Primaire", 2: "Collège", 3: "Lycée", 4: "Avancé" };
+      const RET = { premiere: "première visite", moins7: "revenu en moins de 7 jours", "7a30": "revenu entre 7 et 30 jours", plus30: "revenu après plus de 30 jours" };
+      const heures = Array.from({ length: 24 }, (_, h) => [h + " h-" + (h + 1) + " h", t.heures[h] || 0]).filter(x => x[1]);
+      return pageHtml("Journal d'utilisation", "<h1>Journal d'utilisation</h1><p>Totaux anonymes par jour : aucune donnée ne permet de suivre un élève ou un appareil.</p>" + (msg ? "<p class=\"alerte\">" + echap(msg) + "</p>" : "") +
         "<form class=\"ligne\" method=\"get\" action=\"" + b + "\"><label>Période <select name=\"jours\">" + periodes + "</select></label><button>Afficher</button></form>" +
-        "<form class=\"ligne\" method=\"get\" action=\"" + b + "/export.csv\"><input type=\"hidden\" name=\"jours\" value=\"" + j + "\"><button>Exporter en CSV</button></form>" +
+        "<form class=\"ligne\" method=\"get\" action=\"" + b + "/export.csv\"><input type=\"hidden\" name=\"jours\" value=\"" + j + "\"><button>Exporter les totaux (CSV)</button></form>" +
         "<form class=\"ligne\" method=\"post\" action=\"" + b + "/deconnexion\">" + jeton + "<button>Se déconnecter</button></form>" +
-        "<div class=\"chiffres\">" + a.actifs.map(([k, n]) => "<div>" + n + "<span>appareils actifs, " + echap(k) + "</span></div>").join("") + "</div>" +
-        "<h2>Pages les plus consultées</h2>" + tableau(["Page", "Vues", "Appareils", "Temps actif moyen par vue"], [0, 1, 1, 1], a.pages.map(p => [p[0], p[1], p[2], duree(p[3])])) +
-        "<h2>TP : ouverts, terminés, durée (par variante de niveau)</h2>" + tableau(["TP", "Appareils qui l'ont ouvert", "Appareils qui l'ont terminé", "Réussite", "Durée moyenne jusqu'à la fin"], [0, 1, 1, 1, 1], a.tps.map(t => [t[0], t[1], t[2], t[3] === null ? "" : t[3] + " %", t[2] ? duree(t[4]) : ""])) +
-        "<h2>Objectifs : où les élèves bloquent (taux le plus bas en premier)</h2>" + tableau(["TP", "Objectif", "Appareils ayant ouvert le TP", "Appareils l'ayant atteint", "Taux", "Temps moyen pour l'atteindre"], [0, 1, 1, 1, 1, 1], a.objectifs.map(o => [o[0], o[1], o[2], o[3], o[4] === null ? "" : o[4] + " %", duree(o[5])])) +
-        "<h2>Niveaux choisis</h2>" + tableau(["Niveau", "Appareils"], [0, 1], a.niveaux) +
-        "<h2>Types d'appareils</h2>" + tableau(["Type · système", "Appareils"], [0, 1], a.appareils) +
-        "<h2>Un appareil (demande d'accès ou d'effacement)</h2>" +
-        "<form class=\"ligne\" method=\"get\" action=\"" + b + "/export.csv\"><label>Numéro <input name=\"appareil\" pattern=\"[0-9a-f]{32}\" size=\"34\" required autocomplete=\"off\"></label><button>Exporter ses données</button></form>" +
-        "<form class=\"ligne\" method=\"post\" action=\"" + b + "/purger\"><input type=\"hidden\" name=\"quoi\" value=\"appareil\">" + jeton + "<label>Numéro <input name=\"appareil\" pattern=\"[0-9a-f]{32}\" size=\"34\" required autocomplete=\"off\"></label><button>Effacer ses données</button></form>" +
-        "<h2>Purge</h2><form class=\"ligne\" method=\"post\" action=\"" + b + "/purger\"><input type=\"hidden\" name=\"quoi\" value=\"anciens\">" + jeton + "<button>Effacer les événements de plus de " + CONFIG.conservationJours + " jours</button></form>" +
+        "<div class=\"chiffres\"><div>" + V + "<span>visites</span></div><div>" + vues + "<span>pages vues</span></div><div>" + echap(duree(tempsTotal)) + "<span>temps actif total</span></div>" +
+        "<div>" + tpsOuverts + "<span>TP ouverts</span></div><div>" + rates + "<span>essais ratés aux objectifs</span></div></div>" +
+        "<h2>Par jour</h2>" + tableau(["Jour", "Visites", "Pages vues", "Temps actif", "TP ouverts", "TP terminés", "Objectifs réussis", "Essais ratés"], [0, 1, 1, 1, 1, 1, 1, 1],
+          parJour.slice().reverse().map(([jj, d]) => [jj, d.visites.total, Object.values(d.pages).reduce((s, x) => s + x.vues, 0), duree(Object.values(d.pages).reduce((s, x) => s + x.ms, 0)),
+            Object.values(d.tps).reduce((s, x) => s + x.ouverts, 0), Object.values(d.tps).reduce((s, x) => s + x.finis, 0), Object.values(d.objectifs).reduce((s, x) => s + x.reussis, 0), Object.values(d.objectifs).reduce((s, x) => s + x.rates, 0)])) +
+        "<h2>Visites</h2><div class=\"colonnes\">" + repartition("Retour", t.visites.retour, RET) + repartition("Niveau choisi", t.visites.niveau, NIV) + repartition("Type d'appareil", t.visites.type) +
+        repartition("Système", t.visites.os) + repartition("Largeur d'écran (px)", t.visites.largeur) +
+        "<div><h3>Durée active de la visite</h3>" + tableau(["", "Visites"], [0, 1], V ? tranches : []) + "</div>" +
+        "<div><h3>Heure (UTC, heure de Bamako)</h3>" + tableau(["", "Visites"], [0, 1], heures) + "</div></div>" +
+        "<h2>Pages les plus consultées</h2>" + tableau(["Page", "Vues", "Temps actif total", "Temps moyen par vue"], [0, 1, 1, 1],
+          Object.entries(t.pages).sort((a, c) => c[1].vues - a[1].vues).slice(0, 40).map(([k, x]) => [k, x.vues, duree(x.ms), duree(x.vues ? x.ms / x.vues : 0)])) +
+        "<h2>TP : ouverts, terminés (par variante de niveau)</h2>" + tableau(["TP", "Ouvertures", "Terminés", "Part terminée", "Durée moyenne jusqu'à la fin", "Temps actif sur la page"], [0, 1, 1, 1, 1, 1],
+          Object.entries(t.tps).sort((a, c) => c[1].ouverts - a[1].ouverts).slice(0, 60).map(([k, x]) => { const p = t.pages["tp·" + k.split("@")[0]]; return [k, x.ouverts, x.finis, pc(x.finis, x.ouverts), x.finis ? duree(x.msFin / x.finis) : "", p ? duree(p.ms) : ""]; })) +
+        "<h2>Où les élèves se trompent : objectifs triés par essais ratés</h2>" + tableau(["TP", "Objectif", "Essais", "Essais ratés", "Part ratée", "Réussites"], [0, 1, 1, 1, 1, 1],
+          objectifs.filter(o => o.x.essais).sort((a, c) => c.x.rates - a.x.rates).slice(0, 40).map(o => [o.id, o.i, o.x.essais, o.x.rates, pc(o.x.rates, o.x.essais), o.x.reussis]), "Aucun essai sur la période.") +
+        "<h2>Objectifs : où les élèves bloquent (réussites rapportées aux ouvertures, le plus bas en premier)</h2>" + tableau(["TP", "Objectif", "Ouvertures du TP", "Réussites", "Taux", "Temps moyen pour réussir"], [0, 1, 1, 1, 1, 1],
+          objectifs.filter(o => o.x.reussis || ouvertsDe(o.id)).map(o => ({ o, taux: ouvertsDe(o.id) ? o.x.reussis / ouvertsDe(o.id) : 2 })).sort((a, c) => a.taux - c.taux).slice(0, 40)
+            .map(({ o }) => [o.id, o.i, ouvertsDe(o.id), o.x.reussis, pc(o.x.reussis, ouvertsDe(o.id)), o.x.reussis ? duree(o.x.ms / o.x.reussis) : ""])) +
+        "<h2>Questions de quiz : réponses fausses</h2>" + tableau(["TP", "Question", "Réponses justes", "Réponses fausses", "Part fausse"], [0, 1, 1, 1, 1],
+          Object.entries(t.questions).map(([k, x]) => [k.split("|")[0], +k.split("|")[1] + 1, x.justes, x.fausses, pc(x.fausses, x.justes + x.fausses)]).sort((a, c) => c[3] - a[3]).slice(0, 40)) +
+        "<div class=\"colonnes\"><div><h2>Notions comprises</h2>" + tableau(["Carte / notion", "Fois"], [0, 1], Object.entries(t.notions).sort((a, c) => c[1] - a[1]).slice(0, 30)) + "</div>" +
+        "<div><h2>Cartes terminées</h2>" + tableau(["Carte", "Fois"], [0, 1], Object.entries(t.cartes).sort((a, c) => c[1] - a[1]).slice(0, 30)) + "</div></div>" +
+        "<h2>Purge</h2><form class=\"ligne\" method=\"post\" action=\"" + b + "/purger\"><input type=\"hidden\" name=\"quoi\" value=\"anciens\">" + jeton + "<button>Effacer les jours de plus de " + CONFIG.conservationJours + " jours</button></form>" +
         "<form class=\"ligne\" method=\"post\" action=\"" + b + "/purger\"><input type=\"hidden\" name=\"quoi\" value=\"tout\">" + jeton + "<label>Tout effacer : tape EFFACER <input name=\"confirmer\" autocomplete=\"off\" size=\"9\"></label><button>Tout effacer</button></form>" +
         "<p><a href=\"" + b + "/diagnostic\">Diagnostic du proxy (X-Forwarded-For)</a></p>" +
-        "<p>Données pseudonymes : un numéro tiré au hasard par appareil, sans nom ni adresse IP. Conservation : " + CONFIG.conservationJours + " jours (date de l'événement).</p>");
+        "<p>Seulement des totaux par jour, gardés " + CONFIG.conservationJours + " jours. Aucun identifiant d'appareil ni de visite, aucune adresse IP, aucune heure précise.</p>");
     }
   }
 

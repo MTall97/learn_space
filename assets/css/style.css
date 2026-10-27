@@ -748,3 +748,11 @@ body[data-niveau="primaire"] .objectif .texte { font-size: 1.08rem; }
   .entete .logo span:last-child { display: none; }
   .puce-joueur { padding: 4px 8px; gap: 6px; }
 }
+
+/* Application installable (assets/js/pwa.js) : bouton discret, avis de nouvelle version */
+#installer-app[hidden] { display: none; }
+#installer-app { flex-basis: 100%; display: flex; justify-content: center; }
+.installer { display: inline-flex; align-items: center; gap: 6px; }
+.avis-maj { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(16px + var(--nav-bas) + env(safe-area-inset-bottom, 0px)); width: min(92vw, 460px);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--carte); color: var(--texte); border: 1px solid var(--accent); border-left: 4px solid var(--accent);
+  border-radius: var(--rayon); box-shadow: var(--ombre); padding: 8px 10px 8px 14px; }

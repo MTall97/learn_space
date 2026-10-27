@@ -1,25 +1,39 @@
-/* Hors ligne : chaque fichier du site est gardé en cache dès sa première visite (le site marche ensuite
-   sans réseau, utile pendant un délestage ou sans forfait). Les pages principales sont mises en cache à
-   l'installation. Actif seulement quand le site est servi en http(s), pas en ouvrant les fichiers. */
-const CACHE = "learnspace-v3";
-const DE_BASE = ["./", "index.html", "tp.html", "carte.html", "assets/css/style.css", "assets/css/carte.css", "assets/css/circuit.css",
-  "assets/js/commun.js", "assets/js/progression.js", "assets/js/jeu.js", "assets/js/tp.js", "assets/js/carte-mentale.js", "contenu/parcours.js", "assets/js/niveaux.js", "assets/js/config-journal.js", "assets/js/journal.js", "confidentialite.html",
-  "assets/fonts/atkinson-400.woff2", "assets/fonts/atkinson-700.woff2", "assets/fonts/baloo2.woff2", "assets/fonts/jetbrains-mono.woff2"];
+/* Service worker : tout le site marche hors ligne après la première visite (délestage, pas de forfait).
+   - À l'installation, TOUS les fichiers du site sont mis en cache (liste générée dans sw-fichiers.js
+     par outils/liste-precache.js, avec une empreinte du contenu : un fichier modifié donne une
+     nouvelle version, donc un nouveau cache).
+   - Les fichiers du site sont servis depuis le cache (rapide sur un réseau faible) ; la nouvelle
+     version s'installe en arrière-plan et la page propose « Recharger » (assets/js/pwa.js).
+   - config-journal.js, rempli au déploiement, est relu d'abord sur le réseau.
+   - Jamais de cache pour le journal et le tableau de bord (/api, /admin, /journal), ni pour les autres sites.
+   - Une page absente du cache, sans réseau : hors-ligne.html.
+   Actif seulement quand le site est servi en http(s), pas en ouvrant les fichiers. */
+importScripts("sw-fichiers.js");
+const CACHE = "learnspace-v4-" + self.LS_VERSION;
+const RESEAU_D_ABORD = /\/assets\/js\/config-journal\.js$/;
 
 self.addEventListener("install", ev => {
-  ev.waitUntil(caches.open(CACHE).then(c => c.addAll(DE_BASE)).then(() => self.skipWaiting()));
+  ev.waitUntil(caches.open(CACHE).then(c => c.addAll(self.LS_FICHIERS.map(f => new Request(f, { cache: "reload" })))));
 });
 self.addEventListener("activate", ev => {
-  ev.waitUntil(caches.keys().then(cles => Promise.all(cles.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  ev.waitUntil(caches.keys().then(cles => Promise.all(cles.filter(k => k.startsWith("learnspace-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
-// Réseau d'abord (pour avoir les mises à jour), cache si le réseau ne répond pas.
+// « Recharger » dans la page : la nouvelle version prend la main.
+self.addEventListener("message", ev => { if (ev.data && ev.data.type === "activer") self.skipWaiting(); });
+
 self.addEventListener("fetch", ev => {
-  const url = new URL(ev.request.url);
-  if (ev.request.method !== "GET" || url.origin !== location.origin) return;
-  // Le journal et le tableau de bord ne passent jamais par le cache.
+  const req = ev.request, url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== location.origin) return;
   if (/\/(api|admin|journal)(\/|$)/.test(url.pathname)) return;
-  ev.respondWith(fetch(ev.request).then(rep => {
-    if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(ev.request, copie)); }
+  if (RESEAU_D_ABORD.test(url.pathname)) {
+    ev.respondWith(fetch(req).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(req, copie)); } return rep; })
+      .catch(() => caches.match(req, { ignoreSearch: true })));
+    return;
+  }
+  // Pages : tp.html?id=… et carte.html?id=… sont la même page en cache.
+  const navigation = req.mode === "navigate";
+  ev.respondWith(caches.open(CACHE).then(c => c.match(req, { ignoreSearch: navigation })).then(trouve => trouve || fetch(req).then(rep => {
+    if (rep.ok && rep.type === "basic") { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(req, copie)); }
     return rep;
-  }).catch(() => caches.match(ev.request, { ignoreSearch: ev.request.mode === "navigate" })));
+  }).catch(() => navigation ? caches.open(CACHE).then(c => c.match("hors-ligne.html")) : Response.error())));
 });

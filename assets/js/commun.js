@@ -32,9 +32,7 @@
   };
   LS.appliquerTheme();
 
-  /* Hors ligne : service worker, seulement quand le site est servi en http(s). */
-  if (typeof navigator !== "undefined" && "serviceWorker" in navigator && /^https?:$/.test(location.protocol))
-    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => { /* navigateur qui refuse : tant pis */ }));
+  /* Hors ligne et installation : assets/js/pwa.js (service worker, bouton « Installer », mises à jour). */
 
   /* ---------- Messages et confirmations dans la page ----------
      (alert et confirm sont bloqués dans certains cadres, dont les pages publiées sur claude.ai) */
@@ -163,7 +161,8 @@
     ateliers: '<rect x="7" y="7" width="10" height="10" rx="1"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/>',
     brevets: '<circle cx="12" cy="9" r="5"/><path d="M9 13.5 7.5 21l4.5-2.5 4.5 2.5L15 13.5"/>',
     bac: '<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M7 10h.01M10 10h.01M13 10h.01M16 10h.01M7 14h.01M10 14h.01M13 14h.01M16 14h.01"/>',
-    theme: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>'
+    theme: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>',
+    installer: '<path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 19h14"/>'
   };
   LS.icone = nom => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PICTOS[nom] || ""}</svg>`;
 

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hors ligne · Learn Space</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icones/icone-180.png">
+  <meta name="theme-color" content="#1e5b44">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .hors-ligne { max-width: 60ch; }
+    .hors-ligne .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  </style>
+  <script src="assets/js/commun.js"></script>
+  <script src="assets/js/pwa.js"></script>
+</head>
+<body>
+  <main class="page hors-ligne">
+    <h1>Pas de réseau</h1>
+    <p>Cette page n'est pas encore gardée sur ton appareil, et la connexion ne répond pas (délestage, forfait épuisé, réseau faible…).</p>
+    <p>Le reste du site marche sans réseau : tout est gardé sur l'appareil dès la première visite en ligne. Reviens à l'accueil, ou réessaie quand le réseau revient.</p>
+    <div class="actions">
+      <a class="btn" href="index.html">Retour à l'accueil</a>
+      <button type="button" class="btn secondaire" onclick="location.reload()">Réessayer</button>
+    </div>
+  </main>
+  <script>window.LS.entete("");</script>
+</body>
+</html>

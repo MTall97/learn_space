@@ -1,11 +1,26 @@
 {
+  "id": "./",
   "name": "Learn Space",
   "short_name": "Learn Space",
-  "description": "Apprendre l'électricité, la mécanique, l'énergie, les capteurs et plus, en pratiquant sur des simulations.",
+  "description": "Apprendre l'électricité, l'électronique, la mécanique, l'énergie solaire, les capteurs et plus, en pratiquant sur des simulations. Gratuit, sans compte, utilisable hors ligne.",
   "lang": "fr",
-  "start_url": "index.html",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#eef1ec",
   "theme_color": "#1e5b44",
-  "icons": [{ "src": "assets/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "categories": ["education"],
+  "icons": [
+    { "src": "assets/icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Ateliers", "short_name": "Ateliers", "url": "./index.html#ateliers", "icons": [{ "src": "assets/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Bac à sable (circuits)", "short_name": "Bac à sable", "url": "./tp.html?id=elec-bac-a-sable", "icons": [{ "src": "assets/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Mes brevets", "short_name": "Brevets", "url": "./index.html#brevets", "icons": [{ "src": "assets/icones/icone-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
 }
