@@ -29,11 +29,13 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   le guidage, la difficulté des objectifs et des quiz.
 - **Enfants** : aucun compte ; on simule, on ne manipule jamais le 230 V ni les batteries en vrai.
   La progression reste dans le navigateur. Seul le journal d'utilisation (`assets/js/journal.js`,
-  serveur `serveur/app.js`, `docs/JOURNAL.md`) envoie des événements, sous un pseudonyme aléatoire
-  par appareil : jamais de nom, d'adresse IP ni d'user-agent stockés ; opposition dans
-  `confidentialite.html` ; désactivé tant que l'adresse du serveur n'est pas configurée. Ni
-  configuration ni données du journal dans Git. Base légale (loi malienne 2013-015, APDP, RGPD) à
-  faire valider avant mise en ligne (avis du juge du 23/10/2026).
+  serveur `serveur/app.js`, `docs/JOURNAL.md`) envoie des événements, **anonymes** (décision du
+  23/10/2026) : aucun identifiant d'appareil ; numéro de visite en `sessionStorage`, jamais envoyé,
+  perdu à la fermeture ; seule la date de dernière visite reste sur l'appareil (catégorie de retour
+  envoyée) ; le serveur ne garde que des totaux par jour, sans horodatage ni ligne brute ; jamais de
+  nom, d'IP ni d'user-agent ; refus dans `confidentialite.html` ; désactivé tant que
+  `assets/js/config-journal.js` est vide. Ni configuration ni données du journal dans Git. Caractère
+  anonyme à faire confirmer par l'APDP avant mise en ligne.
 - Appareils modestes et connexion faible : pages légères, fonctionnement hors ligne.
 - Hébergement : l'utilisateur s'en charge (probablement O2switch, offre cloud). Le site reste
   statique : il suffit de copier les fichiers.
@@ -49,6 +51,9 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
 - Tests : `node --test tests/*.test.js` (simulateur + cohérence du contenu). Les lancer avant
   chaque commit ; la CI GitHub les relance.
 - Vérifier visuellement avec Chromium sans écran (Playwright) les pages modifiées.
+- Application installable (PWA, `docs/APPLICATION.md`) : après tout ajout ou modification d'un
+  fichier du site, régénérer la liste de précache avec `node outils/liste-precache.js`
+  (`sw-fichiers.js`) ; `tests/pwa.test.js` échoue sinon.
 
 ## Architecture
 - `assets/js/circuit/reseau.js` : connectivité (fils, jonctions en T, fils coupés des pannes).

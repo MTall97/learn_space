@@ -194,7 +194,71 @@ anonymes sortent du champ de la loi.
 **Décision de l'utilisateur** : tenir ce carnet de bord pour toutes les décisions et tous les
 changements.
 
-**État** : en cours, **non vérifié**. Le juge relira le caractère anonyme et la PWA avant le commit.
+**État au 27/10/2026.**
+- Écrit et vérifié par l'auteur. Commits : `098cee4` (sauvegarde intermédiaire, après un redémarrage de
+  l'environnement de travail), puis la mise à jour de CLAUDE.md.
+- Tests : 116 réussis.
+- Le juge relit en ce moment.
+
+**Décisions de l'auteur, journal anonyme.**
+- Le numéro de visite n'est **même pas envoyé**. La durée d'une visite se compte par paliers atteints
+  (1, 5, 15, 30 et 60 minutes) : le serveur n'a rien à relier.
+- Le serveur ne garde que des totaux par jour (`agregats/AAAA-MM-JJ.json`), écrits sous un verrou de
+  fichier partagé entre processus. Il n'y a aucune ligne brute ni aucun horodatage. Les visites sont
+  comptées par tranche horaire UTC, qui est l'heure de Bamako.
+- Les combinaisons rares sont regroupées en « autre ». Seules des répartitions séparées sont stockées,
+  jamais la combinaison complète type × système × largeur × niveau.
+- Pour éviter les doubles comptes, seuls des identifiants de lots aléatoires sont gardés, 31 jours, sans
+  lien avec une visite. Les événements sont acceptés jusqu'à 30 jours de retard.
+- Au plus 3 000 clés par rubrique et par jour, au-delà « (autres) », pour empêcher le gonflement des
+  fichiers.
+- Les totaux sont gardés 25 mois, pour comparer deux années scolaires. Les données brutes de la version
+  précédente sont effacées au démarrage.
+- La limite de débit se fait par adresse, en mémoire (600 lots par 10 minutes).
+- Les chiffres sont des nombres d'**événements**, pas de personnes :
+  - un TP est compté une fois par visite ;
+  - un objectif réussi est compté une fois par navigateur.
+- Essais ratés : deux `dispatchEvent("ls:essai")` dans `tp.js`, l'un pour les objectifs, l'autre pour
+  les questions.
+
+**Écarté, journal anonyme.**
+- Garder des lignes brutes en effaçant le numéro sous 24 h : les totaux directs suffisent.
+- Envoyer le numéro de visite : inutile avec les paliers.
+- Stocker la combinaison complète des informations sur l'appareil : trop fine.
+
+**Décisions de l'auteur, application installable.**
+- Icônes 192, 512, maskable 512 et 180 pour iOS. Trois raccourcis : Ateliers, Bac à sable, Brevets.
+- **Cache d'abord** pour les fichiers du site, avec un cache versionné par empreinte
+  (`learnspace-v4-<empreinte>`) : c'est rapide sur un réseau faible.
+- La nouvelle version n'est appliquée qu'après un clic sur « Recharger », pour ne pas couper un TP en
+  cours.
+- La liste de précache est générée par `outils/liste-precache.js` dans `sw-fichiers.js` (146 fichiers).
+  `tests/pwa.test.js` échoue si elle n'est pas régénérée, et la règle est ajoutée à CLAUDE.md.
+- Ne passent pas par le cache : `/api`, `/admin`, `/journal` et les autres sites. `config-journal.js` est
+  relu sur le réseau d'abord.
+- Bouton « Installer l'application » seulement dans le pied de page de l'accueil, pour rester discret.
+  Sur iPhone, une petite aide.
+- L'enregistrement du service worker passe dans `assets/js/pwa.js`.
+
+**Écarté, application installable.**
+- Recharger tout seul à chaque nouvelle version : on perdrait le TP en cours.
+- « Réseau d'abord » pour tout le site : trop lent sur un réseau faible.
+
+**Vérifié dans Chromium.**
+- L'application est installable, sans erreur.
+- Avec le serveur arrêté pour de vrai, des TP et des cartes jamais ouverts s'affichent. Une page
+  inconnue mène à `hors-ligne.html`.
+- L'avis de mise à jour s'affiche.
+- En file:// : ni service worker ni bouton d'installation.
+
+**Non vérifié.**
+- Le vrai O2switch : Passenger, la forme réelle de `X-Forwarded-For`, le verrou sur leur système de
+  fichiers.
+- Une vraie installation sur Android ou sur iPhone.
+- Le `beforeinstallprompt` réel (il a été seulement simulé).
+- Node 18 et 20.
+- Les essais ratés aux objectifs saisis, vus seulement en test (les questions ont été vérifiées avec de
+  vrais clics).
 
 ---
 
