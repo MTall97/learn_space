@@ -209,6 +209,78 @@ Juge indépendant, lecture seule, sur le commit `11d7509`. Tests : 104 réussis.
 - **Bug trouvé en vérifiant dans Chromium :** avec `Referrer-Policy: no-referrer`, les formulaires de l'administration envoyaient `Origin: null` et la connexion était refusée. Passé à `same-origin`.
 - B2 : décision du propriétaire du site (collecte par défaut ou accord explicite d'un parent) et formalité auprès de l'APDP avant toute mise en ligne. Côté technique : identifiant renouvelé tous les 13 mois au plus et heures arrondies.
 
+## Revue du journal anonyme et de l'application installable, 27/10/2026
+
+Le juge a travaillé en lecture seule sur le commit `816b5fd`. Les 116 tests passent. Il a lancé le
+serveur, puis attaqué le site avec Chromium : deux onglets, réseau qui ne répond pas, nouvelle version.
+
+**Verdict : pas prêt à déployer.** L'application installable pourrait sortir seule, journal désactivé,
+après B3, I1, I4 et I5. Le journal ne doit être activé qu'après B1, B2 et l'avis de l'APDP.
+
+### Bloquants
+- **B1. Le secret d'exemple de `config.example.json` est accepté.** Le serveur vérifie seulement qu'il
+  fait plus de 32 caractères. Le juge a forgé un cookie d'administrateur et le jeton CSRF sans mot de
+  passe, puis tout purgé. Vérifié par l'auteur à `app.js:196`.
+- **B2. « Anonyme » est faux quand il y a peu de visites.**
+  - Avec une seule visite, les totaux du jour sont la ligne brute.
+  - Le tableau du jour est recalculé à chaque lot : par différence, on voit chaque lot.
+  - Les journaux Apache de l'hébergeur (IP, heure, `tp.html?id=`) se recoupent avec ces totaux.
+  - À la réception, ce sont donc des données personnelles. Il faut s'appuyer sur l'intérêt légitime,
+    pour une mesure d'audience minimisée, et non sur des « données anonymes ».
+- **B3. Dans `tp.js:240`, `const cle = "q" + i` masque la clé du TP.** Le quiz enregistre l'état sous
+  `q0`, `q1`… Cela fausse la progression des élèves, les points et les statistiques. Le bug date du
+  23/10 (`9f6d715`). Vérifié par l'auteur.
+
+### Importants
+- **I1.** Quand le réseau ne répond pas, `config-journal.js` (servi réseau d'abord, chargé de façon
+  synchrone) bloque les pages plus de 60 s.
+- **I2.** Si la lecture d'un fichier du jour échoue, un jour vide est réécrit à sa place : 336 lots
+  perdus lors de l'essai.
+- **I3.** Des identifiants inventés saturent les rubriques et le plafond de 50 Mo en quelques minutes,
+  depuis une seule adresse.
+- **I4.** Avec deux onglets, après « Recharger », l'autre onglet mélange deux versions du site.
+- **I5.** Une mise à jour peut être retardée par le cache HTTP de `sw-fichiers.js` (`updateViaCache`).
+- **I6.** Les statistiques mélangent des unités :
+  - les réussites sont comptées une fois par navigateur, les ouvertures une fois par visite ;
+  - sur un appareil partagé, les réussites sont sous-comptées ;
+  - une deuxième visite le même jour compte comme un « retour » ;
+  - les essais ratés n'existent que pour les réponses écrites ;
+  - le temps passé à regarder une simulation est sous-estimé.
+- **I7.** La date de dernière visite gardée sur l'appareil est un traceur. Sa durée de vie est prolongée
+  à chaque visite, donc sans limite (l'exemption de la CNIL demande 13 mois au plus).
+- **I8.** Derrière Passenger, si `X-Forwarded-For` n'arrive pas, tous les visiteurs partagent la même
+  empreinte. Les envois sont alors limités pour tout le site, et l'administrateur peut être bloqué.
+
+### Mineurs
+- **M1-M11 :**
+  - le verrou bloque tout le processus, et la reprise d'un verrou orphelin a une course ;
+  - la clé `constructor` passe la validation ;
+  - les empreintes d'adresses restent en mémoire plus longtemps que promis ;
+  - les événements de plus de 30 jours sont perdus ;
+  - les textes du pied de page et de la page hors ligne sont inexacts ;
+  - la page de confidentialité est trop dense pour un enfant ;
+  - le précache est téléchargé sans prévenir, et un téléversement FTP en cours peut mélanger deux
+    versions ;
+  - sur iOS : `navigator.storage.persist()`, une aide qu'on ne peut pas fermer, et un stockage séparé
+    entre Safari et l'application ;
+  - scrypt est synchrone ;
+  - des tests ne prouvent pas ce qu'ils annoncent : le TP du test hors ligne n'existe pas, et l'essai du
+    quiz est seulement compté dans le texte du code.
+
+### Bien fait (selon le juge)
+- Minimisation réelle côté navigateur : aucun identifiant persistant, numéro de visite jamais envoyé.
+- Journal désactivé tant qu'il n'est pas configuré, et rien en file://.
+- Dédoublonnage partagé entre processus, écritures atomiques, horloge recalée.
+- Tableau de bord sans XSS ni injection CSV ; CSRF et `Origin: null` refusés.
+- Manifeste et icônes corrects, précache complet, hors ligne réel sur des pages jamais ouvertes.
+- Bouton d'installation sans émoji, dans le style du site.
+
+### Suites
+- Toutes les corrections ont été confiées à l'auteur. Ce qui est fait sera consigné dans le carnet de
+  bord.
+- B2 change la façon d'en parler : le journal est une **mesure d'audience minimisée**, pas des
+  « données anonymes ». Les cases de moins de 5 sont masquées et seuls les jours terminés sont affichés.
+
 ## Limites relevées par les auteurs (22/10/2026)
 
 ### Maths utiles
