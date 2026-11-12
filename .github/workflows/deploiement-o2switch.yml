@@ -1,0 +1,78 @@
+# Copie de secours du site et serveur du journal sur O2switch, à chaque push (après les tests).
+# Secrets du dépôt (Settings > Secrets and variables > Actions) : FTP_SERVEUR, FTP_UTILISATEUR,
+# FTP_MOT_DE_PASSE. Variables facultatives : DOSSIER_SITE, DOSSIER_SERVEUR (chemins depuis la racine
+# du compte FTP), DEPLOIEMENT_O2SWITCH = "non" pour couper. Voir docs/DEPLOIEMENT_O2SWITCH.md.
+# Jamais envoyés : config.json et les données du serveur (ils ne sont pas dans le dépôt).
+name: Déploiement O2switch
+
+on:
+  push:
+    branches: [claude/ecstatic-gates-507okj, main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploiement-o2switch
+  cancel-in-progress: false
+
+jobs:
+  deployer:
+    if: ${{ vars.DEPLOIEMENT_O2SWITCH != 'non' }}
+    runs-on: ubuntu-latest
+    env:
+      FTP_SERVEUR: ${{ secrets.FTP_SERVEUR }}
+      FTP_UTILISATEUR: ${{ secrets.FTP_UTILISATEUR }}
+      LFTP_PASSWORD: ${{ secrets.FTP_MOT_DE_PASSE }}
+      DOSSIER_SITE: ${{ vars.DOSSIER_SITE || 'learningspace223.duckdns.org' }}
+      DOSSIER_SERVEUR: ${{ vars.DOSSIER_SERVEUR || 'learnspace-journal' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests
+        run: node --test tests/*.test.js
+      - name: Secrets présents ?
+        id: secrets
+        run: |
+          if [ -z "$FTP_SERVEUR" ] || [ -z "$FTP_UTILISATEUR" ] || [ -z "$LFTP_PASSWORD" ]; then
+            echo "::warning::Secrets FTP absents : pas de déploiement O2switch."
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Fichiers publics du site
+        if: steps.secrets.outputs.pret == 'oui'
+        run: node outils/site-public.js && rm -f _site/_headers
+      - name: Installer lftp
+        if: steps.secrets.outputs.pret == 'oui'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+      - name: Envoyer sur O2switch (FTPS)
+        if: steps.secrets.outputs.pret == 'oui'
+        run: |
+          date -u +%FT%TZ > restart.txt
+          # Le service worker en dernier, pour qu'un visiteur ne mette jamais en cache un mélange de versions.
+          lftp <<LFTP
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set net:max-retries 3
+          set net:timeout 30
+          open --env-password -u "$FTP_UTILISATEUR" "$FTP_SERVEUR"
+          mirror -R --verbose=1 --parallel=4 --exclude-glob sw.js --exclude-glob sw-fichiers.js _site "$DOSSIER_SITE"
+          put -O "$DOSSIER_SITE" _site/sw-fichiers.js
+          put -O "$DOSSIER_SITE" _site/sw.js
+          put -O "$DOSSIER_SERVEUR" serveur/app.js
+          put -O "$DOSSIER_SERVEUR" serveur/liste-blanche.json
+          mkdir -p -f "$DOSSIER_SERVEUR/tmp"
+          put -O "$DOSSIER_SERVEUR/tmp" restart.txt
+          bye
+          LFTP
+      - name: Vérifier le serveur
+        if: steps.secrets.outputs.pret == 'oui'
+        run: |
+          for i in 1 2 3 4 5 6; do
+            r=$(curl -s --max-time 15 https://learningspace223.duckdns.org/api/sante || true)
+            [ "$r" = "ok" ] && echo "Serveur du journal : ok" && exit 0
+            sleep 10
+          done
+          echo "::error::Le serveur du journal ne répond pas après le redémarrage."; exit 1

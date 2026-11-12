@@ -478,6 +478,28 @@ Trois maquettes d'accueil lui sont soumises : A Cahier, B Bogolan, C Manuel. Il 
 actuelle trop « IA générique ». Il a aussi demandé d'automatiser le déploiement sur O2switch : la
 proposition est GitHub Actions, avec FTPS et `tmp/restart.txt`, en attente de son accord et des secrets.
 
+## 12/11/2026 (nuit) : choix de l'interface et déploiement automatique sur O2switch
+
+**Décisions de l'utilisateur.**
+- Il a choisi la maquette **A (Cahier d'écolier), enrichie d'idées de B (Bogolan)** pour la nouvelle
+  interface de tout le site. L'interface « atelier d'électronique » est abandonnée : trop « IA
+  générique » à son goût.
+- Il a créé le compte FTP et les secrets GitHub pour le déploiement automatique.
+- Les corrections du 12/11 ont été poussées (`107c848`) une fois l'interface choisie, comme il l'avait
+  demandé.
+
+**Fait par l'auteur.**
+- `.github/workflows/deploiement-o2switch.yml` : à chaque push, et seulement si les tests passent, envoi
+  par FTPS du site (`sw.js` en dernier) et du serveur (`app.js`, `liste-blanche.json`), redémarrage par
+  `tmp/restart.txt`, puis vérification de `/api/sante`. Rien n'est jamais supprimé sur le serveur.
+  Mode d'emploi : `docs/DEPLOIEMENT_O2SWITCH.md`.
+- **Écarté :** SSH, parce que O2switch demande d'autoriser chaque adresse IP à l'avance et que celles de
+  GitHub changent ; la Git Version Control de cPanel, qui demande un clic à chaque mise à jour.
+- **Non vérifié :** la première exécution réelle (nom du serveur FTP, certificat, dossiers).
+
+**En cours :** une instance refait toute l'interface au style cahier et bogolan. Le juge la relira
+ensuite.
+
 ---
 
 ## Reste à faire et à décider
