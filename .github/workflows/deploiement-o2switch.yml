@@ -62,6 +62,13 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           open --env-password -u "$FTP_UTILISATEUR" "$FTP_SERVEUR"
+          # Contenu de la racine du compte FTP (noms seulement), pour vérifier les dossiers.
+          echo "Racine du compte FTP :"
+          cls -1
+          # Toute erreur arrête l'envoi (sinon lftp continue et le travail paraît réussi).
+          set cmd:fail-exit yes
+          cd "$DOSSIER_SERVEUR"
+          cd ~
           mirror -R --verbose=1 --parallel=4 --exclude-glob sw.js --exclude-glob sw-fichiers.js _site "$DOSSIER_SITE"
           put -O "$DOSSIER_SITE" _site/sw-fichiers.js
           put -O "$DOSSIER_SITE" _site/sw.js
