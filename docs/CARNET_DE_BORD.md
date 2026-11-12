@@ -380,7 +380,15 @@ projet Cloudflare **Workers** et non Pages.
 
 **Correction de l'auteur.** `wrangler.jsonc` fait publier seulement `_site/` et fixe
 `html_handling: none`. La commande de construction à régler dans Cloudflare est
-`node outils/site-public.js`. **Non vérifié** tant que Cloudflare n'a pas republié.
+`node outils/site-public.js`.
+
+**Vérification après republication.** Les fichiers internes ne sont plus servis (404) et `tp.html` n'est
+plus redirigé. Mais la racine `/` répondait 404, parce que `html_handling: none` ne sert plus
+`index.html`. Le service worker n'installait donc rien, puisqu'il met `./` en cache.
+
+**Correction de l'auteur.** `outils/cloudflare-worker.js` : quelques lignes, qui ne tournent que si aucun
+fichier ne correspond. La racine `/` sert alors `index.html`, et le reste répond 404. Le comportement est
+testé localement ; **non vérifié** en ligne avant la republication.
 
 ---
 
