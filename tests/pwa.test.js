@@ -9,8 +9,8 @@ const vm = require("node:vm");
 const precache = require("../outils/liste-precache.js");
 const RACINE = precache.RACINE;
 
-// Fichiers qui ne font pas partie du site servi (outils, documentation, serveur du journal).
-const HORS_SITE = new Set(["serveur", "docs", "tests", "outils", ".git", ".github", "node_modules"]);
+// Fichiers qui ne font pas partie du site servi (outils, documentation, serveur du journal, copie publique _site/).
+const HORS_SITE = new Set(["serveur", "docs", "tests", "outils", ".git", ".github", "node_modules", "_site"]);
 function fichiersDuSite(dossier) {
   return fs.readdirSync(path.join(RACINE, dossier), { withFileTypes: true }).flatMap(e => {
     const rel = dossier ? dossier + "/" + e.name : e.name;
