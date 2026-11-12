@@ -298,6 +298,73 @@ après B3, I1, I4 et I5. Le journal ne doit être activé qu'après B1, B2 et l'
 - B2 change la façon d'en parler : le journal est une **mesure d'audience minimisée**, pas des
   « données anonymes ». Les cases de moins de 5 sont masquées et seuls les jours terminés sont affichés.
 
+## Relecture des corrections du journal et de l'application, 12/11/2026
+
+Le juge a travaillé en lecture seule sur le commit `62ca7f6` :
+- il a rejoué les attaques du 27/10 ;
+- il a lancé le serveur avec une horloge décalable pour fabriquer de vrais jours clos ;
+- il a fait les essais en navigateur dans Chromium sans écran.
+
+Les 122 tests passent. En CI, `tp-quiz.test.js` est sauté parce que Chromium n'y est pas installé.
+
+### Points du 27/10
+- **Corrigés :** B1, B3, I2, I5, I7, I8, M2, M5, M8, M9.
+- **I1 corrigé, mais avec un coût :** chaque page attend 1,5 s sur un réseau faible (voir N-I3).
+- **Partiels :**
+  - B2 : le seuil k peut être contourné (voir N-B1) ;
+  - I3 : voir N-I2 ;
+  - I4 : voir N-I1 ;
+  - I6 : voir N-I4 et N-I5 ;
+  - M1 : la reprise d'un verrou orphelin a encore une course ;
+  - M3 : les empreintes d'adresse restent en mémoire jusqu'à 24 h, alors que le texte dit « quelques
+    minutes » ;
+  - M6, M7 et M10.
+- **Non corrigé :** M4. Les événements de plus de 30 jours sont encore rejetés, alors que ce rejet ne
+  sert plus à rien depuis le rangement au jour de réception.
+
+### Nouveaux défauts
+- **N-B1 (bloquant pour activer le journal) : le seuil k se contourne dans un seul export CSV.**
+  - Total et case visible : le CSV affiche 6 visites, dont 5 Android, donc exactement 1 iOS.
+  - Ligne cachée retrouvée par soustraction entre la colonne du jour et celle de la période.
+  - Fenêtres glissantes d'un jour à l'autre.
+  - Avec les journaux de l'hébergeur, on retrouve l'appareil.
+  - De plus, `confidentialite.html` affirme que les petits nombres ne sont « jamais affichés ».
+- **N-I1.** Dans l'onglet de la toute première visite, « Recharger » ne fait rien, et cet onglet
+  mélange deux versions du site (`pwa.js`, variable `dejaControlee` figée au chargement).
+- **N-I2.** Depuis une seule adresse, 390 lots gonflés à 128 Ko épuisent en 1,3 s le plafond de 50 Mo du
+  jour. Toutes les visites reçoivent ensuite 503 jusqu'à minuit UTC.
+- **N-I3.** `config-journal.js` est servi par le réseau d'abord : chaque page attend 1,5 s sur un réseau
+  faible, et plus de 20 s à la première visite.
+- **N-I4.** Une réussite n'est émise que la première fois dans ce navigateur
+  (`tp.js:151 if (etat.objectifs[i]) return;`), alors que chaque ouverture est comptée. Les taux sont
+  donc biaisés vers le bas, surtout sur un appareil partagé. Vérifié par l'auteur.
+- **N-I5.** Les animations tournent en permanence, même en pause : le temps actif est surestimé (75 s
+  comptées pour 77 s sans aucun geste).
+- **N-I6.** Si la liste blanche n'est plus à jour, les événements d'un nouveau TP sont perdus en
+  silence (réponse 204). La liste n'est lue qu'au démarrage.
+- **Mineurs N-M1 à N-M10 :**
+  - un secret hexadécimal sans hasard (par exemple une suite de « 0 ») est accepté ;
+  - course sur la reprise d'un verrou orphelin ;
+  - les fichiers en quarantaine et les fichiers temporaires ne sont jamais purgés ;
+  - un fichier de totaux de forme inattendue provoque une erreur 500 ;
+  - le rangement au jour de réception mesure des réceptions, pas des visites : le dire sur le tableau ;
+  - les plafonds par adresse sont trop bas derrière le NAT d'un opérateur mobile ou d'une école ;
+  - le rechargement forcé fait perdre une réponse en cours de saisie ;
+  - `tp_debut` part sans variante quand le contenu met plus de 10 s à charger ;
+  - avec Global Privacy Control activé après coup, la file en attente reste stockée ;
+  - `config-journal.js` peut être retardé par le cache HTTP.
+- **Tests.** Plusieurs ne font que chercher une expression régulière dans le code (rechargement des
+  onglets, `tp.js`), et un autre déclenche des événements que `tp.js` n'émet pas. Rien ne teste le
+  contournement par différence, le bourrage ni la purge de la quarantaine.
+
+### Verdict
+- **Application installable, journal éteint :** déployable après N-I1. N-I3 est fortement recommandé.
+- **Activation du journal :** pas prête. Il faut d'abord N-B1, N-I2, N-I4, N-I5 et N-I6, les textes de
+  confidentialité, les « À COMPLÉTER » et l'avis de l'APDP.
+
+### Suites
+Toutes les corrections sont confiées à l'auteur. Ce qui est fait sera noté dans le carnet de bord.
+
 ## Limites relevées par les auteurs (22/10/2026)
 
 ### Maths utiles
