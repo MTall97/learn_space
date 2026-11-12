@@ -138,6 +138,7 @@
       const champ = blocs[i].querySelector(".saisie");
       if (champ) champ.querySelectorAll("input, button").forEach(x => { x.disabled = true; });
       LS.enregistrerTP(cle, etat);
+      document.dispatchEvent(new CustomEvent("ls:reussite", { detail: { tp: cle, i, complet: Object.keys(etat.objectifs).length + Object.keys(etat.questions).length >= etat.total } }));
     };
     const blocs = [];
     (tp.objectifs || []).forEach((o, i) => {
@@ -237,9 +238,9 @@
         const expl = LS.el("div", { class: "explication" });
         const choix = LS.el("div", { class: "choix" });
         const essais = LS.el("div", { class: "essais" });
-        const cle = "q" + i;
+        const cleQ = "q" + i; // essais de la question (le TP garde son état sous « cle »)
         const majEssais = () => {
-          const n = etat.essais[cle] || 0;
+          const n = etat.essais[cleQ] || 0;
           essais.textContent = etat.questions[i] ? "Réussie" + (n > 1 ? " au 2e essai" : n === 1 ? " du premier coup" : "") : etat.questionsVues[i] ? "Réponse montrée après " + n + " essais" : n ? n + (n > 1 ? " essais" : " essai") : "";
         };
         const montrer = () => {
@@ -249,13 +250,13 @@
         q.choix.forEach((c, j) => {
           const b = LS.el("button", { html: LS.texte(c), onclick: () => {
             if (etat.questions[i] || etat.questionsVues[i]) return;
-            etat.essais[cle] = (etat.essais[cle] || 0) + 1;
-            document.dispatchEvent(new CustomEvent("ls:essai", { detail: { tp: tp.cleEtat || id, objet: "q", i, ok: j === q.bonne } }));
+            etat.essais[cleQ] = (etat.essais[cleQ] || 0) + 1;
+            document.dispatchEvent(new CustomEvent("ls:essai", { detail: { tp: cle, objet: "q", i, ok: j === q.bonne, complet: j === q.bonne && Object.keys(etat.objectifs).length + Object.keys(etat.questions).length + 1 >= etat.total } }));
             choix.querySelectorAll("button").forEach(x => x.classList.remove("faux"));
             if (j === q.bonne) { etat.questions[i] = true; montrer(); }
             else {
               b.classList.add("faux"); b.disabled = true;
-              if (etat.essais[cle] >= 2) { etat.questionsVues[i] = true; montrer(); }
+              if (etat.essais[cleQ] >= 2) { etat.questionsVues[i] = true; montrer(); }
               else expl.innerHTML = q.indice ? LS.texte(q.indice) : "Pas tout à fait : essaie dans la simulation, puis réponds de nouveau (encore 1 essai).";
             }
             LS.enregistrerTP(cle, etat); majEssais();

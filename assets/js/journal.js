@@ -1,14 +1,17 @@
-/* Journal d'utilisation ANONYME : le serveur ne reçoit que des événements sans identifiant et n'en
-   garde que des totaux par jour (pages vues, temps, TP ouverts et terminés, objectifs réussis, essais
-   ratés, questions, notions, visites par catégorie).
+/* Journal d'utilisation : statistiques agrégées et minimisées. Le serveur reçoit des événements sans
+   identifiant et n'en garde que des totaux par jour (pages vues, temps, TP ouverts et terminés,
+   objectifs réussis, essais ratés, questions, notions, visites par catégorie).
    - Aucun numéro d'appareil. Un numéro de VISITE, tiré au hasard, vit dans sessionStorage (perdu à la
      fermeture de l'onglet, renouvelé après 30 min sans activité) et ne quitte jamais le navigateur : il
-     sert seulement à savoir ici ce qui appartient à la même visite (TP déjà compté, durée de la visite).
+     sert seulement à savoir ici ce qui appartient à la même visite (TP, objectif ou fin de TP comptés
+     une fois par visite, durée de la visite).
    - localStorage ne garde que des réglages et la file d'attente : la date (au jour) de la dernière
-     visite, qui n'est jamais envoyée (seule sa catégorie part : première, moins de 7 j, 7 à 30 j, plus
-     de 30 j), l'opposition, l'information déjà lue, et les événements pas encore envoyés.
-   - Désactivé tant que LS.JOURNAL_URL est vide (assets/js/config-journal.js) et en file:// : rien n'est
-     alors noté ni affiché. Opposition dans confidentialite.html (file vidée, plus rien n'est noté).
+     visite et sa date de création, effacées au bout de 13 mois sans être prolongées (seule la catégorie
+     part : même jour, moins de 7 j, 7 à 30 j, plus de 30 j, première), l'opposition, l'information déjà
+     lue, et les événements pas encore envoyés.
+   - Désactivé tant que LS.JOURNAL_URL est vide (assets/js/config-journal.js), en file://, et quand le
+     navigateur envoie le signal Global Privacy Control (traité comme un refus). Refus possible dans
+     confidentialite.html (file vidée, plus rien n'est noté).
    - Aucune perte : les événements attendent dans le navigateur (hors ligne compris) ; un lot envoyé
      garde un identifiant de lot aléatoire et reste en attente tant que le serveur n'a pas répondu ; le
      serveur ignore un lot déjà reçu. Entre deux onglets, l'envoi passe par navigator.locks s'il existe.
@@ -21,6 +24,8 @@
   const PAUSE_MS = 60000;             // sans interaction pendant 60 s, le temps ne compte plus
   const TICK_MS = 5000;
   const FIN_VISITE_MS = 30 * 60000;   // 30 min sans activité : nouvelle visite
+  const ANIMATION_MAX_MS = 10 * 60000; // une simulation qui s'anime compte comme activité 10 min au plus après le dernier geste
+  const VIE_DATE_MS = 395 * 86400000;  // la date de dernière visite est effacée 13 mois après sa création
   const PALIERS = [1, 5, 15, 30, 60]; // durée active de la visite, en minutes
   const PREFIXE = "learnspace:";
   const stockage = nom => ({
@@ -52,8 +57,10 @@
   function categorieRetour(derniere, aujourdhui) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(derniere || "")) return "premiere";
     const jours = Math.round((Date.parse(aujourdhui) - Date.parse(derniere)) / 86400000);
-    return jours < 7 ? "moins7" : jours <= 30 ? "7a30" : "plus30";
+    return jours <= 0 ? "meme_jour" : jours < 7 ? "moins7" : jours <= 30 ? "7a30" : "plus30";
   }
+  // Date de dernière visite gardée : { jour, cree }. Effacée 13 mois après sa création, sans prolongation.
+  const derniereValide = (d, maintenant) => !!d && typeof d === "object" && /^\d{4}-\d{2}-\d{2}$/.test(d.jour || "") && d.cree > 0 && maintenant - d.cree <= VIE_DATE_MS && d.cree <= maintenant + 86400000;
   // Paliers de durée active franchis en passant de avantMs à apresMs.
   const paliersFranchis = (avantMs, apresMs) => PALIERS.filter(m => avantMs < m * 60000 && apresMs >= m * 60000);
   // Ajoute un événement à une file bornée (on garde les plus récents). Opposition : rien n'est gardé.
@@ -74,10 +81,12 @@
     return { lot, file: file.slice(n), lots: [lot] };
   }
   // Temps actif : on ajoute l'écart depuis le dernier tic seulement si la page est visible et si la
-  // dernière interaction date de moins de 60 s (et jamais plus de deux intervalles à la fois).
+  // dernière interaction date de moins de 60 s, ou si une simulation s'anime à l'écran (moins de 10 min
+  // après le dernier geste) ; jamais plus de deux intervalles à la fois.
   function tic(etat, maintenant, visible) {
-    const ecart = Math.max(0, maintenant - etat.dernierTic);
-    const actif = visible && maintenant - etat.derniereInteraction < PAUSE_MS;
+    const ecart = Math.max(0, maintenant - etat.dernierTic), depuisGeste = maintenant - etat.derniereInteraction;
+    const anime = maintenant - (etat.derniereAnimation || 0) < 2000 && depuisGeste < ANIMATION_MAX_MS;
+    const actif = visible && (depuisGeste < PAUSE_MS || anime);
     return Object.assign({}, etat, { dernierTic: maintenant, actifMs: etat.actifMs + (actif ? Math.min(ecart, 2 * TICK_MS) : 0) });
   }
   // Type et identifiant de la page à partir de l'adresse.
@@ -88,16 +97,13 @@
     if (/(^|\/)(index\.html)?$/.test(chemin)) return { p: "accueil", id: "" };
     return { p: "autre", id: (chemin.split("/").pop() || "").replace(/\.html$/, "").slice(0, 64) };
   }
-  // Traduit un gain du jeu (clé du registre) en événement du journal. Les questions viennent de
-  // « ls:essai » (réussies et ratées), la fin de TP de « ls:tp-termine ».
+  // Traduit un gain du jeu (clé du registre, une fois par navigateur) en événement du journal : notions
+  // et cartes seulement. Objectifs, questions et fins de TP viennent de tp.js, à chaque visite
+  // (« ls:reussite », « ls:essai »), pour être comptés comme les ouvertures de TP.
   function evenementDeGain(cle, t) {
-    const m = /^(n|o|q|tp|carte):(.+)$/.exec(cle || "");
+    const m = /^(n|carte):(.+)$/.exec(cle || "");
     if (!m) return null;
-    if (m[1] === "n") return { t, e: "notion", noeud: m[2].slice(0, 160) };
-    if (m[1] === "carte") return { t, e: "carte_finie", id: m[2].slice(0, 64) };
-    if (m[1] !== "o") return null;
-    const k = m[2].lastIndexOf(":");
-    return { t, e: "objectif", id: m[2].slice(0, k).slice(0, 64), i: +m[2].slice(k + 1) || 0 };
+    return m[1] === "n" ? { t, e: "notion", noeud: m[2].slice(0, 160) } : { t, e: "carte_finie", id: m[2].slice(0, 64) };
   }
   function nouvelIdentifiant() {
     const o = new Uint8Array(16);
@@ -106,7 +112,7 @@
     return Array.from(o, x => x.toString(16).padStart(2, "0")).join("");
   }
   const jourLocal = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-  LS.journal = { categorieAppareil, categorieRetour, paliersFranchis, ajouterFile, prochainLot, tic, pageDe, evenementDeGain, nouvelIdentifiant, MAX_FILE, PAUSE_MS, FIN_VISITE_MS };
+  LS.journal = { categorieAppareil, categorieRetour, derniereValide, paliersFranchis, ajouterFile, prochainLot, tic, pageDe, evenementDeGain, nouvelIdentifiant, MAX_FILE, PAUSE_MS, FIN_VISITE_MS };
 
   if (typeof document === "undefined" || !document.addEventListener || typeof location === "undefined") return;
 
@@ -116,7 +122,9 @@
   const session = stockage("sessionStorage");
   let visiteMemoire = null; // si sessionStorage est refusé, la visite vit seulement dans la page
   J.configure = () => enLigne && typeof LS.JOURNAL_URL === "string" && LS.JOURNAL_URL !== "";
-  J.oppose = () => lire("journalConsentement", null) === "non";
+  // Global Privacy Control (réglage « ne pas me suivre » de certains navigateurs) vaut refus.
+  J.gpc = () => typeof navigator !== "undefined" && navigator.globalPrivacyControl === true;
+  J.oppose = () => J.gpc() || lire("journalConsentement", null) === "non";
   J.actif = () => J.configure() && !J.oppose();
   // Restes d'une version précédente (numéro d'appareil persistant) : effacés.
   ["journalAppareil", "journalAppareilCree", "journalAppareilAncien"].forEach(local.effacer);
@@ -129,17 +137,20 @@
     ecrireFile(ajouterFile(lire("journalFile", []), ev, false));
   }
   // Visite en cours (sessionStorage seulement). Une nouvelle visite note l'événement « visite » avec sa
-  // catégorie de retour, le niveau et la catégorie d'appareil ; la date du jour remplace l'ancienne.
+  // catégorie de retour, le niveau et la catégorie d'appareil ; le jour remplace l'ancien, la date de
+  // création est gardée (effacement au bout de 13 mois, même pour un élève qui revient souvent).
   function visite() {
     const maintenant = Date.now();
     let v = session.lire("journalVisite", null) || visiteMemoire;
-    if (!v || !/^[0-9a-f]{32}$/.test(v.id || "") || maintenant - v.dernier > FIN_VISITE_MS) {
+    if (!v || !/^[0-9a-f]{32}$/.test(v.id || "") || maintenant - v.dernier > FIN_VISITE_MS || !Array.isArray(v.vus)) {
       const aujourdhui = jourLocal(new Date(maintenant));
-      v = { id: nouvelIdentifiant(), dernier: maintenant, actifMs: 0, tps: [] };
+      v = { id: nouvelIdentifiant(), dernier: maintenant, actifMs: 0, vus: [] };
       const n = LS.profil && LS.profil().niveau ? LS.profil().niveau : null;
-      ajouter(Object.assign({ e: "visite", retour: categorieRetour(lire("journalDerniereVisite", null), aujourdhui), niveau: n },
+      let d = lire("journalDerniereVisite", null);
+      if (!derniereValide(d, maintenant)) { local.effacer("journalDerniereVisite"); d = null; }
+      ajouter(Object.assign({ e: "visite", retour: categorieRetour(d && d.jour, aujourdhui), niveau: n },
         categorieAppareil(navigator.userAgent, screen.width, navigator.maxTouchPoints)));
-      ecrire("journalDerniereVisite", aujourdhui);
+      ecrire("journalDerniereVisite", { jour: aujourdhui, cree: d ? d.cree : maintenant });
     }
     v.dernier = maintenant;
     if (!session.ecrire("journalVisite", v)) visiteMemoire = v;
@@ -149,7 +160,12 @@
   function noter(ev) {
     if (!J.actif()) return;
     const v = visite();
-    if (ev.e === "tp_debut") { if (v.tps.includes(ev.id)) return; v.tps.push(ev.id); majVisite(v); } // un TP compté une fois par visite
+    // Ouverture de TP, objectif réussi, fin de TP : une fois par visite (mêmes unités pour les taux).
+    if (ev.e === "tp_debut" || ev.e === "objectif" || ev.e === "tp_fin") {
+      const cle = ev.e + ":" + ev.id + (ev.e === "objectif" ? "|" + ev.i : "");
+      if (v.vus.includes(cle)) return;
+      v.vus.push(cle); majVisite(v);
+    }
     if (ev.e === "temps") { for (const m of paliersFranchis(v.actifMs, v.actifMs + ev.ms)) ajouter({ e: "palier", m }); v.actifMs += ev.ms; majVisite(v); }
     ajouter(ev);
   }
@@ -206,6 +222,11 @@
       else noter({ e: "tp_debut", id: page.id });
     })();
   }
+  // Sur un TP, une simulation qui s'anime (requestAnimationFrame) compte comme activité.
+  if (page.p === "tp" && J.configure() && typeof window.requestAnimationFrame === "function") {
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = f => raf(t => { etat.derniereAnimation = Date.now(); f(t); });
+  }
   ["pointerdown", "keydown", "scroll", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { etat.derniereInteraction = Date.now(); }, { passive: true, capture: true }));
   // Le temps est noté par tranches, pour ne rien perdre si la page est fermée brutalement.
   function noterTemps() {
@@ -226,17 +247,22 @@
   });
   document.addEventListener("ls:gain", ev => {
     const e = evenementDeGain(ev.detail && ev.detail.cle, Math.round(Date.now() / 1000));
-    if (!e) return;
-    if (e.e === "objectif") e.ms = Date.now() - debut; // depuis l'ouverture du TP
-    noter(e);
+    if (e) noter(e);
   });
-  // Chaque réponse saisie à un objectif ou à une question, juste ou fausse (émis par tp.js).
+  // Émis par tp.js : un objectif réussi pendant la visite (« complet » : tout le TP est réussi).
+  document.addEventListener("ls:reussite", ev => {
+    const d = ev.detail || {};
+    if (typeof d.tp !== "string") return;
+    noter({ e: "objectif", id: d.tp.slice(0, 64), i: +d.i || 0, ms: Date.now() - debut }); // temps depuis l'ouverture du TP
+    if (d.complet) noter({ e: "tp_fin", id: d.tp.slice(0, 64), ms: Date.now() - debut });
+  });
+  // Émis par tp.js : chaque réponse saisie à un objectif ou choisie à une question, juste ou fausse.
   document.addEventListener("ls:essai", ev => {
     const d = ev.detail || {};
     if (typeof d.tp !== "string" || (d.objet !== "o" && d.objet !== "q")) return;
     noter({ e: "essai", id: d.tp.slice(0, 64), o: d.objet, i: +d.i || 0, ok: !!d.ok });
+    if (d.objet === "q" && d.ok && d.complet) noter({ e: "tp_fin", id: d.tp.slice(0, 64), ms: Date.now() - debut });
   });
-  document.addEventListener("ls:tp-termine", ev => noter({ e: "tp_fin", id: String(ev.detail && ev.detail.id || page.id).slice(0, 64), ms: Date.now() - debut }));
 
   /* ---------- Information : reste affichée jusqu'au clic sur « Compris » (non bloquante) ---------- */
   function information() {
@@ -248,7 +274,7 @@
     document.head.append(style);
     const p = document.createElement("div");
     p.id = "info-journal"; p.className = "info-journal"; p.setAttribute("role", "note");
-    p.innerHTML = '<span>Pour améliorer le site, on compte les pages vues, le temps passé et les résultats des exercices. Rien ne dit qui tu es. <a href="confidentialite.html">En savoir plus ou refuser</a></span>' +
+    p.innerHTML = '<span>Pour améliorer le site, il compte des totaux (pages vues, temps passé, résultats des exercices), sans ton nom ni compte. <a href="confidentialite.html">En savoir plus ou refuser</a></span>' +
       '<button type="button" class="btn petit secondaire">Compris</button>';
     p.querySelector("button").addEventListener("click", () => { ecrire("journalInfoVue", true); p.remove(); });
     const entete = document.querySelector(".entete");

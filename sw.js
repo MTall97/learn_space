@@ -4,7 +4,7 @@
      nouvelle version, donc un nouveau cache).
    - Les fichiers du site sont servis depuis le cache (rapide sur un réseau faible) ; la nouvelle
      version s'installe en arrière-plan et la page propose « Recharger » (assets/js/pwa.js).
-   - config-journal.js, rempli au déploiement, est relu d'abord sur le réseau.
+   - config-journal.js, rempli au déploiement, est relu d'abord sur le réseau (1,5 s au plus, puis cache).
    - Jamais de cache pour le journal et le tableau de bord (/api, /admin, /journal), ni pour les autres sites.
    - Une page absente du cache, sans réseau : hors-ligne.html.
    Actif seulement quand le site est servi en http(s), pas en ouvrant les fichiers. */
@@ -26,8 +26,12 @@ self.addEventListener("fetch", ev => {
   if (req.method !== "GET" || url.origin !== location.origin) return;
   if (/\/(api|admin|journal)(\/|$)/.test(url.pathname)) return;
   if (RESEAU_D_ABORD.test(url.pathname)) {
-    ev.respondWith(fetch(req).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(req, copie)); } return rep; })
-      .catch(() => caches.match(req, { ignoreSearch: true })));
+    // Le réseau a 1,5 s pour répondre ; sinon la copie en cache (ce fichier est chargé de façon
+    // synchrone : un réseau qui ne répond pas bloquerait toute la page).
+    const reseau = fetch(req).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(req, copie)); } return rep; });
+    const delai = new Promise(ok => setTimeout(() => ok(null), 1500));
+    ev.respondWith(Promise.race([reseau.catch(() => null), delai])
+      .then(rep => rep || caches.open(CACHE).then(c => c.match(req, { ignoreSearch: true })).then(copie => copie || reseau)));
     return;
   }
   // Pages : tp.html?id=… et carte.html?id=… sont la même page en cache.

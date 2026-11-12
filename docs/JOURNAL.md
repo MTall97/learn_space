@@ -1,217 +1,184 @@
-# Journal d'utilisation (anonyme)
+# Journal d'utilisation (statistiques agrégées et minimisées)
 
-Le journal dit comment Learn Space est utilisé, **sans jamais savoir qui l'utilise** :
-- combien de visites, de pages vues, de temps passé ;
-- quels TP sont ouverts et terminés ;
-- **où les élèves se trompent** : objectifs avec le plus d'essais ratés, questions avec le plus de réponses fausses.
+Le journal dit comment Learn Space est utilisé :
+- visites, pages vues, temps passé ;
+- TP ouverts et terminés ;
+- **où les élèves se trompent** (essais ratés aux objectifs, réponses fausses aux questions).
 
-Le serveur ne reçoit aucun identifiant et ne garde que des **totaux par jour**. Seul l'administrateur les voit, sur un tableau de bord protégé par mot de passe.
+Il est conçu pour ne pas savoir qui l'utilise. Le serveur reçoit des événements **sans identifiant** et n'en garde que des **totaux par jour**. Le tableau de bord ne montre que des jours clos et masque tout nombre inférieur à un seuil (k = 5).
 
-- Navigateur : `assets/js/journal.js`, réglé par `assets/js/config-journal.js`. Les essais viennent de `assets/js/tp.js`, qui émet `ls:essai` à chaque réponse saisie ou choisie.
-- Serveur : `serveur/app.js`, Node.js 18, 20 ou 22, **sans dépendance npm**.
+Ce n'est pas une promesse d'anonymat absolu : à la réception, le serveur voit techniquement l'adresse IP, comme tout site, et l'hébergeur garde ses propres journaux d'accès (voir plus bas). Les mesures ci-dessous servent à rendre le rapprochement aussi difficile que possible.
+
+- Navigateur : `assets/js/journal.js`, réglé par `assets/js/config-journal.js`. `assets/js/tp.js` émet `ls:essai` (chaque réponse) et `ls:reussite` (chaque objectif réussi).
+- Serveur : `serveur/app.js` (Node.js 18, 20 ou 22, sans dépendance npm) et `serveur/liste-blanche.json`, généré.
 - Information et refus : `confidentialite.html`.
 
-**Le journal est désactivé tant que `LS.JOURNAL_URL` est vide** (valeur livrée dans `config-journal.js`). Rien n'est alors compté, affiché, écrit sur l'appareil ni envoyé. Il ne fonctionne jamais quand le site est ouvert depuis le disque (`file://`).
-
-## En deux phrases (pour un enfant ou un parent)
-
-Le site compte des choses comme « 120 visites mardi » ou « le TP de la lampe a été ouvert 40 fois ». Il ne sait pas qui tu es : pas de nom, pas de compte, pas de numéro qui te suit, et tu peux refuser sur la page Confidentialité.
+**Le journal est désactivé** dans trois cas : tant que `LS.JOURNAL_URL` est vide, en `file://`, et quand le navigateur envoie **Global Privacy Control** (traité comme un refus).
 
 ## Avant la mise en ligne (étapes bloquantes)
 
-1. **Remplir le responsable et le contact** dans `confidentialite.html` : toutes les mentions `[À COMPLÉTER …]` (responsable, adresse e-mail, durée des journaux et des sauvegardes de l'hébergeur, réponse de l'APDP).
-2. **Faire confirmer par l'APDP** (Autorité de protection des données à caractère personnel du Mali) que ce journal anonyme peut fonctionner comme décrit (mention `[À FAIRE CONFIRMER PAR L'APDP]`).
-3. Ne remplir `config-journal.js` qu'après ces deux étapes.
+1. Remplir toutes les mentions `[À COMPLÉTER …]` de `confidentialite.html` : responsable, contact, durée des journaux et des sauvegardes de l'hébergeur, réponse de l'APDP.
+2. Faire confirmer par l'APDP la base légale indiquée : intérêt légitime, mesure d'audience minimisée, droit de refus.
+3. Ne remplir `config-journal.js` qu'après.
 
 ## Ce qui reste sur l'appareil (jamais envoyé)
 
-| Où | Quoi | Pourquoi |
-|---|---|---|
-| `sessionStorage` | un **numéro de visite** tiré au hasard, l'heure de la dernière activité, le temps actif de la visite, les TP déjà ouverts pendant la visite | savoir ce qui fait partie de la même visite (un TP compté une fois par visite, tranche de durée). Perdu à la fermeture de l'onglet ; renouvelé après 30 min sans activité. **Ne quitte jamais l'appareil** et n'est jamais écrit en `localStorage`. |
-| `localStorage` | la **date (au jour) de la dernière visite** | calculer la catégorie de retour ; seule la catégorie part. |
-| `localStorage` | l'opposition, « information déjà lue » | réglages. |
-| `localStorage` | la file des événements pas encore envoyés | ne rien perdre hors ligne. Aucun identifiant dedans. |
+| Où | Quoi |
+|---|---|
+| `sessionStorage` | un **numéro de visite** aléatoire et l'état de la visite : dernière activité, temps actif, TP, objectifs et fins de TP déjà comptés. Perdu à la fermeture de l'onglet ; renouvelé après 30 min sans activité. Jamais envoyé ni écrit en `localStorage`. |
+| `localStorage` | la **date de dernière visite** (au jour) et sa **date de création**. Elles sont effacées 13 mois après la création, sans prolongation, même pour un élève qui revient souvent. Seule la catégorie part. |
+| `localStorage` | l'opposition, « information lue », la file des événements pas encore envoyés (sans identifiant). |
 
 ## Ce qui est envoyé
 
-Des lots `{ v: 2, lot, envoi, evs }` :
-- `lot` est un identifiant aléatoire **du lot**, pour ne pas le compter deux fois s'il est renvoyé ;
+Le navigateur envoie des lots `{ v: 2, lot, envoi, evs }` :
+- `lot` est un identifiant aléatoire du lot, pour ne pas compter deux fois un lot renvoyé ;
 - `envoi` est l'heure d'envoi de l'appareil, qui sert à recaler une horloge fausse.
 
 Les événements possibles :
 
 | Événement | Contenu |
 |---|---|
-| `visite` | une fois par visite : catégorie de retour (`premiere`, `moins7`, `7a30`, `plus30`), niveau choisi (1 à 4 ou rien), type d'appareil, famille de système, tranche de largeur d'écran (`<400`, `400-599`, `600-899`, `900-1279`, `1280+`). Une combinaison type + système peu courante est simplifiée (système « autre »). |
-| `page`, `temps` | page ouverte ; temps actif sur la page (page à l'écran et interaction depuis moins de 60 s) |
-| `palier` | la visite a dépassé 1, 5, 15, 30 ou 60 minutes de temps actif (donne la durée des visites en tranches sans rien relier) |
-| `tp_debut`, `tp_fin` | TP ouvert (une fois par visite, sous sa variante de niveau `id@niveau`) ; TP terminé (durée depuis l'ouverture) |
-| `objectif` | objectif réussi (temps depuis l'ouverture du TP) |
-| `essai` | une réponse saisie à un objectif (`o`) ou choisie à une question (`q`), juste ou fausse |
-| `notion`, `carte_finie` | notion comprise, carte terminée |
+| `visite` | une fois par visite. Catégorie de retour (`meme_jour`, `moins7`, `7a30`, `plus30`, `premiere`), niveau (1 à 4 ou rien), type d'appareil, système, tranche de largeur d'écran. Une combinaison type + système rare devient « autre ». |
+| `page`, `temps` | page ouverte ; temps actif (page à l'écran, et geste depuis moins de 60 s, ou simulation qui s'anime moins de 10 min après le dernier geste) |
+| `palier` | la visite a dépassé 1, 5, 15, 30 ou 60 min de temps actif |
+| `tp_debut`, `tp_fin` | TP ouvert ; TP terminé pendant la visite. **Une fois par visite**, sous la variante de niveau `id@niveau` |
+| `objectif` | objectif réussi pendant la visite, **une fois par visite** (même unité que `tp_debut`) |
+| `essai` | une réponse à un objectif à réponse écrite (`o`) ou à une question (`q`), juste ou fausse |
+| `notion`, `carte_finie` | notion comprise, carte terminée (une fois par navigateur, comme les gains du jeu) |
 
 ## Ce que le serveur garde
 
-Le serveur garde des **totaux par jour** dans `agregats/AAAA-MM-JJ.json` :
-- visites par catégorie de retour, par niveau, par type d'appareil, par système, par tranche de largeur, par couple type · système, et par **tranche horaire** (UTC, l'heure de Bamako) ;
-- visites ayant atteint chaque palier de durée ;
-- par page : vues et temps actif ;
-- par TP : ouvertures, fins, durée jusqu'à la fin ;
-- par objectif : réussites, temps pour réussir, essais, essais ratés ;
-- par question : réponses justes et fausses ;
-- par notion et par carte : nombre.
+- `agregats/AAAA-MM-JJ.json` : les **totaux du jour de réception**.
+  - Tous les événements d'un lot vont au jour où il est reçu, même s'ils ont été gardés hors ligne plusieurs jours. Un jour clos ne change donc plus jamais : impossible de voir l'effet d'un lot arrivé en retard.
+  - Le fichier contient : visites par retour, niveau, type, système, largeur (répartitions séparées, sans croisement) ; paliers de durée ; vues et temps par page ; ouvertures et fins par TP ; réussites, essais et essais ratés par objectif ; réponses justes et fausses par question ; notions et cartes.
+- `agregats/mois-AAAA-MM.json` : le **profil horaire** des visites, au mois (UTC, l'heure de Bamako). Il n'y a pas de tranche horaire par jour.
+- `lots/AAAA-MM-JJ.txt` : les identifiants aléatoires des lots reçus. Ils ne sont liés à rien d'autre et sont effacés après 31 jours.
 
-Chaque événement est ajouté aussitôt au total du jour, puis oublié : **aucune ligne brute, aucune heure d'événement, aucun identifiant** n'est stocké. Rien ne permet de relier deux visites, ni deux événements d'une même visite.
+Rien d'autre n'est écrit : aucune ligne brute, aucun horodatage d'événement, aucun identifiant, aucune adresse IP.
 
-Il garde aussi, à part, `lots/AAAA-MM-JJ.txt` : les identifiants aléatoires des lots reçus. Ils servent à ne pas recompter un lot renvoyé après une coupure. Ils ne sont liés à rien d'autre et sont effacés au bout de 31 jours (le délai maximal d'un lot gardé hors ligne).
+**Liste blanche.** `serveur/liste-blanche.json` est généré par `node outils/liste-precache.js` depuis `contenu/`. Il contient les TP (et leurs variantes), le nombre d'objectifs et de questions de chacun, les cartes, les notions et les pages. Un identifiant inconnu est ignoré : impossible de remplir les totaux avec des clés inventées. Il faut le régénérer et le recopier sur le serveur à chaque ajout de contenu.
 
-**Conservation** : les totaux sont gardés **25 mois** (760 jours, réglable), pour comparer une année scolaire à la précédente, puis effacés automatiquement. Au démarrage, le serveur efface aussi tout reste de données brutes d'une version précédente (dossier `evenements/`).
+**Conservation** : totaux gardés **25 mois** (760 jours, réglable), puis effacés. Au démarrage, tout reste de données brutes d'une version précédente (`evenements/`) est effacé.
 
-**Verrou** : chaque ajout se fait sous un verrou de fichier, partagé entre processus, pour qu'aucun total ne se perde quand Passenger lance plusieurs processus.
+## Seuil k et jours clos (contre le rapprochement)
+
+À faible trafic, un total du jour peut ne décrire qu'une seule visite. Trois règles limitent ce risque.
+
+- Le tableau de bord et le CSV ne montrent **que des jours clos** (hier au plus tard), jamais le jour en cours. Ils ne permettent donc pas de voir chaque lot arriver par différence.
+- **Seuil k** (`seuilK`, 5 par défaut) : toute case inférieure à k est affichée « < 5 ». Une ligne dont le compte principal est sous k n'est pas montrée : sa présence dirait déjà qu'une visite a ouvert cette page. Les parts en % ne sont calculées que si le numérateur et le dénominateur atteignent k. Cela vaut pour les tableaux, les répartitions, le CSV et les cumuls d'une période.
+- **Profil horaire au mois** seulement, avec le même seuil.
+
+Limites connues :
+- comparer deux périodes qui se recouvrent (7 et 8 jours), ou combiner plusieurs cases d'un même tableau, peut encore faire déduire un petit nombre ;
+- le fichier du jour en cours, sur le disque, est mis à jour à chaque lot : l'administrateur ne doit pas l'examiner à la main.
 
 ## Le choix d'une collecte sans consentement préalable
 
-La collecte suit le régime de la **mesure d'audience anonyme**. Le serveur ne reçoit pas de données qui identifient une personne, ni directement ni indirectement : pas d'identifiant persistant, pas d'IP enregistrée, pas d'heure précise, catégories grossières. Il n'en garde que des totaux.
-
-En contrepartie :
+La base légale proposée est l'**intérêt légitime** : mesure d'audience d'un service éducatif gratuit, avec des statistiques agrégées et minimisées. En contrepartie :
+- pas d'identifiant persistant, pas d'IP enregistrée, pas d'heure précise, catégories grossières, seuil k ;
 - l'information reste affichée jusqu'au clic sur « Compris » ;
-- le **refus** reste possible à tout moment dans `confidentialite.html`. Le refus vide la file, efface la date de dernière visite et la visite en cours ; plus rien n'est compté.
+- le **refus** est possible à tout moment dans `confidentialite.html`, et Global Privacy Control est respecté.
 
-La CNIL et le RGPD considèrent que des données réellement anonymisées ne sont plus des données personnelles. La loi malienne n° 2013-015 retient la même idée de données qui ne permettent pas d'identifier une personne. **Cette analyse doit être confirmée par l'APDP** avant la mise en ligne.
+**À faire confirmer par l'APDP** avant la mise en ligne.
 
 ## Aucune perte
 
-- Les événements attendent dans le navigateur, jusqu'à 3 000. Deux tranches de temps de suite sur la même page sont fusionnées. Si le navigateur manque de place, la moitié la plus ancienne est abandonnée.
-- Un lot envoyé reste « en attente » tant que le serveur n'a pas répondu 204. À la fermeture de l'onglet, il part avec `fetch` `keepalive` ; s'il n'y a pas de réponse, il est renvoyé à la visite suivante, et le serveur ne le compte pas deux fois.
-- Sans réseau, les lots attendent ; l'envoi reprend dès que le réseau revient (`online`) ou toutes les 30 s. En cas de 429 ou de 503, le lot est gardé et renvoyé 10 minutes plus tard.
-- Entre deux onglets, l'envoi est réservé à un seul onglet par `navigator.locks` quand il existe.
-- Limite : si l'élève efface les données de son navigateur, ce qui n'était pas encore parti est perdu.
+- Les événements attendent dans le navigateur (3 000 au plus ; la moitié la plus ancienne part si le navigateur manque de place).
+- Un lot reste en attente tant que le serveur n'a pas répondu 204 ; il est renvoyé, et le serveur ne le compte pas deux fois.
+- En cas de 429 ou de 503, le lot est gardé et renvoyé 10 minutes plus tard.
+- Un fichier de totaux illisible n'est jamais écrasé : il est mis en quarantaine (`.corrompu-<date>`, signalé sur le tableau de bord), le lot reçoit 503 et sera renvoyé.
 
 ## Installation sur O2switch avec « Setup Node.js App »
 
-Le site reste statique (copie des fichiers) ; seul le journal tourne en Node.js.
-
-1. **Copier uniquement le site** dans le dossier public (`public_html/`) : les pages `*.html`, `assets/`, `contenu/`, `sw.js`, `sw-fichiers.js`, `manifest.webmanifest`.
+1. **Copier le site** dans `public_html/` : les pages `*.html`, `assets/`, `contenu/`, `manifest.webmanifest`, puis **en dernier** `sw-fichiers.js` et `sw.js` (voir `docs/APPLICATION.md`).
    - **Ne jamais copier `serveur/`, `docs/`, `tests/`, `outils/` ni `.git/` dans `public_html`.** Par précaution, `serveur/.htaccess` interdit tout accès web.
-   - Activer le certificat https (AutoSSL).
-2. **Copier le serveur hors du dossier public** : `serveur/app.js` et `serveur/config.example.json` dans `/home/<compte>/learnspace-journal/`.
-3. **Dossier de données hors du dossier public** : `/home/<compte>/learnspace-donnees`, droits `700`. Le serveur **refuse de démarrer** si le dossier de données ou la configuration est sous `public_html`, `www` ou `htdocs`. Les fichiers créés ont les droits `600`.
-4. **Mot de passe** : dans cPanel, ouvrir le Terminal et lancer d'abord la commande `source …/activate` affichée en haut de la page « Setup Node.js App » (voir l'étape 6). Puis :
+2. **Copier le serveur hors du dossier public** : `serveur/app.js`, `serveur/liste-blanche.json` et `serveur/config.example.json` dans `/home/<compte>/learnspace-journal/`.
+3. **Dossier de données** : `/home/<compte>/learnspace-donnees`, droits `700`. Le serveur refuse de démarrer si les données ou la configuration sont sous `public_html`, `www` ou `htdocs`.
+4. **Mot de passe** : dans le Terminal de cPanel, après la commande `source …/activate` affichée par « Setup Node.js App » :
    ```
    cd ~/learnspace-journal
    node app.js --hacher
    ```
-   Taper le mot de passe (rien ne s'affiche), puis Entrée, et copier le résultat (`scrypt$…`). Le mot de passe n'est jamais passé en argument.
-5. **Secret de session** : `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, à mettre dans `secretSession`.
-6. **Créer l'application** dans cPanel, « Setup Node.js App », puis « Create Application » :
-   - version 20 ou 22, mode Production ;
-   - *Application root* : `learnspace-journal` ; *Application startup file* : `app.js` ;
-   - *Application URL* : le domaine du site avec le chemin `api`, ou un sous-domaine (`journal.<domaine>`).
-7. **Configuration** : soit `config.json` à côté de `app.js` (jamais dans Git), soit des variables d'environnement, qui sont prioritaires :
+   Taper le mot de passe, puis Entrée, et copier le résultat dans `adminHash`. Tant que `adminHash` n'est pas valable, le tableau de bord reste fermé : aucune session n'est possible.
+5. **Secret de session** : `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, dans `secretSession`. **Le serveur refuse de démarrer** si ce secret n'est pas fait d'au moins 64 caractères hexadécimaux. Le texte d'exemple est refusé, car il permettrait de fabriquer un cookie d'administrateur.
+6. **Créer l'application** dans « Setup Node.js App » : version 20 ou 22, mode Production, *Application root* `learnspace-journal`, fichier `app.js`. *Application URL* : le domaine avec le chemin `api`, ou un sous-domaine.
+7. **Configuration** : `config.json` à côté de `app.js` (jamais dans Git), ou des variables d'environnement, prioritaires :
 
-   | Variable | Exemple | Rôle |
+   | Variable | Défaut | Rôle |
    |---|---|---|
-   | `LS_ORIGINES` | `https://learnspace.exemple.ml` | adresse(s) du site autorisée(s) |
-   | `LS_DONNEES` | `/home/<compte>/learnspace-donnees` | dossier des données |
-   | `LS_ADMIN_HASH` | `scrypt$16384$8$1$…` | hachage du mot de passe |
-   | `LS_SECRET_SESSION` | 64 caractères hexadécimaux | signature du cookie de session |
-   | `LS_BASE` | `/api` | chemin de l'application ; vide pour un sous-domaine (le préfixe est accepté avec ou sans) |
-   | `LS_CHEMIN_ADMIN` | `/admin` | chemin du tableau de bord |
-   | `LS_CONSERVATION_JOURS` | `760` | conservation des totaux (25 mois) |
-   | `LS_LIMITE_LOTS` | `600` | lots acceptés par adresse et par 10 minutes (en mémoire) |
-   | `LS_PLAFOND_OCTETS_JOUR`, `LS_PLAFOND_LOTS_JOUR` | `50000000`, `200000` | plafonds par jour (au-delà : 503, rien n'est écrit) |
-   | `LS_PLAFOND_DOSSIER` | `2000000000` | taille maximale du dossier de données |
+   | `LS_ORIGINES` | | adresse(s) du site autorisée(s) |
+   | `LS_DONNEES` | `serveur/donnees` | dossier des données |
+   | `LS_LISTE_BLANCHE` | `liste-blanche.json` à côté de `app.js` | identifiants acceptés |
+   | `LS_ADMIN_HASH`, `LS_SECRET_SESSION` | | mot de passe haché, secret de session |
+   | `LS_BASE`, `LS_CHEMIN_ADMIN` | `""`, `/admin` | chemins |
+   | `LS_SEUIL_K` | `5` | seuil de masquage |
+   | `LS_CONSERVATION_JOURS` | `760` | conservation des totaux |
+   | `LS_LIMITE_LOTS`, `LS_PLAFOND_IP_JOUR` | `600`, `3000` | lots par adresse (ou par /64 en IPv6), par 10 min et par jour |
+   | `LS_PLAFOND_OCTETS_JOUR`, `LS_PLAFOND_LOTS_JOUR`, `LS_PLAFOND_DOSSIER` | 50 Mo, 200 000, 2 Go | plafonds globaux |
 
-8. **Redémarrer** l'application (« Restart ») après chaque modification.
-9. **Brancher le site** : dans `public_html/assets/js/config-journal.js`, écrire `window.LS.JOURNAL_URL = "/api/journal";`, ou `"https://journal.<domaine>/journal"` pour un sous-domaine. Le service worker relit ce fichier sur le réseau d'abord : pas besoin de régénérer `sw-fichiers.js` pour lui.
+8. **Redémarrer** l'application après chaque modification.
+9. **Brancher le site** : dans `public_html/assets/js/config-journal.js`, écrire `window.LS.JOURNAL_URL = "/api/journal";`. Si le réseau ne répond pas, le service worker sert la copie en cache après 1,5 s.
 10. **Tester** :
     - `…/api/sante` répond `ok` ;
-    - ouvrir le site sur un téléphone, ouvrir un TP, se tromper une fois à un objectif, revenir à l'accueil, attendre 30 s ;
-    - ouvrir `…/api/admin` : la visite, la page et l'essai raté apparaissent ;
-    - ouvrir `…/api/admin/diagnostic` ;
-    - vérifier que `https://<domaine>/serveur/app.js` renvoie 404 ou 403.
+    - ouvrir le site sur un téléphone, ouvrir un TP, se tromper à une question ;
+    - **le lendemain**, ouvrir `…/api/admin` ;
+    - ouvrir `…/api/admin/diagnostic`.
 
-### Vérifier X-Forwarded-For sur place
+### X-Forwarded-For
 
-Le serveur ne fait confiance à `X-Forwarded-For` que si la connexion vient du proxy local. Il n'en prend que la **dernière entrée**, celle qu'ajoute le proxy. Cette adresse ne sert qu'en mémoire (limite de débit, essais de connexion) et n'est jamais écrite.
+Le serveur ne fait confiance à `X-Forwarded-For` que si la connexion vient du proxy local. Il n'en prend que la dernière entrée et compte l'IPv6 par /64. L'adresse sert en mémoire, et seulement à deux choses : la limite de débit (par 10 min et par jour) et le délai après des essais de connexion ratés.
 
-La page `…/admin/diagnostic` (connexion requise) indique :
-- si la connexion directe est locale ;
-- si l'en-tête est présent, et avec combien d'entrées ;
-- le début de la dernière entrée (`41.73.x.x`).
-
-Compare-la au début de ton adresse publique. Si elle ne correspond pas (proxy en chaîne), relève `LS_LIMITE_LOTS` : les plafonds du jour protègent toujours le disque. Rien de cette page n'est enregistré.
+**Si X-Forwarded-For est absent derrière le proxy**, tous les clients semblent avoir la même adresse. Les mécanismes par adresse sont alors **désactivés** : pas de limite par adresse, pas de délai après échecs de connexion. Restent les plafonds globaux et le coût de scrypt. `…/admin/diagnostic` l'affiche en alerte.
 
 ## Sécurité du serveur
 
-- **Validation stricte** :
-  - lots de 128 Ko et 300 événements au plus ;
-  - liste fermée d'événements, de champs et de valeurs ;
-  - au plus 3 000 clés par rubrique et par jour (au-delà : « (autres) »), pour qu'un envoi malveillant ne fasse pas grossir les fichiers ;
-  - lot illisible ou adresse mal encodée : 400.
-- **CORS** : seules les origines configurées (et le domaine du serveur) peuvent envoyer ; les autres reçoivent 403.
-- **Débit et disque** : limite par adresse (en mémoire), plafonds par jour (octets, lots) et pour le dossier entier. Au-delà, 503 sans rien écrire, et le client garde ses lots.
+- **Démarrage refusé** dans trois cas : secret de session invalide, liste blanche illisible, données ou configuration sous `public_html`.
+- **Validation** : liste blanche, 128 Ko et 300 événements par lot au plus, indices d'objectifs et de questions bornés par le contenu.
+- Les totaux sont des objets sans prototype : une clé comme `constructor` reste une clé ordinaire.
+- **Verrou entre processus** : fichier `.verrou` contenant un jeton. L'attente est asynchrone. Seul le propriétaire du jeton retire le verrou ; un verrou abandonné plus de 10 s est repris. La purge passe aussi sous verrou.
 - **Tableau de bord** :
-  - mot de passe haché avec scrypt ; un hachage d'exemple est reconnu comme « non configuré » ;
-  - cookie de session signé HMAC (2 h), `HttpOnly`, `Secure`, `SameSite=Strict` ;
+  - scrypt asynchrone ;
+  - cookie signé HMAC (2 h), `HttpOnly`, `Secure`, `SameSite=Strict` ;
   - jeton CSRF sur les formulaires ;
-  - essais de connexion ratés comptés par adresse en mémoire, avec un délai croissant ;
-  - en-têtes CSP, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin` (avec `no-referrer`, Chromium envoie `Origin: null` sur les formulaires, qui seraient refusés), HSTS.
-- **Export CSV** : seulement les totaux (`jour;rubrique;cle;mesure;valeur`). Les cellules commençant par `=`, `+`, `-` ou `@` sont préfixées d'une apostrophe.
+  - délai croissant après échecs, par adresse ;
+  - en-têtes CSP, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, HSTS.
+- **Export CSV** : les totaux de chaque jour clos et de la période, avec le seuil k ; apostrophe devant `=`, `+`, `-` et `@`.
 
-### Limites connues (plusieurs processus)
+### Plusieurs processus
 
-- **Partagé par le disque** : les totaux (sous verrou), le dédoublonnage des lots, les plafonds, la session.
-- **Propre à chaque processus** : la limite de débit, les délais après essais ratés et la révocation à la déconnexion (2 h au plus).
-- **Verrou** : un verrou abandonné plus de 10 s (processus tué) est repris. Si le verrou reste indisponible 5 s, le lot reçoit 503 et sera renvoyé.
+- **Partagé par le disque** : les totaux (sous verrou), le dédoublonnage des lots, les plafonds globaux, la session.
+- **Propre à chaque processus** : les limites par adresse, les délais après échecs et la révocation à la déconnexion (2 h au plus).
 
-## Tableau de bord
+## Hébergeur
 
-Il affiche les totaux de la période choisie (aujourd'hui à 25 mois) :
-- visites, pages vues, temps actif, TP ouverts, essais ratés ;
-- une table **par jour** (tendances) ;
-- les visites par retour, niveau, appareil, système, largeur, durée et heure ;
-- les pages ;
-- les TP (part terminée, durée) ;
-- **« Où les élèves se trompent »** : objectifs triés par essais ratés ;
-- les objectifs où les élèves bloquent (réussites rapportées aux ouvertures de la même variante) ;
-- les questions de quiz avec le plus de réponses fausses ;
-- les notions et les cartes.
-
-Il propose aussi l'export CSV des totaux, la purge et le diagnostic.
-
-Les taux sont des rapports de **nombres d'événements**, pas de personnes :
-- un TP est compté une fois par visite ;
-- un objectif réussi est compté une fois par navigateur (le jeu ne le gagne qu'une fois).
-
-## Ce qu'il faut savoir sur l'hébergeur
-
-- **Journaux bruts** : le serveur web d'O2switch garde ses propres journaux d'accès avec l'adresse IP de chaque visite. Comme le journal n'a aucun identifiant persistant, ces journaux ne peuvent pas être reliés aux totaux.
-  - Désactiver dans cPanel l'archivage des journaux bruts et les statistiques inutilisées.
-  - Demander au support la durée de conservation et l'indiquer dans `confidentialite.html`.
-- **Sauvegardes JetBackup** : les totaux restent dans les sauvegardes jusqu'à leur expiration (à vérifier dans cPanel, puis à indiquer dans `confidentialite.html`).
-- **Sous-traitant et transfert** : O2switch héberge en France ; c'est écrit dans `confidentialite.html`.
+- **Journaux d'accès d'O2switch** : ils gardent l'adresse IP, l'heure et l'URL demandée, y compris `tp.html?id=…`. À faible trafic, ils pourraient être rapprochés des totaux. C'est la raison des jours clos et du seuil k.
+  - Désactiver dans cPanel l'archivage des journaux bruts.
+  - Demander au support leur durée de conservation, puis l'indiquer dans `confidentialite.html`.
+- **Sauvegardes JetBackup** : les totaux y restent jusqu'à expiration.
+- **Hébergement en France**.
 
 ## Tests
 
-`tests/journal.test.js` couvre trois niveaux :
-- **Fonctions du navigateur** :
-  - catégories d'appareil et de retour, paliers ;
-  - file bornée, fusion des tranches de temps ;
-  - renvoi du même lot.
-- **Client complet dans un navigateur simulé** :
-  - désactivé sans adresse et en `file://` (rien écrit) ;
-  - aucun identifiant envoyé ni gardé en `localStorage` ; numéro de visite seulement en `sessionStorage`, renouvelé après 30 min ;
-  - ni date ni ancien numéro envoyés ;
-  - TP compté une fois par visite, paliers ;
-  - envoi à la fermeture puis renvoi, 503 ;
-  - refus, quota ;
-  - présence des deux émissions `ls:essai` dans `tp.js`.
-- **Serveur, avec deux processus sur le même dossier** :
-  - totaux exacts, lot jamais recompté, 20 envois simultanés sans perte (verrou) ;
-  - horloge recalée, données brutes résiduelles effacées ;
-  - aucune IP, aucun horodatage, droits 600 ;
-  - CORS ;
-  - limite par dernière entrée de X-Forwarded-For, plafond du jour ;
-  - tableau de bord protégé, cookie partagé, CSRF, CSV avec apostrophe, purge, déconnexion, délai après échecs ;
-  - hachage d'exemple, refus sous `public_html`.
+`tests/journal.test.js` couvre le navigateur et le serveur.
+
+**Navigateur** : fonctions pures et client complet simulé :
+- aucun identifiant envoyé ;
+- visite en `sessionStorage` ;
+- retour « même jour » ;
+- date de dernière visite effacée après 13 mois ;
+- Global Privacy Control ;
+- objectifs et fins de TP comptés une fois par visite ;
+- temps compté pendant une animation.
+
+**Serveur** :
+- refus de démarrer avec `config.example.json` tel quel ;
+- aucune session sans `adminHash` valable ;
+- liste blanche (clés inventées, `constructor`, indices hors limites refusés) ;
+- attaque sur 31 jours rangée au seul jour de réception ;
+- jour en cours invisible et seuil k (tableau et CSV) ;
+- quarantaine d'un fichier illisible ;
+- verrou orphelin repris ;
+- deux processus sans perte ;
+- plafonds et dernière entrée de X-Forwarded-For ;
+- IPv6 compté par /64.

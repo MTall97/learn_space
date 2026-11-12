@@ -19,8 +19,9 @@ function fichiersDuSite(dossier) {
   });
 }
 
-test("sw-fichiers.js est à jour (sinon : node outils/liste-precache.js)", () => {
+test("sw-fichiers.js et serveur/liste-blanche.json sont à jour (sinon : node outils/liste-precache.js)", () => {
   assert.strictEqual(fs.readFileSync(path.join(RACINE, "sw-fichiers.js"), "utf8"), precache.contenu());
+  assert.strictEqual(fs.readFileSync(path.join(RACINE, "serveur", "liste-blanche.json"), "utf8"), precache.listeBlanche());
 });
 
 test("chaque fichier servi est dans la liste de précache, et chaque entrée existe", () => {
@@ -59,7 +60,7 @@ test("manifeste complet et icônes PNG aux bonnes tailles", () => {
 });
 
 /* Service worker dans un contexte simulé. */
-function serviceWorker(reseau) {
+function serviceWorker(reseau, echecAddAll) {
   const ecouteurs = {}, caches = new Map();
   const cle = r => typeof r === "string" ? new URL(r, "https://site.ml/").href : r.url;
   const sansRecherche = u => u.split("?")[0];
@@ -67,14 +68,14 @@ function serviceWorker(reseau) {
     if (!caches.has(nom)) caches.set(nom, new Map());
     const m = caches.get(nom);
     return {
-      addAll: reqs => { for (const r of reqs) m.set(cle(r), { ok: true, corps: "cache:" + cle(r) }); return Promise.resolve(); },
+      addAll: reqs => { if (echecAddAll) return Promise.reject(new TypeError("fichier manquant")); for (const r of reqs) m.set(cle(r), { ok: true, corps: "cache:" + cle(r) }); return Promise.resolve(); },
       put: (r, rep) => { m.set(cle(r), rep); return Promise.resolve(); },
       match: (r, o) => { const k = cle(r); if (m.has(k)) return Promise.resolve(m.get(k)); if (o && o.ignoreSearch) for (const [kk, v] of m) if (sansRecherche(kk) === sansRecherche(k)) return Promise.resolve(v); return Promise.resolve(undefined); }
     };
   };
   const ctx = {
     self: { addEventListener: (t, f) => { ecouteurs[t] = f; }, skipWaiting() { ctx.saute = true; }, clients: { claim: () => Promise.resolve() } },
-    location: { origin: "https://site.ml" }, URL, console,
+    location: { origin: "https://site.ml" }, URL, console, setTimeout,
     Request: class { constructor(u, o) { this.url = new URL(u, "https://site.ml/").href; this.cache = o && o.cache; } },
     Response: { error: () => ({ erreur: true }) },
     caches: { open: n => Promise.resolve(cache(n)), keys: () => Promise.resolve([...caches.keys()]), delete: n => Promise.resolve(caches.delete(n)), match: r => Promise.resolve(undefined) },
@@ -99,7 +100,7 @@ test("service worker : précache de toute la liste, cache versionné, exclusions
   assert.match(nom, /^learnspace-v4-[0-9a-f]{12}$/);
   assert.strictEqual(sw.caches.get(nom).size, precache.liste().length, "tout est précaché");
   // Hors ligne : un TP et une carte jamais ouverts viennent du cache (même avec ?id=…), ainsi que leurs scripts.
-  assert.match((await sw.requete("/tp.html?id=moteur-4-temps", "navigate")).corps, /tp\.html$/);
+  assert.match((await sw.requete("/tp.html?id=meca-01-quatre-temps", "navigate")).corps, /tp\.html$/);
   assert.match((await sw.requete("/carte.html?id=elec-bases", "navigate")).corps, /carte\.html$/);
   assert.match((await sw.requete("/contenu/tps/elec-06-led.js")).corps, /elec-06-led\.js$/);
   // Une page absente du cache, sans réseau : page hors ligne.
@@ -117,4 +118,27 @@ test("service worker : précache de toute la liste, cache versionné, exclusions
   // « Recharger » : la nouvelle version prend la main.
   sw2.ecouteurs.message({ data: { type: "activer" } });
   assert.strictEqual(sw2.ctx.saute, true);
+});
+
+test("service worker : un fichier manquant fait échouer l'installation (l'ancienne version reste en service)", async () => {
+  const sw = serviceWorker(() => Promise.reject(new Error("hors ligne")), true);
+  await assert.rejects(sw.installer(), /fichier manquant/);
+});
+
+test("service worker : config-journal.js qui ne répond pas, copie en cache après 1,5 s", async () => {
+  const sw = serviceWorker(() => new Promise(() => {})); // le réseau ne répond jamais
+  await sw.installer();
+  const debut = Date.now();
+  const rep = await sw.requete("/assets/js/config-journal.js");
+  const duree = Date.now() - debut;
+  assert.match(rep.corps, /^cache:.*config-journal\.js$/);
+  assert.ok(duree >= 1400 && duree < 3000, "délai de " + duree + " ms");
+});
+
+test("pwa.js : enregistrement sans cache HTTP, rechargement de tous les onglets, aide iOS refermable, stockage persistant", () => {
+  const pwa = fs.readFileSync(path.join(RACINE, "assets", "js", "pwa.js"), "utf8");
+  assert.match(pwa, /register\("sw\.js", \{ updateViaCache: "none" \}\)/);
+  assert.match(pwa, /controllerchange[^\n]*dejaControlee[^\n]*location\.reload/);
+  assert.match(pwa, /aideIosFermee/);
+  assert.match(pwa, /navigator\.storage\.persist/);
 });
