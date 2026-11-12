@@ -35,8 +35,9 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   au bout de 13 mois ; le serveur ne garde que des totaux par jour de réception, sans ligne brute ni
   IP ; tableau de bord limité aux jours clos, cases sous le seuil k = 5 masquées. Refus dans
   `confidentialite.html` (et Global Privacy Control) ; désactivé tant que
-  `assets/js/config-journal.js` est vide. Ni configuration ni données du journal dans Git. Base
-  légale (intérêt légitime) à faire confirmer par l'APDP avant mise en ligne.
+  `assets/js/config-journal.js` est vide. Ni configuration ni données du journal dans Git. Accord
+  de l'APDP obtenu (12/11/2026). Page de confidentialité volontairement courte et simple (décision
+  de l'utilisateur) : ne pas la rallonger de détails juridiques ou techniques.
 - Appareils modestes et connexion faible : pages légères, fonctionnement hors ligne.
 - Hébergement : l'utilisateur s'en charge (probablement O2switch, offre cloud). Le site reste
   statique : il suffit de copier les fichiers.

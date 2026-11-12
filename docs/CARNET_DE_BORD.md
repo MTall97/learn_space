@@ -306,6 +306,39 @@ Sauvegardes intermédiaires : `85ed902`, puis le commit de cette entrée.
 - Le temps pendant une animation dans un vrai navigateur.
 - La déduction par différence entre deux périodes qui se recouvrent : risque documenté, non corrigé.
 
+## 12/11/2026 : APDP, page de confidentialité plus souple, déploiement sur O2switch
+
+**Décisions de l'utilisateur (« c'est un ordre »).**
+- **L'APDP a donné son accord.**
+- La page de confidentialité n'a pas besoin d'être totalement explicite : les données servent à des
+  statistiques d'utilisation et d'adoption, et personne ne cherchera à retrouver les utilisateurs.
+- Être plus souple sur ce sujet.
+
+**Ce que l'auteur a fait.**
+- `confidentialite.html` réécrite en trois paragraphes courts :
+  - ce qui est compté ;
+  - ni nom ni compte, et pas de numéro qui suit d'un jour à l'autre ;
+  - administrateur seul, effacement au bout de 25 mois, hébergement par O2switch en France ;
+  - un mot pour les parents, et le bouton de refus.
+- Les mentions « À COMPLÉTER » et les détails techniques sont retirés.
+- **Écarté :** la suppression complémentaire contre la déduction par soustraction (N-B1 de l'avis du
+  12/11). Elle n'est plus jugée nécessaire, vu la décision de l'utilisateur. Le seuil k = 5 et les jours
+  clos restent.
+
+**Déploiement.**
+- Paquet préparé à partir du dernier état stable (`083a1fa`), avec la nouvelle page de confidentialité
+  et `config-journal.js` réglé sur `/api/journal` :
+  - `learnspace-site.zip` ;
+  - `learnspace-serveur.zip` ;
+  - un guide pas à pas pour Setup Node.js App.
+- 122 tests réussis sur ce paquet. Serveur essayé ici avec une configuration d'exemple : `/api/sante`
+  répond `ok`, et `/api/admin` répond.
+- **Non vérifié :** le déploiement réel chez O2switch.
+
+**En cours** : les corrections de l'avis du 12/11 encore utiles (bouton « Recharger » de la première
+visite, attente de 1,5 s sur un réseau faible, comptage des réussites et du temps, liste blanche,
+bourrage), interrompues par une limite de requêtes.
+
 ---
 
 ## Reste à faire et à décider
