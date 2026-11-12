@@ -339,6 +339,33 @@ Sauvegardes intermédiaires : `85ed902`, puis le commit de cette entrée.
 visite, attente de 1,5 s sur un réseau faible, comptage des réussites et du temps, liste blanche,
 bourrage), interrompues par une limite de requêtes.
 
+## 12/11/2026 : premier déploiement sur O2switch, et HTTPS gratuit
+
+**Fait par l'utilisateur.**
+- Le serveur du journal tourne sur O2switch : `/api/sante` répond `ok`.
+- Le tableau de bord s'ouvre, vide parce qu'aucune journée n'est encore close.
+- Le diagnostic montre `X-Forwarded-For` présent, avec une seule entrée (`41.73.x.x`).
+- Incident : `node` était introuvable dans le terminal. Il fallait d'abord `source
+  ~/nodevenv/learnspace-journal/20/bin/activate`.
+
+**Problème.** L'adresse provisoire `sc1busu9925.universe.wf` n'a pas de certificat valable, et AutoSSL a
+échoué. Sans HTTPS valable, l'application ne s'installe pas et ne marche pas hors ligne. L'utilisateur
+n'a pas de budget pour un nom de domaine.
+
+**Décision de l'auteur.** Proposer **Cloudflare Pages**, gratuit, pour le site : adresse `pages.dev`
+avec un certificat valable, et serveurs proches de l'Afrique de l'Ouest. Le journal reste sur O2switch.
+- Ajout de `outils/site-public.js` : il copie les seuls fichiers publics dans `_site/` et écrit
+  `_headers`. Le mode d'emploi est dans `docs/CLOUDFLARE_PAGES.md`.
+- Vérifié ici dans Chromium sur `_site/` : accueil, deux TP, une carte et la confidentialité s'ouvrent
+  sans erreur, et le service worker est actif.
+- **Écarté :** GitHub Pages, gratuit seulement si le dépôt est public, et un nom de domaine payant.
+  eu.org reste possible, mais l'attente peut durer des semaines.
+- **Non vérifié :** la publication réelle sur Cloudflare Pages, et DuckDNS avec AutoSSL chez O2switch
+  pour le journal.
+
+**Suite.** Le dashboard d'administration sera restylé dans le style du site (demande de l'utilisateur :
+« le css est moche »), sous la même politique de sécurité, avec le style écrit dans la page.
+
 ---
 
 ## Reste à faire et à décider

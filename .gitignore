@@ -6,3 +6,4 @@ __pycache__/
 # Journal d'utilisation : configuration (mot de passe haché) et données, jamais dans Git
 serveur/config.json
 serveur/donnees/
+_site/
