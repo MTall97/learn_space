@@ -399,6 +399,30 @@ testé localement.
 - Limite : le mode hors ligne de Playwright ne coupe pas toujours le réseau du service worker. Un vrai
   téléphone en mode avion reste à essayer.
 
+## 12/11/2026 : journal branché (DuckDNS), site à deux adresses
+
+**Décision de l'utilisateur** : avoir les deux.
+- Le site est sur Cloudflare (`learn-space.madanitall214.workers.dev`, l'adresse à donner aux élèves) et
+  en copie sur O2switch (`learningspace223.duckdns.org`, en secours).
+- Un seul journal, sur `https://learningspace223.duckdns.org/api/`.
+
+**Fait par l'utilisateur.**
+- Sous-domaine DuckDNS gratuit pointé sur le serveur O2switch (109.234.164.48), ajouté comme domaine dans
+  cPanel.
+- AutoSSL a réussi : le certificat est valable.
+- L'application Node a été déplacée sur ce domaine. `origines` contient les deux adresses.
+
+**Vérifié par l'auteur.**
+- `/api/sante` répond `ok` en HTTPS valable, et la racine répond 200.
+- CORS : l'origine Cloudflare est acceptée (`Access-Control-Allow-Origin`).
+
+**Changement.** `assets/js/config-journal.js` contient maintenant l'adresse complète
+`https://learningspace223.duckdns.org/api/journal`. Elle vaut pour les deux copies du site. Le **journal
+est donc actif** sur le site publié.
+
+**Précaution notée.** La progression et l'application installée sont liées à l'adresse. Il faut donner
+une seule adresse aux élèves.
+
 ---
 
 ## Reste à faire et à décider

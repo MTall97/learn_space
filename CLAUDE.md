@@ -39,8 +39,10 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   de l'APDP obtenu (12/11/2026). Page de confidentialité volontairement courte et simple (décision
   de l'utilisateur) : ne pas la rallonger de détails juridiques ou techniques.
 - Appareils modestes et connexion faible : pages légères, fonctionnement hors ligne.
-- Hébergement : l'utilisateur s'en charge (probablement O2switch, offre cloud). Le site reste
-  statique : il suffit de copier les fichiers.
+- Hébergement (12/11/2026) : site sur Cloudflare Workers (`learn-space.madanitall214.workers.dev`,
+  adresse donnée aux élèves, publiée à chaque push : `wrangler.jsonc`, `outils/site-public.js`) et
+  copie de secours sur O2switch (`learningspace223.duckdns.org`). Journal (Node) sur O2switch :
+  `https://learningspace223.duckdns.org/api/`, adresse écrite dans `assets/js/config-journal.js`.
 
 ## Règles
 - Site statique, **sans dépendance ni étape de construction** : il doit marcher en ouvrant
