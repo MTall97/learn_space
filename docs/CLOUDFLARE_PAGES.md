@@ -34,6 +34,23 @@ worker et `config-journal.js` sont toujours revérifiés.
 
 Ensuite, chaque `git push` sur la branche choisie republie le site tout seul.
 
+## Si le projet a été créé comme « Worker » (adresse `….workers.dev`)
+
+C'est le cas de la première publication, le 12/11/2026, à `learn-space.madanitall214.workers.dev`.
+
+Le fichier `wrangler.jsonc`, à la racine, demande de publier **seulement `_site/`**. Il désactive aussi
+la redirection de `tp.html` vers `/tp` : avec elle, le service worker ne pouvait rien mettre en cache, et
+l'application ne marchait pas hors ligne.
+
+Dans le projet Cloudflare, ouvrir **Settings**, puis **Build** :
+
+| Champ | Valeur |
+|---|---|
+| Build command | `node outils/site-public.js` |
+| Deploy command | `npx wrangler deploy` (valeur par défaut) |
+
+Le nom `learn-space` de `wrangler.jsonc` doit être celui du Worker.
+
 ## Le journal
 
 Le site sur `pages.dev` envoie les statistiques au serveur d'O2switch. Il faut deux choses :

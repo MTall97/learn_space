@@ -15,7 +15,7 @@ function fichiersDuSite(dossier) {
   return fs.readdirSync(path.join(RACINE, dossier), { withFileTypes: true }).flatMap(e => {
     const rel = dossier ? dossier + "/" + e.name : e.name;
     if (e.isDirectory()) return HORS_SITE.has(rel) ? [] : fichiersDuSite(rel);
-    return /\.(md|gitignore|htaccess)$/.test(e.name) || e.name.startsWith(".") || ["sw.js", "sw-fichiers.js"].includes(rel) ? [] : [rel];
+    return /\.(md|gitignore|htaccess)$/.test(e.name) || e.name.startsWith(".") || ["sw.js", "sw-fichiers.js", "wrangler.jsonc"].includes(rel) ? [] : [rel];
   });
 }
 

@@ -366,6 +366,22 @@ avec un certificat valable, et serveurs proches de l'Afrique de l'Ouest. Le jour
 **Suite.** Le dashboard d'administration sera restylé dans le style du site (demande de l'utilisateur :
 « le css est moche »), sous la même politique de sécurité, avec le style écrit dans la page.
 
+## 12/11/2026 : site en ligne sur Cloudflare (Workers)
+
+**Fait par l'utilisateur.** Le site est publié à `https://learn-space.madanitall214.workers.dev/`, en
+projet Cloudflare **Workers** et non Pages.
+
+**Vérifié par l'auteur**, avec curl et Chromium sur le site en ligne :
+- les pages s'affichent ;
+- **défaut 1 :** tout le dépôt était publié (`serveur/app.js`, `docs/`, `CLAUDE.md`, `tests/`). Il n'y
+  avait pas de secret, mais ce n'était pas voulu ;
+- **défaut 2 :** `tp.html` était redirigé vers `/tp` (307). Le service worker restait bloqué en
+  installation, avec 0 fichier en cache : pas d'installation ni de hors ligne.
+
+**Correction de l'auteur.** `wrangler.jsonc` fait publier seulement `_site/` et fixe
+`html_handling: none`. La commande de construction à régler dans Cloudflare est
+`node outils/site-public.js`. **Non vérifié** tant que Cloudflare n'a pas republié.
+
 ---
 
 ## Reste à faire et à décider

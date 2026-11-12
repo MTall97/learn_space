@@ -1,0 +1,14 @@
+// Publication sur Cloudflare Workers (adresse learn-space.<compte>.workers.dev), sans code serveur :
+// des fichiers statiques seulement. Le dossier _site/ est produit par « node outils/site-public.js »
+// (commande de construction) ; il ne contient que les fichiers publics (ni serveur/, ni docs/, ni tests/).
+// html_handling « none » : tp.html reste tp.html (pas de redirection vers /tp), sinon le service worker
+// ne peut pas mettre les pages en cache et l'application ne marche pas hors ligne.
+{
+  "name": "learn-space",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./_site",
+    "html_handling": "none",
+    "not_found_handling": "none"
+  }
+}
