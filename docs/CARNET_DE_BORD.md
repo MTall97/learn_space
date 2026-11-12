@@ -423,6 +423,29 @@ est donc actif** sur le site publié.
 **Précaution notée.** La progression et l'application installée sont liées à l'adresse. Il faut donner
 une seule adresse aux élèves.
 
+## 12/11/2026 : style du tableau de bord
+
+**Demande de l'utilisateur** : « le css est moche », puis « refais le style du tableau de bord
+maintenant ».
+
+**Fait par l'auteur** (`serveur/app.js`, fonctions `pageHtml`, `pageConnexion`, `pageDiagnostic`,
+`pageTableau`) :
+- style « atelier d'électronique » du site :
+  - façade en métal avec LED pour l'en-tête ;
+  - chiffres clés sur des écrans LCD verts ;
+  - titres de section en pastille et piste de cuivre ;
+  - tableaux en en-têtes sérigraphiés, avec les chiffres en police à chasse fixe ;
+  - boutons en touches d'appareil ; « Tout effacer » en rouge ;
+- mode sombre automatique ;
+- polices du site (Baloo 2, Atkinson, JetBrains Mono) chargées depuis le même domaine. La politique de
+  sécurité gagne seulement `font-src 'self'` : toujours aucun script, et le style reste écrit dans la page.
+
+**Vérifié** dans Chromium avec des totaux d'essai, sur ordinateur, sur téléphone (390 px) et en mode
+sombre : aucun débordement horizontal de la page, et 122 tests réussis.
+
+**Non vérifié** : le chargement des polices sur le vrai domaine. Elles sont servies par la copie du site
+sur `learningspace223.duckdns.org` ; à défaut, ce sont les polices du système.
+
 ---
 
 ## Reste à faire et à décider
