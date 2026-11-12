@@ -260,6 +260,52 @@ changements.
 - Les essais ratés aux objectifs saisis, vus seulement en test (les questions ont été vérifiées avec de
   vrais clics).
 
+## 27/10 au 12/11/2026 : avis du juge et corrections du journal et de l'application
+
+**Avis du juge du 27/10** (détail dans `AVIS_DU_JUGE.md`) : pas prêt.
+- B1 : le secret d'exemple permettait de forger un accès administrateur.
+- B2 : « anonyme » est faux quand il y a peu de visites.
+- B3 : un bug du quiz enregistrait l'état sous « q0 ».
+
+**Décision de l'auteur, à la suite de B2.** On ne dit plus « anonyme » mais **mesure d'audience
+minimisée**. La base légale retenue est l'intérêt légitime, à faire confirmer par l'APDP.
+
+**Corrections.** Les auteurs ont travaillé en plusieurs reprises, interrompus par des limites de requêtes.
+Sauvegardes intermédiaires : `85ed902`, puis le commit de cette entrée.
+
+**Décisions de l'auteur.**
+- Le jour en cours n'est jamais lisible, et chaque lot est rangé **au jour de réception** : un jour
+  terminé ne change plus.
+- Seuil k = 5 :
+  - une case sous le seuil est masquée ;
+  - une ligne dont le compte principal est sous le seuil est cachée ;
+  - un pourcentage ne s'affiche que si ses deux termes atteignent le seuil.
+- Liste blanche (`serveur/liste-blanche.json`) générée avec la liste de précache. Le serveur lit des
+  données, il n'exécute jamais le contenu du dossier public.
+- Un lot sans aucun événement valable est confirmé, mais ni écrit ni compté.
+- Le temps passé compte aussi pendant une animation, jusqu'à 10 minutes après le dernier geste.
+- Sans `X-Forwarded-For` : plus aucun mécanisme par adresse, seuls restent les plafonds globaux.
+- La date de dernière visite est effacée au bout de 13 mois sans être prolongée. Global Privacy Control
+  vaut refus.
+- Mise à jour du site : tous les onglets se rechargent quand la nouvelle version prend la main.
+- `config-journal.js` : 1,5 s pour le réseau, puis le cache.
+
+**Écarté, et pourquoi.**
+- Un tampon de lots bruts pour le jour en cours : ce seraient des données brutes.
+- Une fusion des totaux en mémoire une fois par jour : on perdrait des données au redémarrage.
+- La limite de « 3 jours par lot » : inutile avec le rangement au jour de réception, et elle aurait
+  rejeté des lots légitimes.
+- Lire le contenu au démarrage du serveur : il aurait fallu exécuter du JavaScript venu du dossier
+  public.
+
+**Non vérifié.**
+- Le vrai O2switch.
+- Node 18 et 20.
+- Un vrai téléphone : installation, `beforeinstallprompt`, Safari.
+- Les essais aux objectifs à réponse écrite par de vrais clics.
+- Le temps pendant une animation dans un vrai navigateur.
+- La déduction par différence entre deux périodes qui se recouvrent : risque documenté, non corrigé.
+
 ---
 
 ## Reste à faire et à décider

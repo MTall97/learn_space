@@ -654,7 +654,7 @@ function demarrer() {
         "<h2>Visites</h2><div class=\"colonnes\">" + repartition("Retour", t.visites.retour, RET) + repartition("Niveau choisi", t.visites.niveau, NIV) + repartition("Type d'appareil", t.visites.type) +
         repartition("Système", t.visites.os) + repartition("Largeur d'écran (px)", t.visites.largeur) +
         "<div><h3>Durée active de la visite</h3>" + tableau(["", "Visites"], [0, 1], OK(V) ? tranches.map(([x, n]) => [x, M(n)]) : []) + "</div>" +
-        "<div><h3>Heure des visites, " + echap(P.moisPrec) + " (UTC, heure de Bamako)</h3>" + tableau(["", "Visites"], [0, 1], heures.filter(x => x[1]).length ? heures.map(([x, n]) => [x, M(n)]) : [], "Pas de profil horaire pour le dernier mois clos.") + "</div></div>" +
+        "<div><h3>Heure des visites, " + echap(P.moisPrec) + " (UTC, heure de Bamako)</h3>" + tableau(["", "Visites"], [0, 1], heures.filter(x => OK(x[1])), "Aucune heure au-dessus du seuil pour le dernier mois clos.") + "</div></div>" +
         "<h2>Pages les plus consultées</h2>" + tableau(["Page", "Vues", "Temps actif total", "Temps moyen par vue"], [0, 1, 1, 1],
           Object.entries(t.pages).filter(([, x]) => OK(x.vues)).sort((x, y) => y[1].vues - x[1].vues).slice(0, 40).map(([c, x]) => [c, x.vues, duree(x.ms), duree(x.ms / x.vues)])) +
         "<h2>TP : ouverts, terminés (par variante de niveau)</h2><p class=\"note\">Comptés par visite : un TP ouvert deux fois dans la même visite compte une fois ; « terminé » veut dire terminé pendant la visite.</p>" +

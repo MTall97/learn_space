@@ -276,8 +276,25 @@ après B3, I1, I4 et I5. Le journal ne doit être activé qu'après B1, B2 et l'
 - Bouton d'installation sans émoji, dans le style du site.
 
 ### Suites
-- Toutes les corrections ont été confiées à l'auteur. Ce qui est fait sera consigné dans le carnet de
-  bord.
+- **Corrections du 12/11/2026 (122 tests passent) :**
+  - **Faits :** B1, B3, I1, I2, I4-I8 et M1-M11.
+  - **B2, fait autrement :**
+    - seuls les jours terminés sont lisibles ;
+    - chaque lot est rangé au jour où il est reçu ;
+    - un seuil k = 5 s'applique partout, CSV et cumuls compris ;
+    - le profil horaire est seulement mensuel ;
+    - les textes ne promettent plus l'anonymat.
+  - **I3, partiel :** la liste blanche est générée à partir du contenu, avec un plafond par adresse et par
+    jour et des adresses IPv6 regroupées par /64. Il n'y a pas de limite de « 3 jours par lot » : le
+    rangement au jour de réception la rend inutile.
+  - **Rejeu des scripts du juge :**
+    - `forge.js` : le serveur refuse de démarrer ;
+    - `atk.js` : 1 lot sur 330 compté, 28 Ko ;
+    - quiz : enregistré sous la bonne clé ;
+    - réseau qui ne répond pas : 1,5 s au lieu de plus de 60 s ;
+    - deux onglets : tous rechargés sur la nouvelle version.
+  - **Risque résiduel documenté, non corrigé :** on peut encore déduire une petite valeur par différence
+    entre deux périodes qui se recouvrent.
 - B2 change la façon d'en parler : le journal est une **mesure d'audience minimisée**, pas des
   « données anonymes ». Les cases de moins de 5 sont masquées et seuls les jours terminés sont affichés.
 

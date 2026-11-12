@@ -29,13 +29,14 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
   le guidage, la difficulté des objectifs et des quiz.
 - **Enfants** : aucun compte ; on simule, on ne manipule jamais le 230 V ni les batteries en vrai.
   La progression reste dans le navigateur. Seul le journal d'utilisation (`assets/js/journal.js`,
-  serveur `serveur/app.js`, `docs/JOURNAL.md`) envoie des événements, **anonymes** (décision du
-  23/10/2026) : aucun identifiant d'appareil ; numéro de visite en `sessionStorage`, jamais envoyé,
-  perdu à la fermeture ; seule la date de dernière visite reste sur l'appareil (catégorie de retour
-  envoyée) ; le serveur ne garde que des totaux par jour, sans horodatage ni ligne brute ; jamais de
-  nom, d'IP ni d'user-agent ; refus dans `confidentialite.html` ; désactivé tant que
-  `assets/js/config-journal.js` est vide. Ni configuration ni données du journal dans Git. Caractère
-  anonyme à faire confirmer par l'APDP avant mise en ligne.
+  serveur `serveur/app.js`, `docs/JOURNAL.md`) envoie des événements : **mesure d'audience
+  minimisée**, pas « anonyme » au sens absolu (avis du juge du 27/10/2026). Aucun identifiant
+  d'appareil ; numéro de visite en `sessionStorage`, jamais envoyé ; date de dernière visite effacée
+  au bout de 13 mois ; le serveur ne garde que des totaux par jour de réception, sans ligne brute ni
+  IP ; tableau de bord limité aux jours clos, cases sous le seuil k = 5 masquées. Refus dans
+  `confidentialite.html` (et Global Privacy Control) ; désactivé tant que
+  `assets/js/config-journal.js` est vide. Ni configuration ni données du journal dans Git. Base
+  légale (intérêt légitime) à faire confirmer par l'APDP avant mise en ligne.
 - Appareils modestes et connexion faible : pages légères, fonctionnement hors ligne.
 - Hébergement : l'utilisateur s'en charge (probablement O2switch, offre cloud). Le site reste
   statique : il suffit de copier les fichiers.
@@ -53,7 +54,8 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
 - Vérifier visuellement avec Chromium sans écran (Playwright) les pages modifiées.
 - Application installable (PWA, `docs/APPLICATION.md`) : après tout ajout ou modification d'un
   fichier du site, régénérer la liste de précache avec `node outils/liste-precache.js`
-  (`sw-fichiers.js`) ; `tests/pwa.test.js` échoue sinon.
+  (`sw-fichiers.js`, et `serveur/liste-blanche.json` : les identifiants que le journal accepte, à
+  recopier sur le serveur) ; `tests/pwa.test.js` échoue sinon.
 
 ## Architecture
 - `assets/js/circuit/reseau.js` : connectivité (fils, jonctions en T, fils coupés des pannes).
