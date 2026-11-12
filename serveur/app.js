@@ -4,14 +4,16 @@
      ajoute aussitôt aux TOTAUX DU JOUR DE RÉCEPTION (agregats/AAAA-MM-JJ.json). Aucune ligne brute,
      aucune heure d'événement ; seules les visites sont aussi comptées par heure, dans un total du mois
      (agregats/mois-AAAA-MM.json). Les identifiants acceptés viennent de liste-blanche.json, généré
-     depuis le contenu du site (node outils/liste-precache.js).
+     depuis le contenu du site (node outils/liste-precache.js) et relu dès qu'il change.
    - lots/AAAA-MM-JJ.txt : identifiants aléatoires des lots déjà reçus (un lot renvoyé après une coupure
      n'est pas compté deux fois), sans lien avec rien d'autre, effacés au bout de 31 jours.
    - <base><cheminAdmin> : tableau de bord de l'administrateur (mot de passe scrypt, cookie de session
-     signé HMAC, jeton CSRF). Il ne montre que des JOURS CLOS (jamais le jour en cours) et masque toute
-     case inférieure au seuil k (5 par défaut), pour qu'aucun total ne décrive une seule visite.
+     signé HMAC, jeton CSRF). Il ne montre que des SEMAINES ou des MOIS terminés (périodes du calendrier,
+     jamais de fenêtre glissante) ; toute case sous le seuil k (5 par défaut) est cachée, et d'autres
+     cases aussi quand une soustraction permettrait de retrouver un petit nombre (suppression
+     complémentaire).
    À la réception, le serveur voit l'adresse IP comme tout site ; il ne l'écrit jamais et ne s'en sert
-   qu'en mémoire (limites de débit, essais de connexion).
+   qu'en mémoire (limites de débit, essais de connexion), au plus jusqu'à minuit UTC.
    Lancement : `node serveur/app.js` (port dans PORT ; sur O2switch, Passenger le fournit).
    Hacher un mot de passe : `node serveur/app.js --hacher` puis taper le mot de passe. Voir docs/JOURNAL.md. */
 "use strict";
@@ -20,7 +22,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-/* ---------- Mot de passe (scrypt) ---------- */
+/* ---------- Mot de passe (scrypt) et secret de session ---------- */
 const FORME_HASH = /^scrypt\$(\d{4,7})\$(\d{1,2})\$(\d{1,2})\$([A-Za-z0-9+/]{22}==)\$([A-Za-z0-9+/]{86}==)$/;
 function hacher(mdp) {
   const sel = crypto.randomBytes(16);
@@ -28,8 +30,14 @@ function hacher(mdp) {
   return "scrypt$16384$8$1$" + sel.toString("base64") + "$" + h.toString("base64");
 }
 const hashValide = h => FORME_HASH.test(String(h || ""));
-// Le secret de session : au moins 64 caractères hexadécimaux (32 octets tirés au hasard).
-const secretValide = s => /^[0-9a-f]{64,}$/i.test(String(s || ""));
+// Le secret de session : au moins 64 caractères hexadécimaux TIRÉS AU HASARD. Refusés : moins de 12
+// caractères différents, une suite de 6 caractères identiques, un motif court répété (« abab… »).
+function secretValide(s) {
+  s = String(s || "").toLowerCase();
+  if (!/^[0-9a-f]{64,}$/.test(s) || new Set(s).size < 12 || /(.)\1{5}/.test(s)) return false;
+  for (let p = 1; p <= 16; p++) if (s.slice(p) === s.slice(0, s.length - p)) return false; // motif de période p
+  return true;
+}
 // Vérification asynchrone : un essai de mot de passe ne bloque pas les autres requêtes.
 function verifier(mdp, stocke) {
   const m = FORME_HASH.exec(String(stocke || ""));
@@ -84,12 +92,16 @@ function lireConfig() {
     secretSession: String(val("LS_SECRET_SESSION", "secretSession", "")),
     base: chemin(val("LS_BASE", "base", "")),
     cheminAdmin: chemin(val("LS_CHEMIN_ADMIN", "cheminAdmin", "/admin")) || "/admin",
-    seuilK: Math.max(1, +val("LS_SEUIL_K", "seuilK", 5)),
+    seuilK: Math.max(2, +val("LS_SEUIL_K", "seuilK", 5)),
     conservationJours: +val("LS_CONSERVATION_JOURS", "conservationJours", 760),
-    limiteLots10min: +val("LS_LIMITE_LOTS", "limiteLots10min", 600),
-    plafondIpJour: +val("LS_PLAFOND_IP_JOUR", "plafondIpJour", 3000),
+    // Par adresse (une école ou un opérateur mobile mettent des centaines d'appareils derrière une seule
+    // adresse : voir docs/JOURNAL.md pour le calcul de ces valeurs).
+    limiteLots10min: +val("LS_LIMITE_LOTS", "limiteLots10min", 3000),
+    plafondIpJour: +val("LS_PLAFOND_IP_JOUR", "plafondIpJour", 30000),
+    plafondOctetsIpJour: +val("LS_PLAFOND_OCTETS_IP_JOUR", "plafondOctetsIpJour", 15e6),
+    // Pour tout le serveur.
     plafondOctetsJour: +val("LS_PLAFOND_OCTETS_JOUR", "plafondOctetsJour", 50e6),
-    plafondLotsJour: +val("LS_PLAFOND_LOTS_JOUR", "plafondLotsJour", 200000),
+    plafondLotsJour: +val("LS_PLAFOND_LOTS_JOUR", "plafondLotsJour", 300000),
     plafondDossierOctets: +val("LS_PLAFOND_DOSSIER", "plafondDossierOctets", 2e9),
     cookieSecure: secure !== "false" && secure !== "non"
   };
@@ -100,7 +112,7 @@ const sousDossierPublic = p => path.resolve(p).split(path.sep).some(s => ["publi
 /* ---------- Liste blanche (générée depuis contenu/) ---------- */
 function chargerListeBlanche(fichier) {
   const brut = JSON.parse(fs.readFileSync(fichier, "utf8"));
-  const W = { tps: new Map(), cartes: new Set(), noeuds: new Set(), autres: new Set(brut.autres || []) };
+  const W = { tps: new Map(), cartes: new Set(), noeuds: new Set(), autres: new Set(brut.autres || []), empreinte: String(brut.empreinte || "") };
   for (const [id, t] of Object.entries(brut.tps || {})) W.tps.set(id, { o: t.o | 0, q: t.q | 0, variantes: !!t.variantes });
   for (const [id, l] of Object.entries(brut.cartes || {})) { W.cartes.add(id); for (const s of l) W.noeuds.add(id + "/" + s); }
   return W;
@@ -127,35 +139,57 @@ const SYSTEMES = new Set(["android", "ios", "windows", "macos", "linux", "chrome
 const LARGEURS = new Set(["<400", "400-599", "600-899", "900-1279", "1280+"]);
 const RETOURS = new Set(["meme_jour", "moins7", "7a30", "plus30", "premiere"]);
 const PALIERS = new Set([1, 5, 15, 30, 60]);
+const MAX_TRANCHE_MS = 30 * 60000;     // une tranche de temps actif : 30 min au plus
+const MAX_DUREE_MS = 6 * 3600000;      // durée jusqu'à un objectif ou à la fin d'un TP : 6 h au plus
+const CHAMPS_LOT = new Set(["v", "lot", "envoi", "evs", "liste"]);
+// Champs permis pour chaque événement : un champ inconnu fait refuser tout le lot.
+const CHAMPS = {
+  visite: ["retour", "niveau", "type", "os", "largeur"], page: ["p", "id"], temps: ["p", "id", "ms"], palier: ["m"],
+  tp_debut: ["id", "faits", "deja"], tp_fin: ["id", "ms"], objectif: ["id", "i", "ms"], essai: ["id", "o", "i", "ok"],
+  notion: ["noeud"], carte_finie: ["id"]
+};
+for (const k of Object.keys(CHAMPS)) CHAMPS[k] = new Set(["e", "t"].concat(CHAMPS[k]));
 const entier = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
-const MAX_RETARD = 30 * 86400; // un événement gardé hors ligne peut arriver jusqu'à 30 jours plus tard
-// Rend { lot, evs, heures } : les événements valides (sans heure) et l'heure UTC de chaque visite.
-// L'heure de l'appareil (qui peut être fausse) est recalée grâce à son heure d'envoi.
+const champsConnus = (o, permis) => Object.keys(o).every(k => permis.has(k));
+// Rend { lot, evs, heures, rejetes, liste } ou null (lot mal formé : 400). Les événements d'un type ou
+// d'un identifiant inconnu sont comptés dans « rejetes » (signe d'une liste blanche pas à jour).
+// L'heure de l'appareil (qui peut être fausse) est recalée grâce à son heure d'envoi ; elle ne sert qu'à
+// l'heure des visites. Un événement gardé longtemps hors ligne est accepté : il va au jour de réception.
 function valider(lot, maintenant, W) {
-  if (!lot || typeof lot !== "object" || lot.v !== 2) return null;
+  if (!lot || typeof lot !== "object" || Array.isArray(lot) || lot.v !== 2 || !champsConnus(lot, CHAMPS_LOT)) return null;
   if (typeof lot.lot !== "string" || !/^[0-9a-f]{32}$/.test(lot.lot)) return null;
   if (!Array.isArray(lot.evs) || lot.evs.length === 0 || lot.evs.length > 300) return null;
+  if (lot.liste !== undefined && (typeof lot.liste !== "string" || !/^[0-9a-f]{0,32}$/.test(lot.liste))) return null;
+  for (const ev of lot.evs) {
+    if (!ev || typeof ev !== "object" || Array.isArray(ev) || !entier(ev.t, 0, 1e11)) return null;
+    if (CHAMPS[ev.e] && !champsConnus(ev, CHAMPS[ev.e])) return null;
+  }
   const decalage = entier(lot.envoi, 0, 1e11) && Math.abs(maintenant - lot.envoi) > 60 ? maintenant - lot.envoi : 0;
   const evs = [], heures = [];
+  let rejetes = 0;
   for (const ev of lot.evs) {
-    if (!ev || typeof ev !== "object" || !entier(ev.t, 0, 1e11)) continue;
     const t = ev.t + decalage;
-    if (t < maintenant - MAX_RETARD || t > maintenant + 300) continue;
-    const ms = entier(ev.ms, 0, 86400000) ? ev.ms : null;
+    const ms = entier(ev.ms, 0, MAX_DUREE_MS) ? ev.ms : null;
     const i = entier(ev.i, 0, 99) ? ev.i : null;
     const tp = tpConnu(W, ev.id);
     let x = null;
     switch (ev.e) {
       case "visite":
-        if (RETOURS.has(ev.retour) && TYPES.has(ev.type) && SYSTEMES.has(ev.os) && LARGEURS.has(ev.largeur)) {
+        if (RETOURS.has(ev.retour) && TYPES.has(ev.type) && SYSTEMES.has(ev.os) && LARGEURS.has(ev.largeur) && (ev.niveau === null || ev.niveau === undefined || entier(ev.niveau, 1, 4))) {
           x = { e: "visite", retour: ev.retour, niveau: entier(ev.niveau, 1, 4) ? ev.niveau : 0, type: ev.type, os: ev.os, largeur: ev.largeur };
-          heures.push(new Date(t * 1000).getUTCHours());
+          if (t <= maintenant + 300) heures.push(new Date(t * 1000).getUTCHours());
         }
         break;
       case "page": if (pageConnue(W, ev.p, ev.id)) x = { e: "page", p: ev.p, id: ev.id }; break;
-      case "temps": if (pageConnue(W, ev.p, ev.id) && ms !== null) x = { e: "temps", p: ev.p, id: ev.id, ms }; break;
+      case "temps": if (pageConnue(W, ev.p, ev.id) && entier(ev.ms, 0, MAX_TRANCHE_MS)) x = { e: "temps", p: ev.p, id: ev.id, ms: ev.ms }; break;
       case "palier": if (PALIERS.has(ev.m)) x = { e: "palier", m: ev.m }; break;
-      case "tp_debut": if (tp) x = { e: "tp_debut", id: ev.id }; break;
+      case "tp_debut":
+        if (tp && (ev.deja === undefined || typeof ev.deja === "boolean")) {
+          const faits = ev.faits === undefined ? [] : ev.faits;
+          if (Array.isArray(faits) && faits.length <= tp.o && faits.every(f => entier(f, 0, tp.o - 1)) && new Set(faits).size === faits.length)
+            x = { e: "tp_debut", id: ev.id, faits, deja: ev.deja === true };
+        }
+        break;
       case "tp_fin": if (tp) x = { e: "tp_fin", id: ev.id, ms }; break;
       case "objectif": if (tp && i !== null && i < tp.o) x = { e: "objectif", id: ev.id, i, ms }; break;
       case "essai":
@@ -164,9 +198,9 @@ function valider(lot, maintenant, W) {
       case "notion": if (typeof ev.noeud === "string" && W.noeuds.has(ev.noeud)) x = { e: "notion", noeud: ev.noeud }; break;
       case "carte_finie": if (W.cartes.has(ev.id)) x = { e: "carte_finie", id: ev.id }; break;
     }
-    if (x) evs.push(x);
+    if (x) evs.push(x); else rejetes++;
   }
-  return { lot: lot.lot, evs, heures };
+  return { lot: lot.lot, evs, heures, rejetes, liste: lot.liste };
 }
 
 /* ---------- Totaux d'un jour ---------- */
@@ -174,15 +208,26 @@ function valider(lot, maintenant, W) {
 const vide = () => Object.create(null);
 const possede = Object.hasOwn || ((o, k) => Object.prototype.hasOwnProperty.call(o, k));
 const MAX_CLES = 3000; // filet de sécurité : au-delà, les nouvelles clés d'une rubrique vont dans « (autres) »
-const nouveauJour = () => Object.assign(vide(), { lots: 0, octets: 0,
+const nouveauJour = () => Object.assign(vide(), { lots: 0, octets: 0, rejetes: 0, autreListe: 0,
   visites: Object.assign(vide(), { total: 0, retour: vide(), niveau: vide(), type: vide(), os: vide(), largeur: vide() }),
   paliers: vide(), pages: vide(), tps: vide(), objectifs: vide(), questions: vide(), notions: vide(), cartes: vide() });
+// Forme attendue d'un fichier de totaux : « n » nombre, « m » objet de nombres, « mm » objet d'objets de nombres.
+const FORME = { lots: "n", octets: "n", rejetes: "n", autreListe: "n", visites: { total: "n", retour: "m", niveau: "m", type: "m", os: "m", largeur: "m" },
+  paliers: "m", pages: "mm", tps: "mm", objectifs: "mm", questions: "mm", notions: "m", cartes: "m" };
+const FORME_MOIS = { heures: "m" };
+function formeValide(o, forme) {
+  const nombre = v => typeof v === "number" && Number.isFinite(v) && v >= 0;
+  const objet = v => v && typeof v === "object" && !Array.isArray(v);
+  const ok = (v, f) => f === "n" ? nombre(v) : f === "m" ? objet(v) && Object.values(v).every(nombre)
+    : f === "mm" ? objet(v) && Object.values(v).every(x => ok(x, "m")) : objet(v) && Object.keys(v).every(k => possede(f, k) && ok(v[k], f[k]));
+  return ok(o, forme);
+}
 function cleRubrique(m, k) { return possede(m, k) || Object.keys(m).length < MAX_CLES ? k : "(autres)"; }
 function ligne(m, k, init) { k = cleRubrique(m, String(k)); if (!possede(m, k)) m[k] = init(); return m[k]; }
 function plus(m, k, n) { k = cleRubrique(m, String(k)); m[k] = (possede(m, k) ? m[k] : 0) + (n === undefined ? 1 : n); }
 const nouvellePage = () => Object.assign(vide(), { vues: 0, ms: 0 });
-const nouveauTP = () => Object.assign(vide(), { ouverts: 0, finis: 0, msFin: 0 });
-const nouvelObjectif = () => Object.assign(vide(), { reussis: 0, ms: 0, essais: 0, rates: 0 });
+const nouveauTP = () => Object.assign(vide(), { ouverts: 0, dejaTermines: 0, finis: 0, msFin: 0 });
+const nouvelObjectif = () => Object.assign(vide(), { reussis: 0, ms: 0, essais: 0, rates: 0, dejaFaits: 0 });
 function ajouterAuJour(j, ev) {
   const nomPage = () => ev.p + (ev.id ? "·" + ev.id : "");
   switch (ev.e) {
@@ -194,7 +239,12 @@ function ajouterAuJour(j, ev) {
     case "page": ligne(j.pages, nomPage(), nouvellePage).vues++; break;
     case "temps": ligne(j.pages, nomPage(), nouvellePage).ms += ev.ms; break;
     case "palier": plus(j.paliers, ev.m); break;
-    case "tp_debut": ligne(j.tps, ev.id, nouveauTP).ouverts++; break;
+    case "tp_debut": {
+      const x = ligne(j.tps, ev.id, nouveauTP); x.ouverts++; if (ev.deja) x.dejaTermines++;
+      // Objectifs déjà réussis sur cet appareil avant cette ouverture : retirés du dénominateur de leur taux.
+      for (const f of ev.faits || []) ligne(j.objectifs, ev.id + "|" + f, nouvelObjectif).dejaFaits++;
+      break;
+    }
     case "tp_fin": { const x = ligne(j.tps, ev.id, nouveauTP); x.finis++; x.msFin += ev.ms || 0; break; }
     case "objectif": { const x = ligne(j.objectifs, ev.id + "|" + ev.i, nouvelObjectif); x.reussis++; x.ms += ev.ms || 0; break; }
     case "essai":
@@ -214,28 +264,114 @@ function additionner(x, y) {
   return x;
 }
 
-/* ---------- Seuil k : aucune case ne décrit moins de k événements ---------- */
-// Rend les lignes à montrer d'un total (tableau de bord et CSV), cases masquées sous le seuil.
-// Les lignes dont le compte principal est sous le seuil ne sont pas montrées du tout (leur seule
-// présence dirait qu'au moins une visite a ouvert telle page ou tel TP).
-function masqueur(k) {
-  const m = n => typeof n === "number" && n >= k ? n : "< " + k;
-  const ok = n => typeof n === "number" && n >= k;
-  return { m, ok, k };
-}
-function lignesDuTotal(d, k) {
-  const { m, ok } = masqueur(k), l = [];
-  l.push(["visites", "", "total", m(d.visites.total)]);
-  for (const r of ["retour", "niveau", "type", "os", "largeur"]) for (const [c, n] of Object.entries(d.visites[r])) if (ok(n)) l.push(["visites_" + r, c, "visites", n]);
-  for (const [c, n] of Object.entries(d.paliers)) l.push(["paliers", c, "visites", m(n)]);
-  for (const r of ["notions", "cartes"]) for (const [c, n] of Object.entries(d[r])) if (ok(n)) l.push([r, c, "nombre", n]);
-  for (const [c, x] of Object.entries(d.pages)) if (ok(x.vues)) l.push(["pages", c, "vues", x.vues], ["pages", c, "temps_ms", x.ms]);
-  for (const [c, x] of Object.entries(d.tps)) if (ok(x.ouverts)) { l.push(["tps", c, "ouverts", x.ouverts], ["tps", c, "termines", m(x.finis)]); if (ok(x.finis)) l.push(["tps", c, "duree_fin_ms", x.msFin]); }
-  for (const [c, x] of Object.entries(d.objectifs)) if (ok(x.reussis) || ok(x.essais)) {
-    l.push(["objectifs", c, "reussis", m(x.reussis)], ["objectifs", c, "essais", m(x.essais)], ["objectifs", c, "essais_rates", m(x.rates)]);
-    if (ok(x.reussis)) l.push(["objectifs", c, "temps_reussite_ms", x.ms]);
+/* ---------- Périodes du calendrier (jamais de fenêtre glissante) ---------- */
+const jourISO = d => d.toISOString().slice(0, 10);
+// Semaines ISO (lundi-dimanche) et mois entièrement terminés avant aujourd'hui (UTC).
+function periodesCloses(maintenantMs, nSemaines, nMois) {
+  const auj = new Date(Math.floor(maintenantMs / 86400000) * 86400000), l = [];
+  const lundi = new Date(auj.getTime() - ((auj.getUTCDay() + 6) % 7) * 86400000);
+  for (let k = 1; k <= (nSemaines || 8); k++) {
+    const debut = new Date(lundi.getTime() - k * 7 * 86400000), fin = new Date(debut.getTime() + 6 * 86400000);
+    const jeudi = new Date(debut.getTime() + 3 * 86400000), an = jeudi.getUTCFullYear();
+    const num = Math.floor((jeudi - Date.UTC(an, 0, 1)) / 86400000 / 7) + 1;
+    l.push({ cle: "s" + an + "-W" + String(num).padStart(2, "0"), nom: "Semaine " + num + " de " + an + " (" + jourISO(debut) + " au " + jourISO(fin) + ")", debut: jourISO(debut), fin: jourISO(fin) });
   }
-  for (const [c, x] of Object.entries(d.questions)) if (ok(x.justes + x.fausses)) l.push(["questions", c, "justes", m(x.justes)], ["questions", c, "fausses", m(x.fausses)]);
+  for (let k = 1; k <= (nMois || 25); k++) {
+    const d = new Date(Date.UTC(auj.getUTCFullYear(), auj.getUTCMonth() - k, 1)), f = new Date(Date.UTC(auj.getUTCFullYear(), auj.getUTCMonth() - k + 1, 0));
+    l.push({ cle: "m" + jourISO(d).slice(0, 7), nom: "Mois " + jourISO(d).slice(0, 7), debut: jourISO(d), fin: jourISO(f), mois: jourISO(d).slice(0, 7) });
+  }
+  return l;
+}
+
+/* ---------- Seuil k et suppression complémentaire ---------- */
+// Une liste de cases dont la somme est affichée (ou se déduit d'un total affiché) : on cache les cases
+// sous k, puis, tant que la somme des cases cachées est entre 1 et k − 1 (donc retrouvable par
+// soustraction), on cache aussi la plus petite case visible. Les cases cachées sont regroupées dans
+// « autres (regroupés) », affiché seulement s'il atteint k.
+function supprimer(entrees, k) {
+  const vis = entrees.filter(([, n]) => n >= k).sort((a, b) => b[1] - a[1]);
+  let cache = entrees.filter(([, n]) => n < k).reduce((s, [, n]) => s + n, 0);
+  while (cache > 0 && cache < k && vis.length) cache += vis.pop()[1];
+  return { visibles: vis, autres: cache >= k ? cache : 0, reste: cache };
+}
+// Une valeur secondaire v sur une base b (ex. TP terminés sur TP ouverts) : montrée seulement si v et
+// b − v sont nuls ou au moins k (sinon v, ou b − v, désignerait moins de k visites).
+const montrable = (v, b, k) => (v === 0 || v >= k) && (b - v === 0 || b - v >= k) && b >= k;
+
+// Ce que montrent le tableau de bord et le CSV pour une période : rien d'autre ne sort du serveur.
+function vuePeriode(P, k) {
+  const t = P.total, V = t.visites.total, somme = (o, f) => Object.values(o).reduce((x, v) => x + f(v), 0);
+  const vue = { k, visites: V >= k ? V : null, parJour: null, repartitions: {}, tranches: null, heures: null, pages: null, tps: [], objectifs: [], seTrompent: [], questions: [], notions: [], cartes: [] };
+  if (V < k) return vue; // trop peu de visites : rien d'autre n'est montré
+  // Visites par jour (leur somme est le total affiché).
+  vue.parJour = supprimer(P.parJour.map(([j, d]) => [j, d.visites.total]), k);
+  vue.parJour.visibles.sort((a, b) => a[0] < b[0] ? -1 : 1);
+  for (const r of ["retour", "niveau", "type", "os", "largeur"]) vue.repartitions[r] = supprimer(Object.entries(t.visites[r]), k);
+  // Durée de la visite : tranches entre paliers (jamais négatives : une visite à cheval sur minuit peut
+  // avoir son palier compté le lendemain).
+  const pal = m => (possede(t.paliers, m) ? t.paliers[m] : 0), pos = n => Math.max(0, n);
+  vue.tranches = supprimer([["moins de 1 min", pos(V - pal(1))], ["1 à 5 min", pos(pal(1) - pal(5))], ["5 à 15 min", pos(pal(5) - pal(15))], ["15 à 30 min", pos(pal(15) - pal(30))], ["30 à 60 min", pos(pal(30) - pal(60))], ["plus de 60 min", pal(60)]], k);
+  if (P.heures) vue.heures = supprimer(Object.entries(P.heures).map(([h, n]) => [+h, n]), k);
+  // Pages : les vues des lignes montrées et « autres » font le total des vues, lui aussi montré.
+  const vues = somme(t.pages, x => x.vues);
+  vue.pagesVues = vues >= k ? vues : null;
+  if (vue.pagesVues) {
+    const s = supprimer(Object.entries(t.pages).map(([c, x]) => [c, x.vues]), k);
+    vue.pages = { visibles: s.visibles.map(([c, n]) => [c, n, t.pages[c].ms]), autres: s.autres };
+  }
+  // TP : ouvertures (total montré), puis valeurs secondaires montrées seulement si montrables.
+  const ouverts = somme(t.tps, x => x.ouverts);
+  vue.tpOuverts = ouverts >= k ? ouverts : null;
+  if (vue.tpOuverts) {
+    const s = supprimer(Object.entries(t.tps).map(([c, x]) => [c, x.ouverts]), k);
+    vue.tpAutres = s.autres;
+    for (const [c] of s.visibles) {
+      const x = t.tps[c], base = x.ouverts - x.dejaTermines;
+      const baseOk = (x.dejaTermines === 0 || x.dejaTermines >= k) && base >= k;
+      vue.tps.push({ id: c, ouverts: x.ouverts, base: baseOk ? base : null, finis: baseOk && montrable(x.finis, base, k) ? x.finis : null, msFin: x.finis >= k ? x.msFin / x.finis : null });
+    }
+  }
+  const tpMontre = new Map(vue.tps.map(x => [x.id, x]));
+  for (const [c, x] of Object.entries(t.objectifs)) {
+    const [id, i] = c.split("|"), tp = tpMontre.get(id);
+    // Taux de première réussite : réussites (premières sur cet appareil) sur les ouvertures où
+    // l'objectif n'était pas déjà réussi sur cet appareil.
+    if (tp) {
+      const base = tp.ouverts - x.dejaFaits;
+      if ((x.dejaFaits === 0 || x.dejaFaits >= k) && base >= k && montrable(x.reussis, base, k))
+        vue.objectifs.push({ id, i: +i + 1, base, reussis: x.reussis, ms: x.reussis >= k ? x.ms / x.reussis : null });
+    }
+    if (x.essais >= k) vue.seTrompent.push({ id, i: +i + 1, essais: x.essais, rates: montrable(x.rates, x.essais, k) ? x.rates : null });
+  }
+  for (const [c, x] of Object.entries(t.questions)) {
+    const n = x.justes + x.fausses;
+    if (n >= k) vue.questions.push({ id: c.split("|")[0], i: +c.split("|")[1] + 1, reponses: n, fausses: montrable(x.fausses, n, k) ? x.fausses : null });
+  }
+  vue.objectifs.sort((a, b) => a.reussis / a.base - b.reussis / b.base);
+  vue.seTrompent.sort((a, b) => (b.rates || 0) - (a.rates || 0) || b.essais - a.essais);
+  vue.questions.sort((a, b) => (b.fausses || 0) - (a.fausses || 0) || b.reponses - a.reponses);
+  vue.notions = Object.entries(t.notions).filter(x => x[1] >= k).sort((a, b) => b[1] - a[1]);
+  vue.cartes = Object.entries(t.cartes).filter(x => x[1] >= k).sort((a, b) => b[1] - a[1]);
+  return vue;
+}
+// Lignes du CSV : exactement ce que montre le tableau de bord (rubrique, clé, mesure, valeur).
+function lignesCsv(vue) {
+  const l = [];
+  if (vue.visites === null) return [["visites", "", "total", "moins de " + vue.k]];
+  l.push(["visites", "", "total", vue.visites]);
+  const rep = (nom, s, mesure) => { for (const [c, n] of s.visibles) l.push([nom, c, mesure, n]); if (s.autres) l.push([nom, "(autres regroupés)", mesure, s.autres]); };
+  rep("visites_par_jour", vue.parJour, "visites");
+  for (const [r, s] of Object.entries(vue.repartitions)) rep("visites_" + r, s, "visites");
+  rep("duree_visite", vue.tranches, "visites");
+  if (vue.heures) rep("heure_visite_utc", vue.heures, "visites");
+  if (vue.pages) { l.push(["pages", "", "vues_total", vue.pagesVues]); for (const [c, n, ms] of vue.pages.visibles) l.push(["pages", c, "vues", n], ["pages", c, "temps_ms", ms]); if (vue.pages.autres) l.push(["pages", "(autres regroupés)", "vues", vue.pages.autres]); }
+  if (vue.tpOuverts) { l.push(["tps", "", "ouverts_total", vue.tpOuverts]); if (vue.tpAutres) l.push(["tps", "(autres regroupés)", "ouverts", vue.tpAutres]); }
+  for (const x of vue.tps) { l.push(["tps", x.id, "ouverts", x.ouverts]); if (x.base !== null) l.push(["tps", x.id, "ouverts_sans_fin_anterieure", x.base]); if (x.finis !== null) l.push(["tps", x.id, "premieres_fins", x.finis]); }
+  for (const x of vue.objectifs) l.push(["objectifs", x.id + "|" + x.i, "ouvertures_sans_reussite_anterieure", x.base], ["objectifs", x.id + "|" + x.i, "premieres_reussites", x.reussis]);
+  for (const x of vue.seTrompent) { l.push(["objectifs", x.id + "|" + x.i, "essais", x.essais]); if (x.rates !== null) l.push(["objectifs", x.id + "|" + x.i, "essais_rates", x.rates]); }
+  for (const x of vue.questions) { l.push(["questions", x.id + "|" + x.i, "reponses", x.reponses]); if (x.fausses !== null) l.push(["questions", x.id + "|" + x.i, "fausses", x.fausses]); }
+  for (const [c, n] of vue.notions) l.push(["notions", c, "nombre", n]);
+  for (const [c, n] of vue.cartes) l.push(["cartes", c, "nombre", n]);
   return l;
 }
 
@@ -262,7 +398,8 @@ function adresseClient(req) {
   return xff.length ? { adr: prefixe64(xff[xff.length - 1]), fiable: true } : { adr: directe, fiable: false };
 }
 
-module.exports = { valider, ajouterAuJour, additionner, nouveauJour, lignesDuTotal, prefixe64, chargerListeBlanche, secretValide, hashValide };
+module.exports = { valider, ajouterAuJour, additionner, nouveauJour, formeValide, FORME, supprimer, montrable, vuePeriode, lignesCsv, periodesCloses,
+  prefixe64, chargerListeBlanche, secretValide, hashValide };
 
 /* ---------- Démarrage ---------- */
 if (process.argv[2] === "--hacher") {
@@ -277,10 +414,19 @@ function demarrer() {
   const refus = m => { console.error("Refus de démarrer : " + m + " Voir docs/JOURNAL.md."); process.exit(1); };
   for (const [nom, p] of [["le dossier de données", CONFIG.dossierDonnees], ["le fichier de configuration", CONFIG.fichier]])
     if (sousDossierPublic(p)) refus(nom + " (" + p + ") est dans un dossier public.");
-  // Un secret d'exemple ou trop court permettrait de fabriquer un cookie d'administrateur.
-  if (!secretValide(CONFIG.secretSession)) refus("secretSession doit compter au moins 64 caractères hexadécimaux tirés au hasard (le texte d'exemple n'est pas accepté).");
-  let W;
-  try { W = chargerListeBlanche(CONFIG.listeBlanche); } catch (e) { refus("liste blanche illisible (" + CONFIG.listeBlanche + ") : " + e.message); }
+  // Un secret d'exemple, trop court ou sans hasard permettrait de fabriquer un cookie d'administrateur.
+  if (!secretValide(CONFIG.secretSession)) refus("secretSession doit compter au moins 64 caractères hexadécimaux tirés au hasard (le texte d'exemple, ou une suite répétitive, n'est pas accepté).");
+  let W, mtimeListe = 0, lectureListe = 0;
+  try { W = chargerListeBlanche(CONFIG.listeBlanche); mtimeListe = fs.statSync(CONFIG.listeBlanche).mtimeMs; } catch (e) { refus("liste blanche illisible (" + CONFIG.listeBlanche + ") : " + e.message); }
+  // La liste blanche est relue dès qu'elle change (recopiée après un ajout de contenu), sans redémarrer.
+  function listeAJour() {
+    if (Date.now() - lectureListe < 5000) return;
+    lectureListe = Date.now();
+    try {
+      const m = fs.statSync(CONFIG.listeBlanche).mtimeMs;
+      if (m !== mtimeListe) { W = chargerListeBlanche(CONFIG.listeBlanche); mtimeListe = m; console.error("journal : liste blanche relue (" + W.empreinte + ")"); }
+    } catch (e) { console.error("journal : liste blanche illisible, l'ancienne est gardée : " + e.message); }
+  }
   const ADMIN_ACTIF = hashValide(CONFIG.adminHash);
   if (!ADMIN_ACTIF) console.error("Attention : adminHash absent ou invalide : le tableau de bord reste fermé (aucune session possible).");
   const SECRET = CONFIG.secretSession, K = CONFIG.seuilK;
@@ -297,18 +443,18 @@ function demarrer() {
   const taille = f => { try { return fs.statSync(f).size; } catch (e) { return 0; } };
   const dormir = ms => new Promise(r => setTimeout(r, ms));
 
-  // Lecture d'un fichier de totaux. Absent : totaux vides. Illisible : mis en quarantaine (.corrompu-…)
-  // et erreur (le lot reçoit 503 et sera renvoyé) : jamais d'écrasement silencieux.
-  function lireTotaux(p, init) {
+  // Lecture d'un fichier de totaux. Absent : totaux vides. Illisible ou de forme inattendue : mis en
+  // quarantaine (.corrompu-<date>) et erreur (le lot reçoit 503 et sera renvoyé) : jamais d'écrasement silencieux.
+  function lireTotaux(p, init, forme) {
     let texte;
     try { texte = fs.readFileSync(p, "utf8"); } catch (e) { if (e.code === "ENOENT") return init(); throw e; }
-    try { return additionner(init(), JSON.parse(texte)); }
-    catch (e) {
-      const q = p + ".corrompu-" + Date.now();
-      try { fs.renameSync(p, q); } catch (x) { /* déjà déplacé par un autre processus */ }
-      console.error("journal : fichier illisible mis en quarantaine : " + path.basename(q));
-      const err = new Error("fichier de totaux illisible"); err.quarantaine = true; throw err;
-    }
+    let brut = null;
+    try { brut = JSON.parse(texte); } catch (e) { brut = null; }
+    if (brut && formeValide(brut, forme)) return additionner(init(), brut);
+    const q = p + ".corrompu-" + Date.now();
+    try { fs.renameSync(p, q); } catch (x) { /* déjà déplacé par un autre processus */ }
+    console.error("journal : fichier illisible mis en quarantaine : " + path.basename(q));
+    const err = new Error("fichier de totaux illisible"); err.quarantaine = true; throw err;
   }
   function ecrireTotaux(p, donnees) {
     const tmp = p + ".tmp" + process.pid;
@@ -316,23 +462,32 @@ function demarrer() {
     fs.renameSync(tmp, p);
   }
   const fichierJour = j => path.join(AGG, j + ".json"), fichierMois = m => path.join(AGG, "mois-" + m + ".json");
+  const VERROU = path.join(CONFIG.dossierDonnees, ".verrou");
 
   // Verrou entre processus : création exclusive d'un fichier contenant un jeton ; attente asynchrone ;
-  // le verrou n'est retiré que par son propriétaire (même jeton), ou repris s'il est abandonné (> 10 s).
-  const VERROU = path.join(CONFIG.dossierDonnees, ".verrou");
+  // le verrou n'est retiré que par son propriétaire (même jeton). Un verrou abandonné (> 10 s) est
+  // repris en le RENOMMANT vers un nom unique : un seul processus réussit ce renommage. Si le fichier
+  // renommé n'est pas celui qu'on croyait abandonné (un autre processus venait de prendre le verrou), il
+  // est remis en place aussitôt.
   async function avecVerrou(fn) {
     const jeton = crypto.randomBytes(16).toString("hex"), debut = Date.now();
     for (;;) {
       try { fs.writeFileSync(VERROU, jeton, { flag: "wx", mode: 0o600 }); break; }
       catch (e) {
         if (e.code !== "EEXIST") throw e;
-        try {
-          if (Date.now() - fs.statSync(VERROU).mtimeMs > 10000) {
-            const ancien = fs.readFileSync(VERROU, "utf8");
-            if (fs.readFileSync(VERROU, "utf8") === ancien) { fs.unlinkSync(VERROU); console.error("journal : verrou abandonné repris"); }
-            continue;
-          }
-        } catch (x) { continue; } // retiré entre-temps
+        let ancien = null;
+        try { ancien = fs.readFileSync(VERROU, "utf8"); } catch (x) { continue; }
+        let perime = false;
+        try { perime = Date.now() - fs.statSync(VERROU).mtimeMs > 10000; } catch (x) { continue; }
+        if (perime) {
+          const pris = VERROU + ".repris-" + crypto.randomBytes(8).toString("hex");
+          try { fs.renameSync(VERROU, pris); } catch (x) { continue; } // un autre processus l'a repris avant
+          let contenu = null;
+          try { contenu = fs.readFileSync(pris, "utf8"); } catch (x) { /* rien */ }
+          if (contenu === ancien) { try { fs.unlinkSync(pris); } catch (x) { /* rien */ } console.error("journal : verrou abandonné repris"); }
+          else { try { fs.linkSync(pris, VERROU); } catch (x) { /* un troisième l'a pris */ } try { fs.unlinkSync(pris); } catch (x) { /* rien */ } }
+          continue;
+        }
         if (Date.now() - debut > 5000) throw new Error("verrou indisponible");
         await dormir(5 + Math.random() * 15);
       }
@@ -344,7 +499,7 @@ function demarrer() {
   /* --- Lots déjà reçus (31 jours, partagés entre processus par les fichiers lots/) --- */
   const lotsVus = new Map(); // identifiant -> jour
   const lus = new Map();     // fichier lots/ -> octets déjà lus
-  const GARDE_IDS = MAX_RETARD + 86400;
+  const GARDE_IDS = 31 * 86400;
   function rafraichirIds() {
     const limite = jour(maintenantS() - GARDE_IDS);
     for (const f of fichiers(IDS, IDS_F)) {
@@ -371,19 +526,21 @@ function demarrer() {
     return tailleDossierCache.octets;
   }
   // Enregistre un lot validé : tout va au jour de réception (et l'heure des visites au mois de
-  // réception) + identifiant du lot, sous verrou. Rend "deja", une raison de refus (plafond), ou null.
+  // réception) + identifiant du lot, sous verrou. « octets » = taille des événements VALIDÉS (pas du
+  // corps reçu). Rend "deja", une raison de refus (plafond), ou null.
   function enregistrer(lot, octets) {
     return avecVerrou(() => {
       rafraichirIds();
       if (lotsVus.has(lot.lot)) return "deja";
-      const auj = jour(maintenantS()), totaux = lireTotaux(fichierJour(auj), nouveauJour);
+      const auj = jour(maintenantS()), totaux = lireTotaux(fichierJour(auj), nouveauJour, FORME);
       if (totaux.octets + octets > CONFIG.plafondOctetsJour) return "octets du jour";
       if (totaux.lots >= CONFIG.plafondLotsJour) return "lots du jour";
       if (tailleDossier() + octets > CONFIG.plafondDossierOctets) return "taille du dossier";
       for (const ev of lot.evs) ajouterAuJour(totaux, ev);
-      totaux.lots++; totaux.octets += octets;
+      totaux.lots++; totaux.octets += octets; totaux.rejetes += lot.rejetes;
+      if (lot.liste !== undefined && lot.liste !== W.empreinte) totaux.autreListe++;
       if (lot.heures.length) {
-        const mois = lireTotaux(fichierMois(auj.slice(0, 7)), () => Object.assign(vide(), { heures: vide() }));
+        const mois = lireTotaux(fichierMois(auj.slice(0, 7)), () => Object.assign(vide(), { heures: vide() }), FORME_MOIS);
         for (const h of lot.heures) plus(mois.heures, h);
         ecrireTotaux(fichierMois(auj.slice(0, 7)), mois);
       }
@@ -395,13 +552,28 @@ function demarrer() {
       return null;
     });
   }
+  // Seulement des événements refusés : compte gardé pour l'alerte « liste blanche pas à jour », rien d'autre.
+  function noterRejets(n, liste) {
+    return avecVerrou(() => {
+      const auj = jour(maintenantS()), totaux = lireTotaux(fichierJour(auj), nouveauJour, FORME);
+      totaux.rejetes += n;
+      if (liste !== undefined && liste !== W.empreinte) totaux.autreListe++;
+      ecrireTotaux(fichierJour(auj), totaux);
+    });
+  }
 
-  /* --- Purge (sous verrou) : totaux au-delà de la conservation, identifiants de lots au-delà de 31 jours --- */
+  /* --- Purge (sous verrou) : totaux au-delà de la conservation, identifiants de lots au-delà de 31 jours,
+     fichiers en quarantaine selon la même conservation, fichiers temporaires abandonnés (> 1 h) --- */
   function purger() {
     const limite = jour(maintenantS() - CONFIG.conservationJours * 86400), limiteIds = jour(maintenantS() - GARDE_IDS);
     let n = 0;
     for (const f of fichiers(AGG, JOURS)) if (f.slice(0, 10) < limite) { fs.unlinkSync(path.join(AGG, f)); n++; }
     for (const f of fichiers(AGG, MOIS)) if (f.slice(5, 12) < limite.slice(0, 7)) fs.unlinkSync(path.join(AGG, f));
+    for (const f of fs.readdirSync(AGG)) {
+      const q = /\.corrompu-(\d+)$/.exec(f), p = path.join(AGG, f);
+      if (q && +q[1] < Date.now() - CONFIG.conservationJours * 86400000) fs.unlinkSync(p);
+      else if (/\.tmp\d+$/.test(f)) { try { if (Date.now() - fs.statSync(p).mtimeMs > 3600000) fs.unlinkSync(p); } catch (e) { /* rien */ } }
+    }
     for (const f of fichiers(IDS, IDS_F)) if (f.slice(0, 10) < limiteIds) { fs.unlinkSync(path.join(IDS, f)); lus.delete(f); }
     for (const [id, j] of lotsVus) if (j < limiteIds) lotsVus.delete(id);
     version++; tailleDossierCache.t = 0;
@@ -411,38 +583,56 @@ function demarrer() {
   purgerSousVerrou();
   setInterval(purgerSousVerrou, 24 * 3600 * 1000).unref();
 
-  /* --- Limites par adresse (en mémoire, seulement si l'adresse est fiable) --- */
+  /* --- Limites par adresse (en mémoire, seulement si l'adresse est fiable) ---
+     Les compteurs par 10 min sont effacés toutes les 10 min ; ceux du jour, à minuit UTC. */
   const empreinte = adr => crypto.createHmac("sha256", SEL_MEMOIRE).update(adr).digest("hex").slice(0, 24);
   let fenetre10 = -1, compteurs10 = new Map(), jourIp = "", compteursJour = new Map();
-  function tropDeLots(fp) {
+  function compteurs(fp) {
     const f = Math.floor(Date.now() / 600000), j = jour(maintenantS());
-    if (f !== fenetre10) { fenetre10 = f; compteurs10 = new Map(); } // compteurs expirés effacés d'un coup
+    if (f !== fenetre10) { fenetre10 = f; compteurs10 = new Map(); }
     if (j !== jourIp) { jourIp = j; compteursJour = new Map(); }
-    const n = (compteurs10.get(fp) || 0) + 1, nj = (compteursJour.get(fp) || 0) + 1;
-    compteurs10.set(fp, n); compteursJour.set(fp, nj);
-    return n > CONFIG.limiteLots10min || nj > CONFIG.plafondIpJour;
+    if (!compteursJour.has(fp)) compteursJour.set(fp, { lots: 0, octets: 0 });
+    return { dix: compteurs10, jour: compteursJour.get(fp) };
   }
+  function tropDeLots(fp) {
+    const c = compteurs(fp), n = (c.dix.get(fp) || 0) + 1;
+    c.dix.set(fp, n); c.jour.lots++;
+    return n > CONFIG.limiteLots10min || c.jour.lots > CONFIG.plafondIpJour || c.jour.octets > CONFIG.plafondOctetsIpJour;
+  }
+  const ajouterOctetsAdresse = (fp, octets) => { compteurs(fp).jour.octets += octets; };
 
-  /* --- Totaux d'une période de JOURS CLOS (jamais le jour en cours), petit cache --- */
+  /* --- Totaux d'une période close du calendrier, petit cache --- */
   let cache = { cle: "", valeur: null, t: 0 };
-  function periode(jours) {
-    const cle = jours + ":" + version + ":" + jour(maintenantS());
+  function periode(p) {
+    const cle = p.cle + ":" + version;
     if (cache.cle === cle && Date.now() - cache.t < 60000) return cache.valeur;
-    const hier = jour(maintenantS() - 86400), premier = jour(maintenantS() - jours * 86400), parJour = [], alertes = [];
-    const total = nouveauJour();
+    const parJour = [], alertes = [], total = nouveauJour();
     for (const f of fichiers(AGG, JOURS)) {
       const j = f.slice(0, 10);
-      if (j < premier || j > hier) continue;
-      try { const d = lireTotaux(path.join(AGG, f), nouveauJour); additionner(total, d); parJour.push([j, d]); }
+      if (j < p.debut || j > p.fin) continue;
+      try { const d = lireTotaux(path.join(AGG, f), nouveauJour, FORME); additionner(total, d); parJour.push([j, d]); }
       catch (e) { alertes.push("Le jour " + j + " était illisible : mis en quarantaine, non compté."); }
     }
-    for (const f of fs.readdirSync(AGG)) if (/\.corrompu-/.test(f)) alertes.push("Fichier en quarantaine : " + f + " (à examiner à la main).");
-    // Profil horaire : seulement le dernier mois clos.
-    const d = new Date(), moisPrec = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
-    let heures = vide();
-    try { heures = lireTotaux(fichierMois(moisPrec), () => Object.assign(vide(), { heures: vide() })).heures; } catch (e) { alertes.push("Le profil horaire de " + moisPrec + " était illisible."); }
-    cache = { cle, valeur: { total, parJour, heures, moisPrec, alertes, premier, hier }, t: Date.now() };
+    let heures = null;
+    if (p.mois) {
+      try { heures = lireTotaux(fichierMois(p.mois), () => Object.assign(vide(), { heures: vide() }), FORME_MOIS).heures; }
+      catch (e) { alertes.push("Le profil horaire de " + p.mois + " était illisible."); }
+    }
+    cache = { cle, valeur: { p, total, parJour, heures, alertes }, t: Date.now() };
     return cache.valeur;
+  }
+  // Alertes de fonctionnement (pas des statistiques) : 7 derniers jours, jour en cours compris.
+  function alertesFonctionnement() {
+    const l = [], depuis = jour(maintenantS() - 7 * 86400);
+    let rejetes = 0, autreListe = 0;
+    for (const f of fichiers(AGG, JOURS)) {
+      if (f.slice(0, 10) < depuis) continue;
+      try { const d = lireTotaux(path.join(AGG, f), nouveauJour, FORME); rejetes += d.rejetes; autreListe += d.autreListe; } catch (e) { /* signalé ailleurs */ }
+    }
+    if (rejetes) l.push(rejetes + " événement(s) refusé(s) ces 7 derniers jours (identifiant inconnu) : la liste blanche du serveur n'est peut-être pas à jour (voir docs/JOURNAL.md).");
+    if (autreListe) l.push(autreListe + " lot(s) envoyé(s) par une version du site différente de la liste blanche du serveur (" + (W.empreinte || "sans empreinte") + ") : recopier serveur/liste-blanche.json.");
+    for (const f of fs.readdirSync(AGG)) if (/\.corrompu-/.test(f)) l.push("Fichier en quarantaine : " + f + " (à examiner à la main).");
+    return l;
   }
 
   /* --- Session : cookie signé HMAC (tient avec plusieurs processus), expiration incluse --- */
@@ -463,7 +653,8 @@ function demarrer() {
     if (!s || !(s.exp > maintenantS()) || typeof s.n !== "string" || revoquees.has(s.n)) return null;
     return { n: s.n, exp: s.exp, csrf: signer("csrf." + s.n) };
   }
-  // Essais de connexion ratés : par empreinte d'adresse, en mémoire, délai croissant (pas de blocage global).
+  // Essais de connexion ratés : par empreinte d'adresse, en mémoire (effacés au bout d'une heure),
+  // délai croissant (pas de blocage global).
   const echecs = new Map();
   function delaiAvantEssai(fp) { const e = echecs.get(fp); return e ? Math.max(0, e.suivant - Date.now()) : 0; }
   function noterEchec(fp) {
@@ -479,36 +670,38 @@ function demarrer() {
   }, 600000).unref();
 
   /* --- Rendu --- */
-  const { m: M, ok: OK } = masqueur(K);
   const echap = s => String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const duree = ms => { const s = Math.round((ms || 0) / 1000); return s >= 3600 ? Math.floor(s / 3600) + " h " + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + " min" : s >= 60 ? Math.floor(s / 60) + " min " + String(s % 60).padStart(2, "0") + " s" : s + " s"; };
-  // Part en % : seulement si le numérateur et le dénominateur atteignent le seuil.
-  const pc = (x, y) => OK(x) && OK(y) ? Math.min(100, Math.round(100 * x / y)) + " %" : "";
+  const MASQUE = "masqué";
+  const ou = v => v === null || v === undefined ? MASQUE : v;
+  const pc = (x, y) => x === null || y === null || !y ? MASQUE : Math.min(100, Math.round(100 * x / y)) + " %";
   function pageHtml(titre, corps) {
     return "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><title>" + echap(titre) + "</title><style>" +
       "body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#eef1ec;color:#17221c}main{max-width:1100px;margin:0 auto;padding:16px}h1{font-size:1.6rem;margin:.2em 0}" +
       "h2{font-size:1.2rem;margin:1.6em 0 .4em;border-bottom:2px solid #17221c}h3{font-size:1rem;margin:1em 0 .3em}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #cdd6cb}th{background:#e2e8df}" +
       "td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.chiffres{display:flex;gap:28px;flex-wrap:wrap}.chiffres div{font-size:2rem;font-weight:700}.chiffres span{display:block;font-size:.85rem;font-weight:400;color:#55635a}" +
       "form.ligne{display:inline-flex;gap:8px;align-items:center;margin:4px 8px 4px 0;flex-wrap:wrap}button,input,select{font:inherit;padding:8px 12px;min-height:44px}button{cursor:pointer}.alerte{color:#c3352a;font-weight:700}.tableau{overflow-x:auto}" +
-      ".colonnes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 24px}.barre{display:inline-block;height:10px;background:#1e5b44;vertical-align:middle;margin-right:6px}.note{color:#55635a;font-size:.9rem}" +
+      ".colonnes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 24px}.note{color:#55635a;font-size:.9rem}" +
       "dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px}dt{font-weight:700}" +
       "</style></head><body><main>" + corps + "</main></body></html>";
   }
   function tableau(entetes, numeriques, lignes, vide_) {
-    if (!lignes.length) return "<p class=\"note\">" + (vide_ || "Rien au-dessus du seuil sur la période.") + "</p>";
+    if (!lignes.length) return "<p class=\"note\">" + (vide_ || "Rien à montrer au-dessus du seuil.") + "</p>";
     return "<div class=\"tableau\"><table><thead><tr>" + entetes.map((e, k) => "<th" + (numeriques[k] ? " class=\"n\"" : "") + ">" + echap(e) + "</th>").join("") + "</tr></thead><tbody>" +
-      lignes.map(l => "<tr>" + l.map((v, k) => "<td" + (numeriques[k] ? " class=\"n\"" : "") + ">" + (typeof v === "object" && v && v.html ? v.html : echap(v)) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
+      lignes.map(l => "<tr>" + l.map((v, k) => "<td" + (numeriques[k] ? " class=\"n\"" : "") + ">" + echap(v) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
   }
-  // Répartition : seulement les catégories au-dessus du seuil.
-  function repartition(titre, m, noms) {
-    const tout = Object.entries(m || {}), lignes = tout.filter(x => OK(x[1])).sort((x, y) => y[1] - x[1]), tot = tout.reduce((s, x) => s + x[1], 0);
-    return "<div><h3>" + echap(titre) + "</h3>" + tableau(["", "Visites", "Part"], [0, 1, 1],
-      lignes.map(([c, n]) => [(noms && noms[c]) || c, n, { html: "<span class=\"barre\" style=\"width:" + Math.round(60 * n / (tot || 1)) + "px\"></span>" + echap(pc(n, tot)) }])) + "</div>";
+  // Une liste après suppression complémentaire : cases montrées, puis « autres (regroupés) ».
+  function liste(titre, s, noms, entete) {
+    if (!s) return "";
+    const lignes = s.visibles.map(([c, n]) => [(noms && noms[c]) || c, n]);
+    if (s.autres) lignes.push(["autres (regroupés)", s.autres]);
+    return "<div><h3>" + echap(titre) + "</h3>" + tableau(["", entete || "Visites"], [0, 1], lignes) + "</div>";
   }
   // Cellule CSV : guillemets doublés, et apostrophe devant = + - @ (formules des tableurs).
   const celluleCsv = v => { let s = v === undefined || v === null ? "" : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
 
   /* --- HTTP --- */
+  const MAX_CORPS = 16 * 1024;
   function lireCorps(req, max) {
     return new Promise((ok, ko) => {
       const morceaux = []; let n = 0;
@@ -518,6 +711,7 @@ function demarrer() {
     });
   }
   function repondre(res, code, corps, entetes) {
+    if (res.headersSent || res.destroyed) return;
     res.writeHead(code, Object.assign({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }, entetes || {}));
     res.end(corps || "");
   }
@@ -536,6 +730,7 @@ function demarrer() {
     const origine = req.headers.origin ? String(req.headers.origin).replace(/\/$/, "") : "";
     const origineOk = !origine || CONFIG.origines.includes(origine) || origine === "http://" + req.headers.host || origine === "https://" + req.headers.host;
     const client = adresseClient(req);
+    listeAJour();
 
     /* Réception du journal */
     if (chemin === "/journal") {
@@ -543,18 +738,22 @@ function demarrer() {
       if (req.method === "OPTIONS") return repondre(res, origineOk ? 204 : 403, "", Object.assign(cors, { "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" }));
       if (req.method !== "POST") return repondre(res, 405, "", { Allow: "POST" });
       if (!origineOk) return repondre(res, 403);
-      // Sans identifiant d'appareil, la limite de débit se fait par adresse (en mémoire), si elle est fiable.
-      if (client.fiable && tropDeLots(empreinte(client.adr))) return repondre(res, 429, "", Object.assign(cors, { "Retry-After": "600" }));
+      // Sans identifiant d'appareil, les limites se font par adresse (en mémoire), si elle est fiable.
+      const fp = client.fiable ? empreinte(client.adr) : null;
+      if (fp && tropDeLots(fp)) return repondre(res, 429, "", Object.assign(cors, { "Retry-After": "600" }));
       let corps;
-      try { corps = await lireCorps(req, 128 * 1024); } catch (e) { return repondre(res, 413, "", cors); }
+      try { corps = await lireCorps(req, MAX_CORPS); } catch (e) { return repondre(res, 413, "", cors); }
       let lot;
       try { lot = valider(JSON.parse(corps), maintenantS(), W); } catch (e) { lot = null; }
       if (!lot) return repondre(res, 400, "", cors);
-      // Rien de valable (identifiants inconnus…) : confirmé, mais rien n'est écrit ni compté dans les plafonds.
-      if (!lot.evs.length) return repondre(res, 204, "", cors);
-      let raison;
-      try { raison = await enregistrer(lot, Buffer.byteLength(corps)); } catch (e) { console.error("journal :", e.message); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "60" })); }
-      if (raison && raison !== "deja") { console.error("journal : plafond atteint (" + raison + "), lot refusé"); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "3600" })); }
+      try {
+        // Rien de valable : seul le nombre de refus est gardé (alerte « liste pas à jour ») ; rien d'autre.
+        if (!lot.evs.length) { if (lot.rejetes) await noterRejets(lot.rejetes, lot.liste); return repondre(res, 204, "", cors); }
+        const octets = Buffer.byteLength(JSON.stringify(lot.evs)) + 40;
+        if (fp) ajouterOctetsAdresse(fp, octets);
+        const raison = await enregistrer(lot, octets);
+        if (raison && raison !== "deja") { console.error("journal : plafond atteint (" + raison + "), lot refusé"); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "3600" })); }
+      } catch (e) { console.error("journal :", e.message); return repondre(res, 503, "", Object.assign(cors, { "Retry-After": "60" })); }
       return repondre(res, 204, "", cors); // reçu (ou déjà reçu : confirmé sans recompter)
     }
     if (chemin === "/sante") return repondre(res, 200, "ok", { "Content-Type": "text/plain" });
@@ -586,13 +785,14 @@ function demarrer() {
       revoquees.set(s.n, s.exp);
       return repondre(res, 303, "", { Location: BASE_ADMIN, "Set-Cookie": cookie("", 0) });
     }
-    const jours = [7, 30, 90, 365, 760].includes(+parametres.get("jours")) ? +parametres.get("jours") : 30;
+    // Seules des périodes closes du calendrier sont proposées (pas de fenêtre glissante).
+    const periodes = periodesCloses(Date.now());
+    const choisie = periodes.find(p => p.cle === parametres.get("p")) || periodes[0];
 
     if (route === "/export.csv") {
-      const p = periode(jours), lignes = ["﻿jour;rubrique;cle;mesure;valeur"];
-      for (const [j, d] of p.parJour) for (const l of lignesDuTotal(d, K)) lignes.push([j].concat(l).map(celluleCsv).join(";"));
-      for (const l of lignesDuTotal(p.total, K)) lignes.push(["periode " + p.premier + " a " + p.hier].concat(l).map(celluleCsv).join(";"));
-      return repondre(res, 200, lignes.join("\n") + "\n", { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"journal-totaux-" + p.hier + ".csv\"" });
+      const lignes = ["﻿periode;rubrique;cle;mesure;valeur"];
+      for (const l of lignesCsv(vuePeriode(periode(choisie), K))) lignes.push([choisie.cle].concat(l).map(celluleCsv).join(";"));
+      return repondre(res, 200, lignes.join("\n") + "\n", { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"journal-" + choisie.cle + ".csv\"" });
     }
     if (route === "/diagnostic") return repondre(res, 200, pageDiagnostic(), ENTETES_ADMIN);
     let message = "";
@@ -600,13 +800,14 @@ function demarrer() {
       const quoi = formulaire.get("quoi");
       if (!csrfOk) message = "Session expirée : recharge la page.";
       else if (quoi === "tout" && formulaire.get("confirmer") === "EFFACER") {
-        await avecVerrou(() => { for (const f of fichiers(AGG, /\.json$/)) fs.unlinkSync(path.join(AGG, f)); });
+        // Tout : totaux, profils horaires, fichiers en quarantaine et temporaires.
+        await avecVerrou(() => { for (const f of fs.readdirSync(AGG)) fs.unlinkSync(path.join(AGG, f)); });
         version++; tailleDossierCache.t = 0;
         message = "Tous les totaux ont été effacés.";
       } else if (quoi === "anciens") message = (await avecVerrou(purger)) + " jour(s) de plus de " + CONFIG.conservationJours + " jours effacé(s).";
       else message = "Pour tout effacer, tape EFFACER dans la case.";
     }
-    return repondre(res, 200, pageTableau(s, jours, message), ENTETES_ADMIN);
+    return repondre(res, 200, pageTableau(s, periodes, choisie, message), ENTETES_ADMIN);
 
     function pageConnexion(msg) {
       return pageHtml("Connexion · journal", "<h1>Journal d'utilisation</h1><p>Accès réservé à l'administrateur.</p>" + (msg ? "<p class=\"alerte\">" + echap(msg) + "</p>" : "") +
@@ -622,59 +823,44 @@ function demarrer() {
         "<dt>Connexion directe locale (proxy)</dt><dd>" + (local(directe) ? "oui" : "non : X-Forwarded-For est ignoré") + "</dd>" +
         "<dt>X-Forwarded-For présent</dt><dd>" + (xff.length ? "oui, " + xff.length + " entrée(s)" : "non") + "</dd>" +
         (xff.length ? "<dt>Dernière entrée (utilisée)</dt><dd>" + echap(masquer(xff[xff.length - 1])) + "</dd>" : "") +
-        "<dt>X-Forwarded-Proto</dt><dd>" + echap(req.headers["x-forwarded-proto"] || "absent") + "</dd></dl>" +
+        "<dt>X-Forwarded-Proto</dt><dd>" + echap(req.headers["x-forwarded-proto"] || "absent") + "</dd>" +
+        "<dt>Liste blanche</dt><dd>" + echap(W.empreinte || "sans empreinte") + "</dd></dl>" +
         "<p>Compare la dernière entrée avec le début de ton adresse publique : elles doivent correspondre. Sinon, la limite par adresse ne vise pas le bon client ; voir docs/JOURNAL.md.</p>" +
         "<p><a href=\"" + echap(BASE_ADMIN) + "\">Retour au tableau de bord</a></p>");
     }
-    function pageTableau(sess, j, msg) {
-      const P = periode(j), t = P.total, b = echap(BASE_ADMIN), jeton = "<input type=\"hidden\" name=\"csrf\" value=\"" + echap(sess.csrf) + "\">";
-      const periodes = [[7, "7 derniers jours clos"], [30, "30 jours"], [90, "90 jours"], [365, "12 mois"], [760, "25 mois"]].map(([n, nom]) => "<option value=\"" + n + "\"" + (n === j ? " selected" : "") + ">" + nom + "</option>").join("");
-      const somme = (o, f) => Object.values(o).reduce((x, v) => x + f(v), 0);
-      const vues = somme(t.pages, x => x.vues), tempsTotal = somme(t.pages, x => x.ms), V = t.visites.total;
-      const objectifs = Object.entries(t.objectifs).map(([c, x]) => { const [id, i] = c.split("|"); return { id, i: +i + 1, x }; });
-      const ouvertsDe = id => (possede(t.tps, id) ? t.tps[id].ouverts : 0);
-      // Durée de visite en tranches : différences entre paliers (jamais négatives : une visite à cheval sur
-      // minuit peut avoir son palier compté le lendemain).
-      const pal = m => (possede(t.paliers, m) ? t.paliers[m] : 0), pos = n => Math.max(0, n);
-      const tranches = [["moins de 1 min", pos(V - pal(1))], ["1 à 5 min", pos(pal(1) - pal(5))], ["5 à 15 min", pos(pal(5) - pal(15))], ["15 à 30 min", pos(pal(15) - pal(30))], ["30 à 60 min", pos(pal(30) - pal(60))], ["plus de 60 min", pal(60)]];
+    function pageTableau(sess, periodes_, p, msg) {
+      const P = periode(p), v = vuePeriode(P, K), b = echap(BASE_ADMIN), jeton = "<input type=\"hidden\" name=\"csrf\" value=\"" + echap(sess.csrf) + "\">";
+      const options = periodes_.map(x => "<option value=\"" + x.cle + "\"" + (x.cle === p.cle ? " selected" : "") + ">" + echap(x.nom) + "</option>").join("");
       const NIV = { 0: "non choisi", 1: "Primaire", 2: "Collège", 3: "Lycée", 4: "Avancé" };
       const RET = { meme_jour: "revenu le même jour", moins7: "revenu en moins de 7 jours", "7a30": "revenu entre 7 et 30 jours", plus30: "revenu après plus de 30 jours", premiere: "première visite (ou date effacée)" };
-      const heures = Array.from({ length: 24 }, (_, h) => [h + " h-" + (h + 1) + " h", possede(P.heures, h) ? P.heures[h] : 0]);
+      const alertes = P.alertes.concat(alertesFonctionnement());
       return pageHtml("Journal d'utilisation", "<h1>Journal d'utilisation</h1>" +
-        "<p class=\"note\">Statistiques agrégées par jour, seulement des jours clos (du " + P.premier + " au " + P.hier + ") ; toute case de moins de " + K + " est masquée (« &lt; " + K + " ») et les lignes sous ce seuil ne sont pas affichées.</p>" +
-        P.alertes.map(x => "<p class=\"alerte\">" + echap(x) + "</p>").join("") + (msg ? "<p class=\"alerte\">" + echap(msg) + "</p>" : "") +
-        "<form class=\"ligne\" method=\"get\" action=\"" + b + "\"><label>Période <select name=\"jours\">" + periodes + "</select></label><button>Afficher</button></form>" +
-        "<form class=\"ligne\" method=\"get\" action=\"" + b + "/export.csv\"><input type=\"hidden\" name=\"jours\" value=\"" + j + "\"><button>Exporter les totaux (CSV)</button></form>" +
+        "<p class=\"note\">Statistiques agrégées sur une semaine ou un mois terminés. Les jours sont des <strong>jours de réception</strong> (UTC) : un événement gardé hors ligne compte le jour où il arrive. Aucune case ne montre moins de " + K + " ; d'autres cases sont regroupées dans « autres » ou masquées quand une soustraction permettrait de retrouver un petit nombre.</p>" +
+        alertes.map(x => "<p class=\"alerte\">" + echap(x) + "</p>").join("") + (msg ? "<p class=\"alerte\">" + echap(msg) + "</p>" : "") +
+        "<form class=\"ligne\" method=\"get\" action=\"" + b + "\"><label>Période <select name=\"p\">" + options + "</select></label><button>Afficher</button></form>" +
+        "<form class=\"ligne\" method=\"get\" action=\"" + b + "/export.csv\"><input type=\"hidden\" name=\"p\" value=\"" + echap(p.cle) + "\"><button>Exporter (CSV)</button></form>" +
         "<form class=\"ligne\" method=\"post\" action=\"" + b + "/deconnexion\">" + jeton + "<button>Se déconnecter</button></form>" +
-        "<div class=\"chiffres\"><div>" + echap(M(V)) + "<span>visites</span></div><div>" + echap(M(vues)) + "<span>pages vues</span></div><div>" + (OK(vues) ? echap(duree(tempsTotal)) : "&lt; " + K) + "<span>temps actif total</span></div>" +
-        "<div>" + echap(M(somme(t.tps, x => x.ouverts))) + "<span>TP ouverts</span></div><div>" + echap(M(somme(t.objectifs, x => x.rates))) + "<span>essais ratés aux objectifs</span></div></div>" +
-        "<h2>Par jour</h2>" + tableau(["Jour", "Visites", "Pages vues", "Temps actif", "TP ouverts", "TP terminés", "Objectifs réussis", "Essais ratés"], [0, 1, 1, 1, 1, 1, 1, 1],
-          P.parJour.slice().reverse().map(([jj, d]) => { const v = somme(d.pages, x => x.vues); return [jj, M(d.visites.total), M(v), OK(v) ? duree(somme(d.pages, x => x.ms)) : "< " + K,
-            M(somme(d.tps, x => x.ouverts)), M(somme(d.tps, x => x.finis)), M(somme(d.objectifs, x => x.reussis)), M(somme(d.objectifs, x => x.rates))]; }), "Aucun jour clos sur la période.") +
-        "<h2>Visites</h2><div class=\"colonnes\">" + repartition("Retour", t.visites.retour, RET) + repartition("Niveau choisi", t.visites.niveau, NIV) + repartition("Type d'appareil", t.visites.type) +
-        repartition("Système", t.visites.os) + repartition("Largeur d'écran (px)", t.visites.largeur) +
-        "<div><h3>Durée active de la visite</h3>" + tableau(["", "Visites"], [0, 1], OK(V) ? tranches.map(([x, n]) => [x, M(n)]) : []) + "</div>" +
-        "<div><h3>Heure des visites, " + echap(P.moisPrec) + " (UTC, heure de Bamako)</h3>" + tableau(["", "Visites"], [0, 1], heures.filter(x => OK(x[1])), "Aucune heure au-dessus du seuil pour le dernier mois clos.") + "</div></div>" +
-        "<h2>Pages les plus consultées</h2>" + tableau(["Page", "Vues", "Temps actif total", "Temps moyen par vue"], [0, 1, 1, 1],
-          Object.entries(t.pages).filter(([, x]) => OK(x.vues)).sort((x, y) => y[1].vues - x[1].vues).slice(0, 40).map(([c, x]) => [c, x.vues, duree(x.ms), duree(x.ms / x.vues)])) +
-        "<h2>TP : ouverts, terminés (par variante de niveau)</h2><p class=\"note\">Comptés par visite : un TP ouvert deux fois dans la même visite compte une fois ; « terminé » veut dire terminé pendant la visite.</p>" +
-        tableau(["TP", "Visites qui l'ont ouvert", "Terminés pendant la visite", "Part terminée", "Durée moyenne jusqu'à la fin"], [0, 1, 1, 1, 1],
-          Object.entries(t.tps).filter(([, x]) => OK(x.ouverts)).sort((x, y) => y[1].ouverts - x[1].ouverts).slice(0, 60).map(([c, x]) => [c, x.ouverts, M(x.finis), pc(x.finis, x.ouverts), OK(x.finis) ? duree(x.msFin / x.finis) : ""])) +
-        "<h2>Où les élèves se trompent : objectifs triés par essais ratés</h2><p class=\"note\">Les essais ne concernent que les objectifs à réponse écrite (les objectifs atteints en manipulant la simulation n'ont pas d'essai raté).</p>" +
-        tableau(["TP", "Objectif", "Essais", "Essais ratés", "Part ratée", "Réussites"], [0, 1, 1, 1, 1, 1],
-          objectifs.filter(o => OK(o.x.essais)).sort((x, y) => y.x.rates - x.x.rates).slice(0, 40).map(o => [o.id, o.i, o.x.essais, M(o.x.rates), pc(o.x.rates, o.x.essais), M(o.x.reussis)]), "Aucun objectif avec assez d'essais sur la période.") +
-        "<h2>Objectifs : où les élèves bloquent</h2><p class=\"note\">Visites où l'objectif a été réussi, rapportées aux visites qui ont ouvert la même variante du TP (le plus bas en premier).</p>" +
-        tableau(["TP", "Objectif", "Visites ayant ouvert le TP", "Réussites", "Taux", "Temps moyen pour réussir"], [0, 1, 1, 1, 1, 1],
-          objectifs.filter(o => OK(ouvertsDe(o.id))).map(o => ({ o, taux: o.x.reussis / ouvertsDe(o.id) })).sort((x, y) => x.taux - y.taux).slice(0, 40)
-            .map(({ o }) => [o.id, o.i, ouvertsDe(o.id), M(o.x.reussis), pc(o.x.reussis, ouvertsDe(o.id)), OK(o.x.reussis) ? duree(o.x.ms / o.x.reussis) : ""])) +
-        "<h2>Questions de quiz : réponses fausses</h2>" + tableau(["TP", "Question", "Réponses justes", "Réponses fausses", "Part fausse"], [0, 1, 1, 1, 1],
-          Object.entries(t.questions).filter(([, x]) => OK(x.justes + x.fausses)).map(([c, x]) => ({ c, x })).sort((p, q) => q.x.fausses - p.x.fausses).slice(0, 40)
-            .map(({ c, x }) => [c.split("|")[0], +c.split("|")[1] + 1, M(x.justes), M(x.fausses), pc(x.fausses, x.justes + x.fausses)])) +
-        "<div class=\"colonnes\"><div><h2>Notions comprises</h2>" + tableau(["Carte / notion", "Fois"], [0, 1], Object.entries(t.notions).filter(x => OK(x[1])).sort((x, y) => y[1] - x[1]).slice(0, 30)) + "</div>" +
-        "<div><h2>Cartes terminées</h2>" + tableau(["Carte", "Fois"], [0, 1], Object.entries(t.cartes).filter(x => OK(x[1])).sort((x, y) => y[1] - x[1]).slice(0, 30)) + "</div></div>" +
+        (v.visites === null ? "<p class=\"note\">Moins de " + K + " visites sur cette période : rien n'est montré.</p>" :
+        "<div class=\"chiffres\"><div>" + v.visites + "<span>visites</span></div><div>" + echap(ou(v.pagesVues)) + "<span>pages vues</span></div><div>" + echap(ou(v.tpOuverts)) + "<span>TP ouverts</span></div></div>" +
+        "<h2>Visites</h2><div class=\"colonnes\">" + liste("Par jour de réception", v.parJour) + liste("Retour", v.repartitions.retour, RET) + liste("Niveau choisi", v.repartitions.niveau, NIV) +
+        liste("Type d'appareil", v.repartitions.type) + liste("Système", v.repartitions.os) + liste("Largeur d'écran (px)", v.repartitions.largeur) + liste("Durée active de la visite", v.tranches) +
+        (v.heures ? liste("Heure (UTC, heure de Bamako)", { visibles: v.heures.visibles.map(([h, n]) => [h + " h-" + (h + 1) + " h", n]), autres: v.heures.autres }) : "<div><h3>Heure</h3><p class=\"note\">Seulement sur un mois entier.</p></div>") + "</div>" +
+        "<h2>Pages les plus consultées</h2>" + (v.pages ? tableau(["Page", "Vues", "Temps actif total", "Temps moyen par vue"], [0, 1, 1, 1],
+          v.pages.visibles.slice(0, 40).map(([c, n, ms]) => [c, n, duree(ms), duree(ms / n)]).concat(v.pages.autres ? [["autres (regroupés)", v.pages.autres, "", ""]] : [])) : "<p class=\"note\">Rien à montrer.</p>") +
+        "<h2>TP</h2><p class=\"note\">Ouvertures comptées une fois par visite. « Premières fins » : le TP a été terminé pour la première fois sur cet appareil pendant la visite ; le taux est rapporté aux ouvertures où il n'était pas déjà terminé sur cet appareil.</p>" +
+        tableau(["TP", "Ouvertures", "Ouvertures sans fin antérieure", "Premières fins", "Taux", "Durée moyenne jusqu'à la fin"], [0, 1, 1, 1, 1, 1],
+          v.tps.map(x => [x.id, x.ouverts, ou(x.base), ou(x.finis), pc(x.finis, x.base), x.msFin === null ? MASQUE : duree(x.msFin)]).concat(v.tpAutres ? [["autres (regroupés)", v.tpAutres, "", "", "", ""]] : [])) +
+        "<h2>Objectifs : où les élèves bloquent (première réussite sur cet appareil)</h2><p class=\"note\">Premières réussites de l'objectif sur cet appareil, rapportées aux ouvertures de la même variante du TP où il n'était pas déjà réussi sur cet appareil (le plus bas en premier).</p>" +
+        tableau(["TP", "Objectif", "Ouvertures sans réussite antérieure", "Premières réussites", "Taux", "Temps moyen pour réussir"], [0, 1, 1, 1, 1, 1],
+          v.objectifs.slice(0, 40).map(x => [x.id, x.i, x.base, x.reussis, pc(x.reussis, x.base), x.ms === null ? MASQUE : duree(x.ms)])) +
+        "<h2>Où les élèves se trompent : objectifs à réponse écrite</h2><p class=\"note\">Les essais ne concernent que les objectifs à réponse écrite (les objectifs atteints en manipulant la simulation n'ont pas d'essai raté).</p>" +
+        tableau(["TP", "Objectif", "Essais", "Essais ratés", "Part ratée"], [0, 1, 1, 1, 1], v.seTrompent.slice(0, 40).map(x => [x.id, x.i, x.essais, ou(x.rates), pc(x.rates, x.essais)])) +
+        "<h2>Questions de quiz</h2>" + tableau(["TP", "Question", "Réponses", "Réponses fausses", "Part fausse"], [0, 1, 1, 1, 1], v.questions.slice(0, 40).map(x => [x.id, x.i, x.reponses, ou(x.fausses), pc(x.fausses, x.reponses)])) +
+        "<div class=\"colonnes\"><div><h2>Notions comprises</h2>" + tableau(["Carte / notion", "Fois"], [0, 1], v.notions.slice(0, 30)) + "</div>" +
+        "<div><h2>Cartes terminées</h2>" + tableau(["Carte", "Fois"], [0, 1], v.cartes.slice(0, 30)) + "</div></div>") +
         "<h2>Purge</h2><form class=\"ligne\" method=\"post\" action=\"" + b + "/purger\"><input type=\"hidden\" name=\"quoi\" value=\"anciens\">" + jeton + "<button>Effacer les jours de plus de " + CONFIG.conservationJours + " jours</button></form>" +
         "<form class=\"ligne\" method=\"post\" action=\"" + b + "/purger\"><input type=\"hidden\" name=\"quoi\" value=\"tout\">" + jeton + "<label>Tout effacer : tape EFFACER <input name=\"confirmer\" autocomplete=\"off\" size=\"9\"></label><button>Tout effacer</button></form>" +
-        "<p><a href=\"" + b + "/diagnostic\">Diagnostic du proxy (X-Forwarded-For)</a></p>" +
+        "<p><a href=\"" + b + "/diagnostic\">Diagnostic du proxy et de la liste blanche</a></p>" +
         "<p class=\"note\">Totaux par jour de réception, gardés " + CONFIG.conservationJours + " jours ; heure des visites seulement par mois. Aucun identifiant d'appareil ni de visite, aucune adresse IP.</p>");
     }
   }

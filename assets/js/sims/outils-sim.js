@@ -109,7 +109,7 @@
     let avant = performance.now(), cumul = 1;
     function image(t) {
       const dt = Math.max(0, Math.min(0.05, (t - avant) / 1000)); avant = t;
-      if (sim.enMarche && !document.hidden) { sim.t += dt; if (def.avancer) def.avancer(sim, dt); }
+      if (sim.enMarche && !document.hidden) { sim.t += dt; if (def.avancer) def.avancer(sim, dt); LS.derniereSimEnMarche = Date.now(); } // signal lu par le journal (simulation en marche, pas en pause)
       const c = LS.couleurs();
       ctx.clearRect(0, 0, W, H);
       def.dessiner(sim, ctx, W, H, c, dt);

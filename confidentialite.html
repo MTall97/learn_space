@@ -24,8 +24,6 @@
   <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
   <script src="assets/js/niveaux.js"></script>
-  <script src="assets/js/config-journal.js"></script>
-  <script src="assets/js/journal.js"></script>
 </head>
 <body>
   <main class="page texte-legal">
@@ -33,65 +31,33 @@
     <p>Learn Space est gratuit et sans compte. <strong>Ta progression</strong> (tes points, tes TP réussis) <strong>reste dans ce navigateur</strong>. Pour améliorer le site, il peut aussi compter comment il est utilisé. Tu peux refuser ici : le site marche pareil.</p>
 
     <section class="etat-journal" aria-live="polite">
-      <p id="etat-texte"></p>
+      <p id="etat-texte">Chargement…</p>
       <div class="actions" id="actions-journal">
         <button type="button" class="btn secondaire" id="refuser">Je refuse</button>
         <button type="button" class="btn secondaire" id="accepter">J'accepte de nouveau</button>
       </div>
     </section>
 
-    <h2>En bref</h2>
-    <ul>
-      <li>Le site ne demande <strong>ni ton nom, ni compte</strong>, et ne te donne <strong>aucun numéro qui te suit</strong> d'un jour à l'autre.</li>
-      <li>Il garde des <strong>statistiques</strong> : des totaux par jour, comme « 120 visites mardi » ou « le TP de la lampe ouvert 40 fois ». Un petit nombre (moins de 5) n'est jamais affiché.</li>
-      <li>Tu peux <strong>refuser</strong> avec le bouton ci-dessus.</li>
-    </ul>
-    <p><strong>Pour les parents :</strong> rien ne permet au site de savoir quel enfant l'utilise ; vous pouvez refuser pour votre enfant avec le bouton ci-dessus, sur chaque appareil qu'il utilise.</p>
+    <h2>Ce que le site compte</h2>
+    <p>Pour savoir comment le site est utilisé et s'il plaît, il compte des choses simples : les pages ouvertes, le temps passé, les TP commencés et réussis, les réponses fausses, le type d'appareil et le niveau choisi. Ces chiffres sont additionnés en <strong>statistiques par jour</strong>.</p>
+    <p>Le site ne demande <strong>ni ton nom ni compte</strong>, et ne te donne aucun numéro qui te suit d'un jour à l'autre. Ta progression (points, TP réussis) reste dans ce navigateur.</p>
+    <p>Seul l'administrateur du site voit les statistiques. Elles ne sont ni vendues ni partagées, et sont effacées au bout de 25 mois. Le site est hébergé par O2switch, en France.</p>
 
-    <h2>Ce qui est compté</h2>
-    <ul>
-      <li>Les pages ouvertes (accueil, cartes, TP) et le <strong>temps passé</strong> dessus, quand la page est à l'écran et que tu t'en sers (ou qu'une simulation s'anime).</li>
-      <li>Les <strong>résultats des exercices</strong> : TP ouverts et terminés, objectifs réussis, réponses fausses, notions comprises.</li>
-      <li>Pour chaque visite : le <strong>type d'appareil</strong> (téléphone, tablette ou ordinateur), son <strong>système</strong> (Android, Windows…), une tranche de largeur d'écran, ton <strong>niveau scolaire</strong> (jamais ton âge), une tranche de durée, et si tu es déjà venu (le même jour, cette semaine, ce mois-ci…).</li>
-    </ul>
-    <p>Tout cela est <strong>ajouté à des totaux</strong> : le serveur ne garde ni la liste de ce que tu as fait, ni l'heure exacte. L'heure des visites n'est comptée que pour le mois entier.</p>
-
-    <h2>Ce qui reste sur ton appareil</h2>
-    <ul>
-      <li>Un <strong>numéro de visite</strong> tiré au hasard, pour savoir ce qui fait partie de la même visite. Il ne part jamais sur Internet et se perd quand tu fermes l'onglet (ou après 30 minutes sans rien faire).</li>
-      <li>La <strong>date de ta dernière visite</strong> : elle ne part jamais, seule la catégorie (« revenu cette semaine »…) est envoyée. Elle est effacée au bout de 13 mois.</li>
-      <li>Ton choix (accepter ou refuser), et ce qui attend d'être envoyé quand il n'y a pas de réseau.</li>
-    </ul>
-
-    <h2>L'adresse IP</h2>
-    <p>Une <strong>adresse IP</strong> est le numéro de la connexion Internet (celle de ta box ou de ton forfait). Comme tout site, le serveur la voit quand ton appareil lui parle. <strong>Il ne l'enregistre pas</strong> : il s'en sert quelques minutes, en mémoire, pour bloquer les envois abusifs.</p>
-    <p>L'hébergeur du site, lui, garde des <strong>journaux d'accès</strong> (adresse IP, heure, page demandée), comme tous les hébergeurs, pendant <span class="a-completer">[À COMPLÉTER : durée indiquée par l'hébergeur]</span>. Le site ne s'en sert pas. En théorie, quelqu'un qui aurait ces journaux et les totaux d'un jour très calme pourrait les rapprocher ; c'est pour cela que les petits nombres ne sont jamais affichés et que le jour en cours n'est jamais montré.</p>
-
-    <h2>Pourquoi, et sur quelle base</h2>
-    <p>Pour savoir quelles pages servent, où les élèves se trompent (un objectif trop dur, une consigne pas claire) et sur quels appareils le site doit bien marcher. Les totaux ne sont ni vendus ni partagés.</p>
-    <p>Base légale : l'intérêt légitime du responsable du site à mesurer l'audience d'un service éducatif gratuit, avec des statistiques agrégées et minimisées, et le droit de refuser. <span class="a-completer">[À FAIRE CONFIRMER PAR L'APDP avant la mise en ligne]</span></p>
-
-    <h2>Qui voit les totaux, où, et combien de temps</h2>
-    <p>Seul l'administrateur du site voit les totaux, avec un mot de passe, et seulement pour les jours terminés. Ils sont gardés <strong>25 mois</strong> puis effacés ; les sauvegardes de l'hébergeur les gardent en plus <span class="a-completer">[À COMPLÉTER : durée des sauvegardes de l'hébergeur]</span>.</p>
-    <p>Le site est hébergé par <strong>O2switch</strong> (Clermont-Ferrand, <strong>France</strong>), qui agit comme sous-traitant : les totaux sont stockés en France, dans l'Union européenne. <span class="a-completer">[À COMPLÉTER si l'hébergeur change]</span></p>
-    <p>Rien n'est compté quand le site est ouvert depuis un fichier de l'ordinateur, quand le journal n'est pas configuré, ou quand ton navigateur envoie le signal « ne pas me suivre » (Global Privacy Control).</p>
-
-    <h2>Tes droits</h2>
-    <p>Tu peux refuser à tout moment avec le bouton ci-dessus : ce qui attendait d'être envoyé et la date de dernière visite sont effacés, et plus rien n'est compté sur cet appareil.</p>
-    <p>Les totaux ne contiennent rien qui te désigne : le site ne peut donc pas retrouver « tes » données pour te les montrer ou les effacer.</p>
-    <p>Tu peux adresser une réclamation à l'<strong>APDP</strong> (Autorité de protection des données à caractère personnel du Mali) et, si tu habites dans l'Union européenne, à l'autorité de ton pays (en France : la <strong>CNIL</strong>, cnil.fr). Ces règles suivent la loi malienne n° 2013-015 du 21 mai 2013 et, pour les visiteurs européens, le RGPD.</p>
-
-    <h2>Responsable et contact</h2>
-    <p>Responsable du site : <span class="a-completer">[À COMPLÉTER : nom ou organisme]</span><br>
-      Adresse e-mail : <span class="a-completer">[À COMPLÉTER : adresse de contact]</span><br>
-      Formalité APDP : <span class="a-completer">[À COMPLÉTER : réponse ou numéro de l'APDP]</span></p>
+    <h2>Pour les parents</h2>
+    <p>Ces statistiques servent à améliorer les exercices, pas à surveiller les élèves. Vous pouvez refuser pour votre enfant avec le bouton ci-dessus, sur chaque appareil qu'il utilise : le site marche pareil.</p>
 
     <p class="pied"><a href="index.html">Retour à l'accueil</a></p>
   </main>
   <script>
   (function () {
-    const LS = window.LS, J = LS.journal;
+    const LS = window.LS;
     LS.entete("");
+    // Le journal est chargé après la page (commun.js) : on attend qu'il soit prêt.
+    if (LS.journal && LS.journal.configure) brancher();
+    else document.addEventListener("ls:journal-pret", brancher, { once: true });
+  })();
+  function brancher() {
+    const LS = window.LS, J = LS.journal;
     const texte = document.getElementById("etat-texte");
     function maj() {
       if (!J.configure()) {
@@ -111,7 +77,7 @@
     document.getElementById("accepter").onclick = () => { J.opposer(false); maj(); };
     document.getElementById("refuser").onclick = () => { J.opposer(true); maj(); LS.avis("C'est noté : plus rien n'est compté sur cet appareil."); };
     maj();
-  })();
+  }
   </script>
 </body>
 </html>

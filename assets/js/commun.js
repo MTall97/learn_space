@@ -184,4 +184,20 @@
     document.body.append(LS.el("nav", { class: "nav-bas", "aria-label": "Navigation" }, liens.map(lien)));
     if (LS.jeu) LS.jeu.majPuce();
   };
+
+  /* ---------- Journal d'utilisation : chargé APRÈS la page ----------
+     empreinte-contenu.js, config-journal.js puis journal.js, dans cet ordre (async = false), une fois la
+     page chargée : un réseau qui ne répond pas ne retarde ni l'affichage ni l'événement « load ». Une
+     nouvelle adresse dans config-journal.js prend donc effet à la page suivante. */
+  LS.chargerJournal = function () {
+    if (LS._journalDemande) return;
+    LS._journalDemande = true;
+    ["assets/js/empreinte-contenu.js", "assets/js/config-journal.js", "assets/js/journal.js"].forEach(f => {
+      const s = document.createElement("script"); s.src = f; s.async = false; document.head.appendChild(s);
+    });
+  };
+  if (typeof document !== "undefined" && typeof window !== "undefined" && window.addEventListener && document.createElement) {
+    if (document.readyState === "complete") setTimeout(LS.chargerJournal, 0);
+    else window.addEventListener("load", () => setTimeout(LS.chargerJournal, 0));
+  }
 })();
