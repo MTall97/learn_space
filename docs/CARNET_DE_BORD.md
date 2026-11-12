@@ -388,7 +388,16 @@ plus redirigé. Mais la racine `/` répondait 404, parce que `html_handling: non
 
 **Correction de l'auteur.** `outils/cloudflare-worker.js` : quelques lignes, qui ne tournent que si aucun
 fichier ne correspond. La racine `/` sert alors `index.html`, et le reste répond 404. Le comportement est
-testé localement ; **non vérifié** en ligne avant la republication.
+testé localement.
+
+**Vérifié en ligne après la republication (commit `de2711c`).**
+- La racine `/` et `tp.html` répondent 200. `serveur/`, `CLAUDE.md`, `wrangler.jsonc` et `outils/`
+  répondent 404.
+- Dans Chromium, le service worker est actif avec 146 fichiers en cache, et Chrome ne signale aucune
+  erreur d'installation.
+- Navigateur coupé du réseau, un TP jamais ouvert (moteur 4 temps) s'affiche.
+- Limite : le mode hors ligne de Playwright ne coupe pas toujours le réseau du service worker. Un vrai
+  téléphone en mode avion reste à essayer.
 
 ---
 
