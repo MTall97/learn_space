@@ -383,7 +383,6 @@
       const dt = Math.max(0, Math.min(0.05, (maintenant - avant) / 1000));
       avant = maintenant;
       if (self.enMarche && !document.hidden) {
-        LS.derniereSimEnMarche = Date.now(); // signal lu par le journal (simulation en marche, pas en pause)
         self.sim.avancer(dt * self.vitesse, self);
         if (self.sim.aChange && self.sim.aChange()) { self.rendu(); self._sauver(); }
         self.majDynamique(dt);

@@ -1,5 +1,5 @@
 /* Généré par outils/liste-precache.js : ne pas modifier à la main. */
-self.LS_VERSION = "5ee73ad01d02";
+self.LS_VERSION = "c379072179d2";
 self.LS_FICHIERS = [
   "./",
   "carte.html",

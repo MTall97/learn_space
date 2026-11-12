@@ -10,10 +10,8 @@
      part : même jour, moins de 7 j, 7 à 30 j, plus de 30 j, première), l'opposition, l'information déjà
      lue, et les événements pas encore envoyés.
    - Désactivé tant que LS.JOURNAL_URL est vide (assets/js/config-journal.js), en file://, et quand le
-     navigateur envoie le signal Global Privacy Control (traité comme un refus : la file est vidée).
-     Refus possible dans confidentialite.html (file vidée, plus rien n'est noté).
-   - Chargé APRÈS la page par commun.js (empreinte-contenu.js, config-journal.js puis journal.js) : un
-     réseau qui ne répond pas ne retarde jamais l'affichage.
+     navigateur envoie le signal Global Privacy Control (traité comme un refus). Refus possible dans
+     confidentialite.html (file vidée, plus rien n'est noté).
    - Aucune perte : les événements attendent dans le navigateur (hors ligne compris) ; un lot envoyé
      garde un identifiant de lot aléatoire et reste en attente tant que le serveur n'a pas répondu ; le
      serveur ignore un lot déjà reçu. Entre deux onglets, l'envoi passe par navigator.locks s'il existe.
@@ -22,12 +20,11 @@
   "use strict";
   const LS = (window.LS = window.LS || {});
   const MAX_FILE = 3000;              // au-delà (des semaines hors ligne), les plus anciens partent
-  const TAILLE_LOT = 100;              // un lot reste sous 16 Ko (limite du serveur)
+  const TAILLE_LOT = 200;
   const PAUSE_MS = 60000;             // sans interaction pendant 60 s, le temps ne compte plus
   const TICK_MS = 5000;
   const FIN_VISITE_MS = 30 * 60000;   // 30 min sans activité : nouvelle visite
-  const ANIMATION_MAX_MS = 3 * 60000;  // une simulation EN MARCHE compte comme activité 3 min au plus après le dernier geste
-  const ENVOI_MS = 120000;             // un envoi toutes les 2 min au plus (moins de lots derrière une adresse partagée)
+  const ANIMATION_MAX_MS = 10 * 60000; // une simulation qui s'anime compte comme activité 10 min au plus après le dernier geste
   const VIE_DATE_MS = 395 * 86400000;  // la date de dernière visite est effacée 13 mois après sa création
   const PALIERS = [1, 5, 15, 30, 60]; // durée active de la visite, en minutes
   const PREFIXE = "learnspace:";
@@ -84,12 +81,11 @@
     return { lot, file: file.slice(n), lots: [lot] };
   }
   // Temps actif : on ajoute l'écart depuis le dernier tic seulement si la page est visible et si la
-  // dernière interaction date de moins de 60 s, ou si une simulation est EN MARCHE (signal envoyé par
-  // outils-sim.js et editeur.js, pas une simple animation de dessin) moins de 3 min après le dernier
-  // geste ; jamais plus de deux intervalles à la fois.
+  // dernière interaction date de moins de 60 s, ou si une simulation s'anime à l'écran (moins de 10 min
+  // après le dernier geste) ; jamais plus de deux intervalles à la fois.
   function tic(etat, maintenant, visible) {
     const ecart = Math.max(0, maintenant - etat.dernierTic), depuisGeste = maintenant - etat.derniereInteraction;
-    const anime = maintenant - (etat.simEnMarche || 0) < 2000 && depuisGeste < ANIMATION_MAX_MS;
+    const anime = maintenant - (etat.derniereAnimation || 0) < 2000 && depuisGeste < ANIMATION_MAX_MS;
     const actif = visible && (depuisGeste < PAUSE_MS || anime);
     return Object.assign({}, etat, { dernierTic: maintenant, actifMs: etat.actifMs + (actif ? Math.min(ecart, 2 * TICK_MS) : 0) });
   }
@@ -130,8 +126,6 @@
   J.gpc = () => typeof navigator !== "undefined" && navigator.globalPrivacyControl === true;
   J.oppose = () => J.gpc() || lire("journalConsentement", null) === "non";
   J.actif = () => J.configure() && !J.oppose();
-  // Global Privacy Control : rien ne reste en attente sur l'appareil.
-  if (J.gpc()) { ["journalFile", "journalLots", "journalDerniereVisite"].forEach(local.effacer); stockage("sessionStorage").effacer("journalVisite"); }
   // Restes d'une version précédente (numéro d'appareil persistant) : effacés.
   ["journalAppareil", "journalAppareilCree", "journalAppareilAncien"].forEach(local.effacer);
   // La file est écrite en gérant le quota du navigateur : si elle ne tient pas, on garde la moitié la plus récente.
@@ -191,9 +185,7 @@
     const p = prochainLot(lire("journalFile", []), lire("journalLots", []), nouvelIdentifiant);
     if (!p.lot) return null;
     ecrire("journalLots", p.lots); ecrireFile(p.file);
-    // « liste » : empreinte du contenu du site, pour que le serveur signale une liste blanche pas à jour.
-    const corps = JSON.stringify(Object.assign({ v: 2, lot: p.lot.id, envoi: Math.round(Date.now() / 1000), evs: p.lot.evs },
-      typeof LS.EMPREINTE_CONTENU === "string" ? { liste: LS.EMPREINTE_CONTENU } : {}));
+    const corps = JSON.stringify({ v: 2, lot: p.lot.id, envoi: Math.round(Date.now() / 1000), evs: p.lot.evs });
     enVol = true;
     let requete;
     try { requete = fetch(LS.JOURNAL_URL, { method: "POST", body: corps, keepalive: corps.length < 60000, credentials: "omit", headers: { "Content-Type": "text/plain" } }); }
@@ -220,23 +212,20 @@
   const debut = Date.now();
   let etat = { dernierTic: debut, derniereInteraction: debut, actifMs: 0 }, noteMs = 0;
   noter({ e: "page", p: page.p, id: page.id });
-  // Début de TP : toujours noté sous la clé du TP (« id@niveau » s'il a des variantes), donc une fois son
-  // contenu chargé (on attend jusqu'à 10 min ; s'il ne se charge pas, rien n'est noté). Avec l'état déjà
-  // enregistré sur cet appareil : objectifs déjà réussis (« faits ») et TP déjà terminé (« deja »), pour
-  // que les taux ne portent que sur les premières réussites.
+  // Début de TP : noté sous la variante de niveau (« id@niveau ») quand le TP en a, une fois son contenu chargé.
   if (page.p === "tp" && page.id && J.actif()) {
     let essais = 0;
     (function attendre() {
       const tp = LS.tps && LS.tps[page.id];
-      if (tp && LS.tpAuNiveau && LS.niveau) {
-        const vue = LS.tpAuNiveau(tp, LS.niveau(tp.domaine)), cle = vue.cleEtat || page.id;
-        const etatTP = LS.etatTP ? LS.etatTP(cle) : { objectifs: {}, questions: {} };
-        const faits = Object.keys(etatTP.objectifs || {}).map(Number).filter(i => Number.isInteger(i) && i >= 0 && i < (vue.objectifs || []).length);
-        const total = (vue.objectifs || []).length + (vue.questions || []).length;
-        const deja = total > 0 && Object.keys(etatTP.objectifs || {}).length + Object.keys(etatTP.questions || {}).length >= total;
-        noter({ e: "tp_debut", id: cle, faits, deja });
-      } else if (++essais < 1200) setTimeout(attendre, 500);
+      if (tp && LS.tpAuNiveau && LS.niveau) noter({ e: "tp_debut", id: LS.tpAuNiveau(tp, LS.niveau(tp.domaine)).cleEtat });
+      else if (++essais < 40) setTimeout(attendre, 250);
+      else noter({ e: "tp_debut", id: page.id });
     })();
+  }
+  // Sur un TP, une simulation qui s'anime (requestAnimationFrame) compte comme activité.
+  if (page.p === "tp" && J.configure() && typeof window.requestAnimationFrame === "function") {
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = f => raf(t => { etat.derniereAnimation = Date.now(); f(t); });
   }
   ["pointerdown", "keydown", "scroll", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { etat.derniereInteraction = Date.now(); }, { passive: true, capture: true }));
   // Le temps est noté par tranches, pour ne rien perdre si la page est fermée brutalement.
@@ -245,9 +234,8 @@
     if (ms >= 1000) { noter({ e: "temps", p: page.p, id: page.id, ms }); noteMs += ms; }
   }
   if (J.configure()) {
-    setInterval(() => { etat.simEnMarche = LS.derniereSimEnMarche || 0; etat = tic(etat, Date.now(), document.visibilityState === "visible"); }, TICK_MS);
-    let dernierEnvoi = Date.now();
-    setInterval(() => { noterTemps(); if (Date.now() - dernierEnvoi >= ENVOI_MS) { dernierEnvoi = Date.now(); envoyer(); } }, 30000);
+    setInterval(() => { etat = tic(etat, Date.now(), document.visibilityState === "visible"); }, TICK_MS);
+    setInterval(() => { noterTemps(); envoyer(); }, 30000);
     setTimeout(envoyer, 3000);
     window.addEventListener("online", () => { pause = 0; envoyer(); });
     window.addEventListener("pagehide", () => { noterTemps(); enVol = false; envoyer(true); });
@@ -293,6 +281,4 @@
     if (entete) entete.after(p); else document.body.prepend(p);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(information, 0)); else setTimeout(information, 0);
-  // Le journal est chargé après la page (commun.js) : la page de confidentialité attend ce signal.
-  document.dispatchEvent(new CustomEvent("ls:journal-pret"));
 })();

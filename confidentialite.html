@@ -24,6 +24,8 @@
   <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
   <script src="assets/js/niveaux.js"></script>
+  <script src="assets/js/config-journal.js"></script>
+  <script src="assets/js/journal.js"></script>
 </head>
 <body>
   <main class="page texte-legal">
@@ -31,7 +33,7 @@
     <p>Learn Space est gratuit et sans compte. <strong>Ta progression</strong> (tes points, tes TP réussis) <strong>reste dans ce navigateur</strong>. Pour améliorer le site, il peut aussi compter comment il est utilisé. Tu peux refuser ici : le site marche pareil.</p>
 
     <section class="etat-journal" aria-live="polite">
-      <p id="etat-texte">Chargement…</p>
+      <p id="etat-texte"></p>
       <div class="actions" id="actions-journal">
         <button type="button" class="btn secondaire" id="refuser">Je refuse</button>
         <button type="button" class="btn secondaire" id="accepter">J'accepte de nouveau</button>
@@ -50,14 +52,8 @@
   </main>
   <script>
   (function () {
-    const LS = window.LS;
-    LS.entete("");
-    // Le journal est chargé après la page (commun.js) : on attend qu'il soit prêt.
-    if (LS.journal && LS.journal.configure) brancher();
-    else document.addEventListener("ls:journal-pret", brancher, { once: true });
-  })();
-  function brancher() {
     const LS = window.LS, J = LS.journal;
+    LS.entete("");
     const texte = document.getElementById("etat-texte");
     function maj() {
       if (!J.configure()) {
@@ -77,7 +73,7 @@
     document.getElementById("accepter").onclick = () => { J.opposer(false); maj(); };
     document.getElementById("refuser").onclick = () => { J.opposer(true); maj(); LS.avis("C'est noté : plus rien n'est compté sur cet appareil."); };
     maj();
-  }
+  })();
   </script>
 </body>
 </html>
