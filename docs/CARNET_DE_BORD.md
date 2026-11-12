@@ -446,6 +446,38 @@ sombre : aucun débordement horizontal de la page, et 122 tests réussis.
 **Non vérifié** : le chargement des polices sur le vrai domaine. Elles sont servies par la copie du site
 sur `learningspace223.duckdns.org` ; à défaut, ce sont les polices du système.
 
+## 12/11/2026 (soir) : corrections de l'avis du juge du 12/11
+
+**Fait par l'auteur du journal.** Le travail a été réappliqué par-dessus `be0e9d7`, sans perdre le
+déploiement Cloudflare ni le style du tableau de bord. 132 tests réussis.
+
+**Corrigé :**
+- **N-I1** : « Recharger » dans l'onglet de la première visite.
+- **N-I3** :
+  - le journal est chargé après l'événement `load`, sans bloquer la page ;
+  - `config-journal.js` est servi par le cache, puis remis à jour en arrière-plan ;
+  - quand ce fichier ne répond pas, la page s'ouvre en 116 ms au lieu de plus de 20 s.
+- **N-I4** : taux de réussite calculés sur les ouvertures sans réussite antérieure sur l'appareil.
+- **N-I5** : le temps n'est compté que si une simulation est en marche, avec une marge de 3 min.
+- **N-I6** : alerte quand la liste blanche ou la version du site ne correspond pas (`empreinte-contenu.js`),
+  et la liste est relue sans redémarrer.
+- **N-I2** : corps de 16 Ko au plus, champs inconnus refusés, plafond par adresse, `ms` borné.
+- **Mineurs** : N-M1, N-M2/M1, N-M3, N-M4, N-M7, N-M8, N-M9 et M4.
+- Les tests qui cherchaient des expressions régulières dans le code sont remplacés par de vrais tests
+  navigateur. Ils sont sautés en CI, faute de Chromium.
+
+**Écarté** : N-B1 (décision de l'utilisateur) ; N-M5, N-M6 et M3, jugés non prioritaires.
+
+**À trancher** : un circuit en régime établi, sans aucun geste, compte comme du temps actif jusqu'à
+3 min.
+
+**Non vérifié** : le déploiement réel, et une nouvelle relecture par le juge.
+
+**Pas encore poussé** : l'utilisateur a demandé de voir d'abord une proposition de nouvelle interface.
+Trois maquettes d'accueil lui sont soumises : A Cahier, B Bogolan, C Manuel. Il trouve l'interface
+actuelle trop « IA générique ». Il a aussi demandé d'automatiser le déploiement sur O2switch : la
+proposition est GitHub Actions, avec FTPS et `tmp/restart.txt`, en attente de son accord et des secrets.
+
 ---
 
 ## Reste à faire et à décider

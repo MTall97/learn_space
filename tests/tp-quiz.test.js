@@ -19,6 +19,8 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 test("quiz : l'état est écrit sous la clé du TP et ls:essai porte cette clé", { skip: !pw && "Playwright absent" }, async t => {
   const serveur = http.createServer((q, r) => {
     const p = decodeURIComponent(new URL(q.url, "http://x").pathname), f = path.join(RACINE, path.normalize(p === "/" ? "/index.html" : p));
+    // Jamais le vrai journal pendant les tests : configuration vide.
+    if (p.endsWith("config-journal.js")) { r.writeHead(200, { "Content-Type": "text/javascript" }); return r.end('window.LS = window.LS || {}; window.LS.JOURNAL_URL = "";'); }
     if (!f.startsWith(RACINE) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
     r.writeHead(200, { "Content-Type": TYPES[path.extname(f)] || "application/octet-stream" }); r.end(fs.readFileSync(f));
   }).listen(0, "127.0.0.1");

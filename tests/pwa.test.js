@@ -84,12 +84,13 @@ function serviceWorker(reseau, echecAddAll) {
   ctx.importScripts = f => vm.runInContext(fs.readFileSync(path.join(RACINE, f), "utf8"), ctx);
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(RACINE, "sw.js"), "utf8"), ctx);
+  const enArrierePlan = [];
   const requete = async (url, mode) => {
     let promesse = null;
-    ecouteurs.fetch({ request: { method: "GET", url: new URL(url, "https://site.ml/").href, mode: mode || "no-cors" }, respondWith: p => { promesse = p; } });
+    ecouteurs.fetch({ request: { method: "GET", url: new URL(url, "https://site.ml/").href, mode: mode || "no-cors" }, respondWith: p => { promesse = p; }, waitUntil: p => { enArrierePlan.push(p); } });
     return promesse ? await promesse : "réseau direct";
   };
-  return { ecouteurs, caches, ctx, requete, installer: async () => { let p; ecouteurs.install({ waitUntil: x => { p = x; } }); await p; } };
+  return { ecouteurs, caches, ctx, requete, enArrierePlan, installer: async () => { let p; ecouteurs.install({ waitUntil: x => { p = x; } }); await p; } };
 }
 
 test("service worker : précache de toute la liste, cache versionné, exclusions, page hors ligne", async () => {
@@ -110,10 +111,15 @@ test("service worker : précache de toute la liste, cache versionné, exclusions
   let appele = false;
   sw.ecouteurs.fetch({ request: { method: "GET", url: "https://autre-site.example/x.js", mode: "no-cors" }, respondWith: () => { appele = true; } });
   assert.strictEqual(appele, false, "liens externes non mis en cache");
-  // config-journal.js : réseau d'abord.
-  const sw2 = serviceWorker(() => Promise.resolve({ ok: true, type: "basic", corps: "réseau", clone() { return this; } }));
+  // config-journal.js : copie en cache tout de suite, mise à jour en arrière-plan (sans cache HTTP),
+  // servie à la page suivante.
+  const appels = [];
+  const sw2 = serviceWorker(req => { appels.push(req); return Promise.resolve({ ok: true, type: "basic", corps: "réseau", clone() { return this; } }); });
   await sw2.installer();
-  assert.strictEqual((await sw2.requete("/assets/js/config-journal.js")).corps, "réseau");
+  assert.match((await sw2.requete("/assets/js/config-journal.js")).corps, /^cache:.*config-journal\.js$/);
+  await Promise.all(sw2.enArrierePlan); await new Promise(r => setImmediate(r));
+  assert.strictEqual(appels.pop().cache, "no-cache", "mise à jour sans cache HTTP");
+  assert.strictEqual((await sw2.requete("/assets/js/config-journal.js")).corps, "réseau", "nouvelle configuration à la page suivante");
   assert.match((await sw2.requete("/assets/js/tp.js")).corps, /^cache:/, "le reste vient du cache");
   // « Recharger » : la nouvelle version prend la main.
   sw2.ecouteurs.message({ data: { type: "activer" } });
@@ -125,20 +131,16 @@ test("service worker : un fichier manquant fait échouer l'installation (l'ancie
   await assert.rejects(sw.installer(), /fichier manquant/);
 });
 
-test("service worker : config-journal.js qui ne répond pas, copie en cache après 1,5 s", async () => {
+test("service worker : config-journal.js quand le réseau ne répond pas, copie en cache sans attendre", async () => {
   const sw = serviceWorker(() => new Promise(() => {})); // le réseau ne répond jamais
   await sw.installer();
   const debut = Date.now();
   const rep = await sw.requete("/assets/js/config-journal.js");
   const duree = Date.now() - debut;
   assert.match(rep.corps, /^cache:.*config-journal\.js$/);
-  assert.ok(duree >= 1400 && duree < 3000, "délai de " + duree + " ms");
+  assert.ok(duree < 200, "délai de " + duree + " ms");
 });
 
-test("pwa.js : enregistrement sans cache HTTP, rechargement de tous les onglets, aide iOS refermable, stockage persistant", () => {
-  const pwa = fs.readFileSync(path.join(RACINE, "assets", "js", "pwa.js"), "utf8");
-  assert.match(pwa, /register\("sw\.js", \{ updateViaCache: "none" \}\)/);
-  assert.match(pwa, /controllerchange[^\n]*dejaControlee[^\n]*location\.reload/);
-  assert.match(pwa, /aideIosFermee/);
-  assert.match(pwa, /navigator\.storage\.persist/);
-});
+// pwa.js (rechargement après une mise à jour, saisie en cours) : vrais tests navigateur dans
+// tests/navigateur.test.js.
+

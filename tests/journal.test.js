@@ -62,18 +62,18 @@ test("file bornée, tranches de temps fusionnées, lot renvoyé avec le même id
   assert.strictEqual(J.prochainLot(a.file, a.lots, id, 2).lot.id, "lot1");
 });
 
-test("temps actif : geste récent, ou simulation qui s'anime (10 min au plus après le dernier geste)", () => {
+test("temps actif : geste récent, ou simulation EN MARCHE (signal explicite, 3 min au plus après le dernier geste)", () => {
   let e = { dernierTic: 0, derniereInteraction: 0, actifMs: 0 };
   e = J.tic(e, 5000, true); e = J.tic(e, 10000, false); e = J.tic(e, 15000, true);
   assert.strictEqual(e.actifMs, 10000);
   e = J.tic(e, 70000, true);
-  assert.strictEqual(e.actifMs, 10000, "plus de 60 s sans geste ni animation");
-  e = Object.assign(e, { derniereAnimation: 299000 });
-  e = J.tic(e, 300000, true);
-  assert.strictEqual(e.actifMs, 20000, "animation à l'écran 5 min après le dernier geste : compté");
-  e = Object.assign(e, { derniereAnimation: 699000 });
-  e = J.tic(e, 700000, true);
-  assert.strictEqual(e.actifMs, 20000, "11 min après le dernier geste : plus compté");
+  assert.strictEqual(e.actifMs, 10000, "plus de 60 s sans geste, simulation en pause : rien");
+  e = Object.assign(e, { simEnMarche: 119000 });
+  e = J.tic(e, 120000, true);
+  assert.strictEqual(e.actifMs, 20000, "simulation en marche 2 min après le dernier geste : compté");
+  e = Object.assign(e, { simEnMarche: 199000 });
+  e = J.tic(e, 200000, true);
+  assert.strictEqual(e.actifMs, 20000, "plus de 3 min après le dernier geste : plus compté, même en marche");
   assert.strictEqual(J.evenementDeGain("o:elec-06-led:2", 5), null, "les objectifs viennent de ls:reussite");
   assert.strictEqual(J.evenementDeGain("n:elec-bases/loi-d-ohm", 5).noeud, "elec-bases/loi-d-ohm");
 });
@@ -87,7 +87,8 @@ function navigateur(opts) {
   const document = {
     visibilityState: "visible", readyState: "complete",
     addEventListener: (t, f) => { (ecouteurs[t] = ecouteurs[t] || []).push(f); },
-    getElementById: () => null, querySelector: () => null,
+    getElementById: () => null, querySelector: () => null, querySelectorAll: () => [],
+    dispatchEvent: ev => { (ecouteurs[ev.type] || []).forEach(f => f(ev)); return true; },
     createElement: () => { elementsCrees++; return element(); },
     head: element(), body: element()
   };
@@ -98,7 +99,8 @@ function navigateur(opts) {
     location: new URL(opts.url), document, navigator: Object.assign({ userAgent: "Mozilla/5.0 (Linux; Android 12) Mobile", maxTouchPoints: 5 }, opts.navigator || {}), screen: { width: 390 },
     localStorage: magasin(stock, opts.quota), sessionStorage: magasin(sessionStock),
     fetch: (u, o) => { appels.push({ u, o, corps: JSON.parse(o.body) }); return opts.fetch ? opts.fetch(u, o) : Promise.resolve({ ok: true, status: 204 }); },
-    crypto: nodeCrypto.webcrypto, URLSearchParams, setTimeout: (f, ms) => { if (!ms) f(); return 0; }, setInterval: () => 0, console
+    crypto: nodeCrypto.webcrypto, URLSearchParams, setTimeout: (f, ms) => { if (!ms) f(); return 0; }, setInterval: () => 0, console,
+    CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o && o.detail; } }
   };
   ctx.window = ctx;
   ctx.window.addEventListener = (t, f) => { (ecouteurs["w:" + t] = ecouteurs["w:" + t] || []).push(f); };
@@ -224,16 +226,18 @@ test("serveur (fonctions) : clés « constructor » et « __proto__ » ordinaire
   assert.deepStrictEqual(l.find(x => x[0] === "visites"), ["visites", "", "total", "< 5"]);
   assert.ok(!l.some(x => x[1] === "tp·x"), "ligne sous le seuil absente");
   assert.ok(l.some(x => x[1] === "accueil" && x[2] === "vues" && x[3] === 7));
-  assert.deepStrictEqual(l.find(x => x[0] === "tps" && x[2] === "termines"), ["tps", "x", "termines", "< 5"]);
+  assert.deepStrictEqual(l.find(x => x[0] === "tps" && x[2] === "premieres_fins"), ["tps", "x", "premieres_fins", "< 5"]);
   assert.ok(!l.some(x => x[2] === "duree_fin_ms"), "durée masquée avec son compte");
   assert.strictEqual(S.secretValide("REMPLACER par le résultat de : node -e"), false);
   assert.strictEqual(S.secretValide("k".repeat(64)), false);
-  assert.strictEqual(S.secretValide("ab".repeat(32)), true);
+  assert.strictEqual(S.secretValide("ab".repeat(32)), false, "motif répété");
+  assert.strictEqual(S.secretValide("0".repeat(64)), false, "sans hasard");
+  assert.strictEqual(S.secretValide(nodeCrypto.randomBytes(32).toString("hex")), true);
 });
 
 /* ---------- Serveur de bout en bout ---------- */
 const hash = spawnSync(process.execPath, [APP, "--hacher"], { input: "mot-de-passe-essai\n" }).stdout.toString().trim();
-const SECRET = "ab".repeat(32);
+const SECRET = nodeCrypto.randomBytes(32).toString("hex");
 async function serveur(dossier, config, nom) {
   const fichier = path.join(dossier, (nom || "config") + ".json");
   fs.writeFileSync(fichier, JSON.stringify(Object.assign({ origines: ["https://learnspace.exemple"], dossierDonnees: path.join(dossier, "donnees"), adminHash: hash,
@@ -305,7 +309,7 @@ test("serveur : totaux du jour de réception, liste blanche, attaque sur 31 jour
     assert.strictEqual(j.lots, 1, "lot compté une seule fois");
     assert.strictEqual(j.visites.total, 1);
     assert.ok(!("typeOs" in j.visites) && !("heures" in j), "ni croisement type·système, ni heure par jour");
-    assert.deepStrictEqual(j.objectifs["elec-01-premier-circuit@1|0"], { reussis: 1, ms: 30000, essais: 2, rates: 1 });
+    assert.deepStrictEqual(j.objectifs["elec-01-premier-circuit@1|0"], { reussis: 1, ms: 30000, essais: 2, rates: 1, dejaFaits: 0 });
     assert.deepStrictEqual(j.questions["elec-06-led|1"], { justes: 0, fausses: 1 });
     assert.strictEqual(j.notions["elec-bases/grandeurs"], 1);
     const texte = JSON.stringify(j);
@@ -313,10 +317,10 @@ test("serveur : totaux du jour de réception, liste blanche, attaque sur 31 jour
     const mois = JSON.parse(fs.readFileSync(path.join(AGG(dossier), "mois-" + jourUTC().slice(0, 7) + ".json"), "utf8"));
     assert.strictEqual(Object.values(mois.heures).reduce((x, y) => x + y, 0), 1, "heure des visites au mois");
     // Attaque : 300 événements sur 31 jours dans un lot : tout va au jour de réception, aucun autre fichier.
-    const evs = Array.from({ length: 300 }, (_, k) => ({ t: maintenant() - (k % 31) * 86400 - (k % 31 === 30 ? 3600 : 0), e: "page", p: "accueil", id: "" }));
+    const evs = Array.from({ length: 200 }, (_, k) => ({ t: maintenant() - (k % 40) * 86400, e: "page", p: "accueil", id: "" }));
     assert.strictEqual((await poster(a.url, unLot(idLot("atk"), evs))).status, 204);
     assert.deepStrictEqual(fs.readdirSync(AGG(dossier)).filter(f => /^\d{4}-/.test(f)), [jourUTC() + ".json"], "un seul jour touché");
-    assert.strictEqual(totauxDuJour(dossier).pages.accueil.vues, 300 - 9, "événements de plus de 30 jours ignorés");
+    assert.strictEqual(totauxDuJour(dossier).pages.accueil.vues, 200, "événements anciens acceptés, rangés au jour de réception");
     // Deux processus en même temps : aucun total perdu.
     await Promise.all(Array.from({ length: 20 }, (_, k) => poster(k % 2 ? a.url : b.url, unLot(idLot("p" + k), [{ t: maintenant(), e: "page", p: "carte", id: "elec-bases" }]))));
     assert.strictEqual(totauxDuJour(dossier).pages["carte·elec-bases"].vues, 20, "verrou entre processus");
@@ -344,7 +348,10 @@ test("serveur : limites par adresse (dernière entrée XFF, /64 en IPv6, par jou
   const dossier = fs.mkdtempSync(path.join(os.tmpdir(), "journal-"));
   const lot = k => unLot(idLot(k), [{ t: maintenant(), e: "page", p: "accueil", id: "" }]);
   const b = await serveur(dossier, { limiteLots10min: 2, dossierDonnees: path.join(dossier, "d2") }, "c2");
-  const c = await serveur(dossier, { plafondOctetsJour: Math.round(JSON.stringify(unLot(idLot("c1"))).length * 1.5), dossierDonnees: path.join(dossier, "d3") }, "c3");
+  // Le plafond compte la taille des événements VALIDÉS (pas du corps reçu) : un lot et demi.
+  const W = S.chargerListeBlanche(path.join(RACINE, "serveur", "liste-blanche.json"));
+  const tailleValidee = Buffer.byteLength(JSON.stringify(S.valider(unLot(idLot("c1")), maintenant(), W).evs)) + 40;
+  const c = await serveur(dossier, { plafondOctetsJour: Math.round(tailleValidee * 1.5), dossierDonnees: path.join(dossier, "d3") }, "c3");
   const d = await serveur(dossier, { plafondIpJour: 2, dossierDonnees: path.join(dossier, "d4") }, "c4");
   try {
     const xff = v => ({ "X-Forwarded-For": v });
@@ -405,7 +412,7 @@ test("serveur : tableau de bord (jours clos, seuil k), CSV, CSRF, purge, déconn
     const csrf = /name="csrf" value="([^"]+)"/.exec(html)[1];
     const csv = await (await fetch(a.url + "/admin/export.csv?jours=7", { headers: jeton })).text();
     assert.match(csv, /"tps";"elec-06-led";"ouverts";"6"/);
-    assert.match(csv, /"tps";"elec-06-led";"termines";"< 5"/);
+    assert.match(csv, /"tps";"elec-06-led";"premieres_fins";"< 5"/);
     assert.match(csv, /"'@sum"/, "apostrophe devant @");
     assert.ok(!csv.includes("elec-02-loi-ohm") && !csv.includes("carte·elec-bases") && !csv.includes(jourUTC() + '"'), "ni jour en cours, ni ligne sous le seuil");
     assert.match(await (await formulaire(a.url, "/admin/purger", "quoi=tout&confirmer=EFFACER&csrf=mauvais", jeton)).text(), /Session expirée/);

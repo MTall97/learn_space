@@ -33,13 +33,14 @@ Cette commande régénère `sw-fichiers.js` (et `serveur/liste-blanche.json`, à
 - **Recherche de mise à jour** : `sw.js` et `sw-fichiers.js` sont toujours relus sur le réseau, sans passer par le cache HTTP (`updateViaCache: "none"`).
 - **Mise à jour** : quand une nouvelle version est installée en arrière-plan, la page affiche « Nouvelle version du site prête » avec un bouton « Recharger ».
   - Rien ne change sans ce clic, pour ne pas couper un TP en cours.
-  - Le clic active la nouvelle version, et **tous les onglets ouverts se rechargent**. Sinon, un onglet garderait l'ancien code et chargerait à la demande des fichiers de la nouvelle version.
+  - Le clic active la nouvelle version, et **chaque onglet ouvert se recharge**, y compris celui de la toute première visite. Sinon, un onglet garderait l'ancien code et chargerait à la demande des fichiers de la nouvelle version.
+  - Un onglet où une réponse est **en cours de saisie** ne se recharge pas de force : il affiche un avis, ne charge plus aucun fichier, et se recharge dès que la réponse est validée ou effacée (ou sur « Recharger maintenant »).
   - La progression des TP est enregistrée au fur et à mesure dans le navigateur : un rechargement ne la perd pas.
 - **Jamais en cache** :
   - `/api`, `/admin` et `/journal` (le journal et son tableau de bord) ;
   - les autres sites ;
   - toute requête autre que GET.
-- **`config-journal.js`** : rempli au déploiement, il est relu d'abord sur le réseau. Si le réseau ne répond pas dans les 1,5 s, la copie en cache est servie : ce fichier est chargé de façon synchrone, et un réseau qui ne répond pas bloquerait sinon toute la page.
+- **`config-journal.js`** : rempli au déploiement, il est servi depuis le cache et mis à jour en arrière-plan sans cache HTTP (stale-while-revalidate). Une nouvelle adresse prend donc effet à la page suivante. Le journal est de toute façon chargé après la page (`commun.js`) : même à la première visite, un réseau qui ne répond pas ne retarde pas l'affichage.
 - **En `file://`** : pas de service worker ni de bouton d'installation ; le site marche comme avant.
 
 ## Bouton « Installer l'application »

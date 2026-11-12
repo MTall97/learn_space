@@ -60,11 +60,21 @@ function listeBlanche() {
     (function p(n) { l.push(slug(n.t)); (n.c || []).forEach(p); })(cartes[id].racine);
     sortie.cartes[id] = l;
   }
+  // Empreinte du contenu accepté : le site l'envoie avec ses lots, le serveur la compare à la sienne
+  // (alerte « liste blanche pas à jour » sur le tableau de bord).
+  sortie.empreinte = crypto.createHash("sha256").update(JSON.stringify(sortie)).digest("hex").slice(0, 16);
   return JSON.stringify(sortie) + "\n";
 }
+// assets/js/empreinte-contenu.js : la même empreinte, côté site (chargé avant journal.js par commun.js).
+function empreinteContenu() {
+  return "/* Généré par outils/liste-precache.js : ne pas modifier à la main. Empreinte de serveur/liste-blanche.json. */\n" +
+    "window.LS = window.LS || {};\nwindow.LS.EMPREINTE_CONTENU = " + JSON.stringify(JSON.parse(listeBlanche()).empreinte) + ";\n";
+}
 
-module.exports = { liste, empreinte, contenu, listeBlanche, RACINE };
+module.exports = { liste, empreinte, contenu, listeBlanche, empreinteContenu, RACINE };
 if (require.main === module) {
+  // L'empreinte du contenu d'abord : elle fait partie des fichiers du site (et de leur empreinte).
+  fs.writeFileSync(path.join(RACINE, "assets", "js", "empreinte-contenu.js"), empreinteContenu());
   fs.writeFileSync(path.join(RACINE, "sw-fichiers.js"), contenu());
   fs.writeFileSync(path.join(RACINE, "serveur", "liste-blanche.json"), listeBlanche());
   const lb = JSON.parse(listeBlanche());

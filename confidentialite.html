@@ -24,8 +24,6 @@
   <script src="assets/js/jeu.js"></script>
   <script src="contenu/parcours.js"></script>
   <script src="assets/js/niveaux.js"></script>
-  <script src="assets/js/config-journal.js"></script>
-  <script src="assets/js/journal.js"></script>
 </head>
 <body>
   <main class="page texte-legal">
@@ -52,8 +50,14 @@
   </main>
   <script>
   (function () {
-    const LS = window.LS, J = LS.journal;
+    const LS = window.LS;
     LS.entete("");
+    // Le journal est chargé après la page (commun.js) : on attend qu'il soit prêt.
+    if (LS.journal && LS.journal.configure) brancher();
+    else document.addEventListener("ls:journal-pret", brancher, { once: true });
+  })();
+  function brancher() {
+    const LS = window.LS, J = LS.journal;
     const texte = document.getElementById("etat-texte");
     function maj() {
       if (!J.configure()) {
@@ -73,7 +77,7 @@
     document.getElementById("accepter").onclick = () => { J.opposer(false); maj(); };
     document.getElementById("refuser").onclick = () => { J.opposer(true); maj(); LS.avis("C'est noté : plus rien n'est compté sur cet appareil."); };
     maj();
-  })();
+  }
   </script>
 </body>
 </html>

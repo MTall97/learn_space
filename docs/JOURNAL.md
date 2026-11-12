@@ -9,7 +9,8 @@ Il est conçu pour ne pas savoir qui l'utilise. Le serveur reçoit des événeme
 
 Ce n'est pas une promesse d'anonymat absolu : à la réception, le serveur voit techniquement l'adresse IP, comme tout site, et l'hébergeur garde ses propres journaux d'accès (voir plus bas). Les mesures ci-dessous servent à rendre le rapprochement aussi difficile que possible.
 
-- Navigateur : `assets/js/journal.js`, réglé par `assets/js/config-journal.js`. `assets/js/tp.js` émet `ls:essai` (chaque réponse) et `ls:reussite` (chaque objectif réussi).
+- Navigateur : `assets/js/journal.js`, réglé par `assets/js/config-journal.js`. `assets/js/tp.js` émet `ls:essai` (chaque réponse) et `ls:reussite` (chaque objectif réussi). Les simulations (`outils-sim.js`, `editeur.js`) signalent quand elles sont **en marche** (`LS.derniereSimEnMarche`) : seul ce signal, pas une animation de dessin, compte comme activité sans geste, 3 min au plus après le dernier geste.
+- Chargement : `commun.js` charge `empreinte-contenu.js`, `config-journal.js` puis `journal.js` **après** la page (événement `load`), dans cet ordre. Un réseau qui ne répond pas ne retarde jamais l'affichage. Une nouvelle adresse dans `config-journal.js` prend effet à la page suivante (le service worker sert la copie en cache et la met à jour en arrière-plan).
 - Serveur : `serveur/app.js` (Node.js 18, 20 ou 22, sans dépendance npm) et `serveur/liste-blanche.json`, généré.
 - Information et refus : `confidentialite.html`.
 
@@ -58,6 +59,9 @@ Les événements possibles :
 Rien d'autre n'est écrit : aucune ligne brute, aucun horodatage d'événement, aucun identifiant, aucune adresse IP.
 
 **Liste blanche.** `serveur/liste-blanche.json` est généré par `node outils/liste-precache.js` depuis `contenu/`. Il contient les TP (et leurs variantes), le nombre d'objectifs et de questions de chacun, les cartes, les notions et les pages. Un identifiant inconnu est ignoré : impossible de remplir les totaux avec des clés inventées. Il faut le régénérer et le recopier sur le serveur à chaque ajout de contenu.
+- Le serveur **relit la liste dès qu'elle change** (date de modification vérifiée toutes les 5 s) : la recopier suffit, sans redémarrer.
+- Le site envoie avec chaque lot l'empreinte de son contenu (`assets/js/empreinte-contenu.js`, générée avec la liste). Si elle diffère de celle du serveur, ou si des événements sont refusés pour identifiant inconnu, le tableau de bord affiche une **alerte** (7 derniers jours). C'est le signe qu'il faut recopier `serveur/liste-blanche.json`.
+- En recopiant le site, **ne pas écraser `assets/js/config-journal.js`** : il contient l'adresse du journal.
 
 **Conservation** : totaux gardés **25 mois** (760 jours, réglable), puis effacés. Au démarrage, tout reste de données brutes d'une version précédente (`evenements/`) est effacé.
 
@@ -101,7 +105,7 @@ La base légale proposée est l'**intérêt légitime** : mesure d'audience d'un
    node app.js --hacher
    ```
    Taper le mot de passe, puis Entrée, et copier le résultat dans `adminHash`. Tant que `adminHash` n'est pas valable, le tableau de bord reste fermé : aucune session n'est possible.
-5. **Secret de session** : `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, dans `secretSession`. **Le serveur refuse de démarrer** si ce secret n'est pas fait d'au moins 64 caractères hexadécimaux. Le texte d'exemple est refusé, car il permettrait de fabriquer un cookie d'administrateur.
+5. **Secret de session** : `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, dans `secretSession`. **Le serveur refuse de démarrer** si ce secret n'est pas fait d'au moins 64 caractères hexadécimaux tirés au hasard (moins de 12 caractères différents, une suite de 6 caractères identiques ou un motif court répété sont refusés). Le texte d'exemple est refusé, car il permettrait de fabriquer un cookie d'administrateur.
 6. **Créer l'application** dans « Setup Node.js App » : version 20 ou 22, mode Production, *Application root* `learnspace-journal`, fichier `app.js`. *Application URL* : le domaine avec le chemin `api`, ou un sous-domaine.
 7. **Configuration** : `config.json` à côté de `app.js` (jamais dans Git), ou des variables d'environnement, prioritaires :
 
@@ -115,10 +119,11 @@ La base légale proposée est l'**intérêt légitime** : mesure d'audience d'un
    | `LS_SEUIL_K` | `5` | seuil de masquage |
    | `LS_CONSERVATION_JOURS` | `760` | conservation des totaux |
    | `LS_LIMITE_LOTS`, `LS_PLAFOND_IP_JOUR` | `600`, `3000` | lots par adresse (ou par /64 en IPv6), par 10 min et par jour |
+   | `LS_PLAFOND_OCTETS_IP_JOUR` | 15 Mo | octets d'événements validés par adresse et par jour (une seule adresse ne peut pas épuiser le plafond global) |
    | `LS_PLAFOND_OCTETS_JOUR`, `LS_PLAFOND_LOTS_JOUR`, `LS_PLAFOND_DOSSIER` | 50 Mo, 200 000, 2 Go | plafonds globaux |
 
 8. **Redémarrer** l'application après chaque modification.
-9. **Brancher le site** : dans `public_html/assets/js/config-journal.js`, écrire `window.LS.JOURNAL_URL = "/api/journal";`. Si le réseau ne répond pas, le service worker sert la copie en cache après 1,5 s.
+9. **Brancher le site** : dans `public_html/assets/js/config-journal.js`, écrire `window.LS.JOURNAL_URL = "/api/journal";`. Le journal est chargé après la page, et le service worker sert la copie en cache de ce fichier sans attendre le réseau : une nouvelle adresse prend effet à la page suivante.
 10. **Tester** :
     - `…/api/sante` répond `ok` ;
     - ouvrir le site sur un téléphone, ouvrir un TP, se tromper à une question ;
@@ -134,7 +139,11 @@ Le serveur ne fait confiance à `X-Forwarded-For` que si la connexion vient du p
 ## Sécurité du serveur
 
 - **Démarrage refusé** dans trois cas : secret de session invalide, liste blanche illisible, données ou configuration sous `public_html`.
-- **Validation** : liste blanche, 128 Ko et 300 événements par lot au plus, indices d'objectifs et de questions bornés par le contenu.
+- **Validation** : liste blanche ; corps de **16 Ko** et 300 événements par lot au plus ; **champ inconnu refusé** (400) ; indices d'objectifs et de questions bornés par le contenu ; tranche de temps de 30 min au plus, durée jusqu'à un objectif de 6 h au plus. Les plafonds comptent la taille des **événements validés**, pas celle du corps reçu.
+- **Événements anciens** : un événement gardé longtemps hors ligne est accepté (il va au jour de réception). Seul le dédoublonnage des lots est limité à 31 jours.
+- **Premières réussites** : à l'ouverture d'un TP, le site envoie les objectifs déjà réussis sur cet appareil (`faits`) et si le TP était déjà terminé (`deja`). Les taux du tableau de bord portent sur les ouvertures sans réussite antérieure.
+- **Fichiers** : un fichier de totaux illisible ou de forme inattendue est mis en quarantaine (`.corrompu-<date>`). La quarantaine est purgée selon la même conservation que les totaux, et par « Tout effacer » ; les fichiers temporaires abandonnés (plus d'une heure) sont purgés.
+- **Verrou** : un verrou abandonné est repris en le renommant vers un nom unique (une seule reprise gagne) ; si un autre processus venait de le prendre, il est remis en place.
 - Les totaux sont des objets sans prototype : une clé comme `constructor` reste une clé ordinaire.
 - **Verrou entre processus** : fichier `.verrou` contenant un jeton. L'attente est asynchrone. Seul le propriétaire du jeton retire le verrou ; un verrou abandonné plus de 10 s est repris. La purge passe aussi sous verrou.
 - **Tableau de bord** :
@@ -160,7 +169,9 @@ Le serveur ne fait confiance à `X-Forwarded-For` que si la connexion vient du p
 
 ## Tests
 
-`tests/journal.test.js` couvre le navigateur et le serveur.
+`tests/journal.test.js` et `tests/journal-defense.test.js` couvrent le navigateur (client simulé) et le serveur ; `tests/navigateur.test.js` et `tests/tp-quiz.test.js` passent par un vrai navigateur (Chromium, Playwright) : réussites émises par le vrai `tp.js`, signal « simulation en marche », Global Privacy Control, chargement sans attente, mise à jour de l'application.
+
+**Ces tests navigateur sont sautés quand Chromium manque, donc en CI** (la CI n'installe pas Playwright : le site lui-même ne dépend d'aucun paquet npm). Ils se lancent sur une machine où Playwright et Chromium sont installés.
 
 **Navigateur** : fonctions pures et client complet simulé :
 - aucun identifiant envoyé ;
@@ -169,7 +180,7 @@ Le serveur ne fait confiance à `X-Forwarded-For` que si la connexion vient du p
 - date de dernière visite effacée après 13 mois ;
 - Global Privacy Control ;
 - objectifs et fins de TP comptés une fois par visite ;
-- temps compté pendant une animation.
+- temps compté seulement quand la simulation est en marche (3 min au plus après le dernier geste).
 
 **Serveur** :
 - refus de démarrer avec `config.example.json` tel quel ;
@@ -181,4 +192,10 @@ Le serveur ne fait confiance à `X-Forwarded-For` que si la connexion vient du p
 - verrou orphelin repris ;
 - deux processus sans perte ;
 - plafonds et dernière entrée de X-Forwarded-For ;
-- IPv6 compté par /64.
+- IPv6 compté par /64 ;
+- bourrage (champs inconnus, 16 Ko, octets validés, plafond par adresse, `ms` borné) ;
+- liste blanche relue, rejets et version du site signalés ;
+- premières réussites ;
+- forme inattendue et quarantaine purgée ;
+- secret sans hasard refusé ;
+- course sur la reprise du verrou.

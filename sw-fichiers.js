@@ -1,5 +1,5 @@
 /* Généré par outils/liste-precache.js : ne pas modifier à la main. */
-self.LS_VERSION = "c379072179d2";
+self.LS_VERSION = "9144dc6b9740";
 self.LS_FICHIERS = [
   "./",
   "carte.html",
@@ -29,6 +29,7 @@ self.LS_FICHIERS = [
   "assets/js/circuit/reseau.js",
   "assets/js/commun.js",
   "assets/js/config-journal.js",
+  "assets/js/empreinte-contenu.js",
   "assets/js/jeu.js",
   "assets/js/journal.js",
   "assets/js/niveaux.js",

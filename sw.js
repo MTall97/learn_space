@@ -4,13 +4,14 @@
      nouvelle version, donc un nouveau cache).
    - Les fichiers du site sont servis depuis le cache (rapide sur un réseau faible) ; la nouvelle
      version s'installe en arrière-plan et la page propose « Recharger » (assets/js/pwa.js).
-   - config-journal.js, rempli au déploiement, est relu d'abord sur le réseau (1,5 s au plus, puis cache).
+   - config-journal.js, rempli au déploiement : copie en cache servie aussitôt, mise à jour en arrière-plan
+     (stale-while-revalidate) ; une nouvelle configuration prend effet à la page suivante.
    - Jamais de cache pour le journal et le tableau de bord (/api, /admin, /journal), ni pour les autres sites.
    - Une page absente du cache, sans réseau : hors-ligne.html.
    Actif seulement quand le site est servi en http(s), pas en ouvrant les fichiers. */
 importScripts("sw-fichiers.js");
 const CACHE = "learnspace-v4-" + self.LS_VERSION;
-const RESEAU_D_ABORD = /\/assets\/js\/config-journal\.js$/;
+const A_REVALIDER = /\/assets\/js\/config-journal\.js$/;
 
 self.addEventListener("install", ev => {
   ev.waitUntil(caches.open(CACHE).then(c => c.addAll(self.LS_FICHIERS.map(f => new Request(f, { cache: "reload" })))));
@@ -25,13 +26,14 @@ self.addEventListener("fetch", ev => {
   const req = ev.request, url = new URL(req.url);
   if (req.method !== "GET" || url.origin !== location.origin) return;
   if (/\/(api|admin|journal)(\/|$)/.test(url.pathname)) return;
-  if (RESEAU_D_ABORD.test(url.pathname)) {
-    // Le réseau a 1,5 s pour répondre ; sinon la copie en cache (ce fichier est chargé de façon
-    // synchrone : un réseau qui ne répond pas bloquerait toute la page).
-    const reseau = fetch(req).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(req, copie)); } return rep; });
-    const delai = new Promise(ok => setTimeout(() => ok(null), 1500));
-    ev.respondWith(Promise.race([reseau.catch(() => null), delai])
-      .then(rep => rep || caches.open(CACHE).then(c => c.match(req, { ignoreSearch: true })).then(copie => copie || reseau)));
+  if (A_REVALIDER.test(url.pathname)) {
+    // Copie en cache servie tout de suite ; la version du réseau (sans cache HTTP) la remplace en
+    // arrière-plan pour la page suivante. Sans copie en cache : le réseau.
+    const maj = fetch(new Request(req.url, { cache: "no-cache" })).then(rep => { if (rep.ok) { const copie = rep.clone(); caches.open(CACHE).then(c => c.put(req.url, copie)); } return rep; });
+    ev.respondWith(caches.open(CACHE).then(c => c.match(req.url, { ignoreSearch: true })).then(copie => {
+      if (copie) { ev.waitUntil(maj.catch(() => {})); return copie; }
+      return maj;
+    }));
     return;
   }
   // Pages : tp.html?id=… et carte.html?id=… sont la même page en cache.
