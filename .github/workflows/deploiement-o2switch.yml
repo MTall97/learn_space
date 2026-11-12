@@ -55,6 +55,10 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate true
+          # Le serveur FTP d'O2switch envoie un certificat dont lftp ne connaît pas l'émetteur : on accepte
+          # CE certificat-là seulement (empreinte SHA-1 vue le 12/11/2026), tout autre reste refusé.
+          # Au renouvellement du certificat, remplacer l'empreinte par celle du message d'erreur.
+          set ssl:verify-certificate/${{ vars.FTP_EMPREINTE || '56:68:82:B3:41:72:7C:0E:F8:D7:81:35:CF:D8:2D:3B:1D:29:2C:56' }} no
           set net:max-retries 3
           set net:timeout 30
           open --env-password -u "$FTP_UTILISATEUR" "$FTP_SERVEUR"

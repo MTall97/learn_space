@@ -31,8 +31,11 @@ Sans les secrets, le travail s'arrête avec un simple avertissement.
 
 ## En cas d'échec
 
-- **Erreur de certificat** : `FTP_SERVEUR` doit être un nom couvert par le certificat FTP d'O2switch,
-  en général le nom du serveur indiqué dans cPanel (`….o2switch.net`), et non le domaine DuckDNS.
+- **Erreur de certificat** (« The certificate is NOT trusted… (AA:BB:…) ») : le serveur FTP d'O2switch
+  envoie un certificat dont l'émetteur n'est pas reconnu. Le déploiement accepte seulement ce certificat
+  précis, identifié par son empreinte. Tout autre certificat reste refusé, ce qui protège le mot de
+  passe. Quand O2switch renouvelle son certificat, copier la nouvelle empreinte (entre parenthèses dans
+  le message d'erreur) dans la variable `FTP_EMPREINTE`.
 - **Dossier introuvable** : si le compte FTP ne démarre pas à la racine du compte, régler `DOSSIER_SITE`
   et `DOSSIER_SERVEUR`.
 - **Relancer à la main** : onglet Actions, « Déploiement O2switch », puis « Run workflow ».
