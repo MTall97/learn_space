@@ -67,8 +67,10 @@ jobs:
           cls -1
           # Toute erreur arrête l'envoi (sinon lftp continue et le travail paraît réussi).
           set cmd:fail-exit yes
-          cd "$DOSSIER_SERVEUR"
-          cd ~
+          # Garde-fou : le vrai dossier du journal contient config.json (jamais envoyé d'ici). S'il manque,
+          # le compte FTP ne démarre pas au dossier personnel : on s'arrête sans rien envoyer.
+          echo "Vérification : $DOSSIER_SERVEUR/config.json doit exister (sinon, voir docs/DEPLOIEMENT_O2SWITCH.md)."
+          cls -1 "$DOSSIER_SERVEUR/config.json"
           mirror -R --verbose=1 --parallel=4 --exclude-glob sw.js --exclude-glob sw-fichiers.js _site "$DOSSIER_SITE"
           put -O "$DOSSIER_SITE" _site/sw-fichiers.js
           put -O "$DOSSIER_SITE" _site/sw.js

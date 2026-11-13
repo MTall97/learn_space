@@ -36,6 +36,11 @@ Sans les secrets, le travail s'arrête avec un simple avertissement.
   précis, identifié par son empreinte. Tout autre certificat reste refusé, ce qui protège le mot de
   passe. Quand O2switch renouvelle son certificat, copier la nouvelle empreinte (entre parenthèses dans
   le message d'erreur) dans la variable `FTP_EMPREINTE`.
-- **Dossier introuvable** : si le compte FTP ne démarre pas à la racine du compte, régler `DOSSIER_SITE`
-  et `DOSSIER_SERVEUR`.
+- **« config.json doit exister » / dossier introuvable** : le compte FTP ne s'ouvre pas sur le dossier
+  personnel (`/home/<compte>`), mais sur un sous-dossier que cPanel lui a donné. Recréer le compte FTP en
+  mettant `/` dans le champ « Répertoire », ou régler `DOSSIER_SITE` et `DOSSIER_SERVEUR`. Le
+  déploiement vérifie que `learnspace-journal/config.json` existe avant d'envoyer quoi que ce soit.
+  Incident du 12/11/2026 : le premier compte s'ouvrait sur un sous-dossier, et deux exécutions y ont
+  créé par erreur `learningspace223.duckdns.org/` et `learnspace-journal/`. Ces dossiers sont à
+  supprimer.
 - **Relancer à la main** : onglet Actions, « Déploiement O2switch », puis « Run workflow ».
