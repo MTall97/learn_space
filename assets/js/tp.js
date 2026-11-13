@@ -81,31 +81,31 @@
     const pos = LS.positionDansParcours ? LS.positionDansParcours("tp", id) : null;
 
     if (LS.jeu) LS.jeu.visiter("tp", id);
-    const inf = (LS.jeu && LS.jeu.DOMAINES[tp.domaine]) || { code: "TP", h: 28 };
     const nObj = (tp.objectifs || []).length;
     const progMission = LS.el("div", { class: "mission-prog" });
     const premiereVisite = !Object.keys(etat.objectifs).length && !Object.keys(etat.questions).length;
-    const entete = LS.el("div", { class: "tp-entete", style: "--h:" + inf.h }, [
+    const ic = (nom, t) => LS.el("span", { class: "ic", "aria-hidden": "true", html: LS.icone(nom, t) });
+    const entete = LS.el("div", { class: "tp-entete" }, [
       LS.el("div", { class: "chemin-tp" }, [
-        LS.el("a", { class: "retour-atelier", href: "index.html#" + (tp.domaine || "ateliers") }, [LS.el("span", { class: "marquage mini", text: inf.code, "aria-hidden": "true" }), LS.el("span", { text: "← " + (LS.nomDomaine ? LS.nomDomaine(tp.domaine) : "Ateliers") })]),
+        LS.el("a", { class: "retour-atelier", href: "index.html#" + (tp.domaine || "ateliers") }, [LS.pictoAtelier ? LS.pictoAtelier(tp.domaine, "mini") : null, ic("retour", 18), LS.el("span", { text: LS.nomDomaine ? LS.nomDomaine(tp.domaine) : "Ateliers" })]),
         LS.el("span", { class: "difficulte", "aria-label": "Difficulté " + Math.min(3, tp.niveau || 1) + " sur 3" }, [LS.el("span", { text: "Difficulté" }), ...[1, 2, 3].map(k => LS.el("i", { class: k <= (tp.niveau || 1) ? "on" : "" }))]),
         tp.duree ? LS.el("span", { class: "etiquette", text: tp.duree }) : null,
         LS.infoNiveau ? LS.el("a", { class: "etiquette niveau-tp", href: "index.html#niveau", title: "Changer de niveau", text: "Niveau " + LS.infoNiveau(niv).nom.toLowerCase() }) : null
       ]),
       LS.el("h1", { text: tp.titre }),
       progMission,
-      tp.securite ? LS.el("p", { class: "securite", role: "note" }, [LS.el("strong", { text: "Ici, on simule. " }),
-        LS.el("span", { text: tp.securite === "batterie" ? "En vrai, n'ouvre jamais une batterie, ne la perce pas et ne la court-circuite pas : elle peut chauffer et prendre feu. Demande à un adulte." : "En vrai, ne touche jamais le 220 V : il peut tuer. Seul un électricien travaille dessus, courant coupé. Demande à un adulte." })]) : null,
+      tp.securite ? LS.el("p", { class: "securite", role: "note" }, [ic("attention", 24), LS.el("span", {}, [LS.el("strong", { text: "Ici, on simule. " }),
+        LS.el("span", { text: tp.securite === "batterie" ? "En vrai, n'ouvre jamais une batterie, ne la perce pas et ne la court-circuite pas : elle peut chauffer et prendre feu. Demande à un adulte." : "En vrai, ne touche jamais le 220 V : il peut tuer. Seul un électricien travaille dessus, courant coupé. Demande à un adulte." })])]) : null,
       tp.intro ? LS.el("details", { class: "briefing", open: premiereVisite ? "open" : null }, [LS.el("summary", { text: "Ce que tu vas faire" }), LS.el("div", { class: "intro-tp", html: LS.texte(tp.intro) })]) : null
     ]);
     const zoneSim = LS.el("div", { id: "simulation" });
     const consignes = LS.el("aside", { class: "tp-consignes", id: "consignes" });
-    page.append(entete, LS.el("div", { class: "tp-grille" }, [LS.el("div", {}, [zoneSim, tp.apres ? LS.el("div", { class: "bloc", style: "margin-top:14px", html: LS.texte(tp.apres) }) : null]), consignes]));
+    page.append(entete, LS.el("div", { class: "tp-grille" }, [LS.el("div", {}, [zoneSim, tp.apres ? LS.el("div", { class: "bloc apres-sim", html: LS.texte(tp.apres) }) : null]), consignes]));
     // Onglets du panneau : mission, quiz, notions, pour aller plus loin.
     const onglets = LS.el("div", { class: "onglets-tp", role: "tablist", "aria-label": "Panneau du TP" });
     const panneaux = {};
     const ajouterOnglet = (cle, nom) => {
-      const pan = LS.el("div", { class: "panneau-tp", id: "pan-" + cle, role: "tabpanel", hidden: "hidden" });
+      const pan = LS.el("div", { class: "panneau-tp cahier", id: "pan-" + cle, role: "tabpanel", hidden: "hidden" });
       const b = LS.el("button", { class: "onglet-tp", role: "tab", id: "tab-" + cle, "aria-controls": "pan-" + cle, "aria-selected": "false", onclick: () => ouvrir(cle) }, [LS.el("span", { text: nom }), LS.el("span", { class: "compte" })]);
       onglets.append(b); consignes.append(pan); panneaux[cle] = { pan, b };
       return pan;
@@ -133,8 +133,9 @@
     const reussir = (i, o) => {
       etat.objectifs[i] = true;
       blocs[i].classList.add("reussi");
-      blocs[i].querySelector(".etat").textContent = "✓";
-      blocs[i].querySelector(".retour").innerHTML = o.bravo ? "✓ " + LS.texte(o.bravo) : "";
+      blocs[i].querySelector(".etat").innerHTML = LS.icone("coche");
+      blocs[i].querySelector(".etat").setAttribute("aria-label", "Réussi");
+      blocs[i].querySelector(".retour").innerHTML = o.bravo ? '<span class="ok-ic">' + LS.icone("coche", 18) + "</span> " + LS.texte(o.bravo) : "";
       const champ = blocs[i].querySelector(".saisie");
       if (champ) champ.querySelectorAll("input, button").forEach(x => { x.disabled = true; });
       LS.enregistrerTP(cle, etat);
@@ -162,7 +163,7 @@
           etat.essais["o" + i] = (etat.essais["o" + i] || 0) + 1; majEssais(); LS.enregistrerTP(cle, etat);
           document.dispatchEvent(new CustomEvent("ls:essai", { detail: { tp: cle, objet: "o", i, ok: !!r.ok } }));
           if (r.ok) reussir(i, o);
-          else retour.innerHTML = "✗ " + LS.texte(r.msg || "Ce n'est pas ça : refais le calcul et réessaie.") + (o.aide && etat.essais["o" + i] >= 2 ? " " + LS.texte(o.aide) : "");
+          else retour.innerHTML = '<span class="ko-ic">' + LS.icone("croix", 18) + "</span> " + LS.texte(r.msg || "Ce n'est pas ça : refais le calcul et réessaie.") + (o.aide && etat.essais["o" + i] >= 2 ? " " + LS.texte(o.aide) : "");
         };
         entree.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); valider(); } });
         zoneSaisie = LS.el("div", { class: "saisie" }, [entree, LS.el("button", { class: "btn petit", text: "Valider", onclick: valider }), essais]);
@@ -170,7 +171,7 @@
         if (etat.objectifs[i]) zoneSaisie.querySelectorAll("input, button").forEach(x => { x.disabled = true; });
       }
       const b = LS.el("div", { class: "objectif" + (etat.objectifs[i] ? " reussi" : "") }, [
-        LS.el("div", { class: "etat", text: etat.objectifs[i] ? "✓" : String(i + 1) }),
+        LS.el("div", { class: "etat", html: etat.objectifs[i] ? LS.icone("coche") : String(i + 1), "aria-label": etat.objectifs[i] ? "Réussi" : "Objectif " + (i + 1) }),
         LS.el("div", { class: "corps-objectif" }, [
           LS.el("div", { class: "texte", html: LS.texte(o.texte) }),
           zoneSaisie,
@@ -182,12 +183,12 @@
       blocs.push(b);
     });
     const memos = (tp.objectifs || []).map(() => ({}));
-    const bravo = LS.el("div", { class: "note astuce cache-tout", html: "<strong>Bravo !</strong> Tous les objectifs sont atteints." + (pos && pos.suivant ? ` <a href="${pos.suivant.href}">Étape suivante : ${LS.echapper(pos.suivant.titre)} →</a>` : "") });
+    const bravo = LS.el("div", { class: "note astuce cache-tout bravo-mission", html: "<strong>Bravo !</strong> Tous les objectifs sont atteints." + (pos && pos.suivant ? ` <a href="${pos.suivant.href}">Étape suivante : ${LS.echapper(pos.suivant.titre)} ${LS.icone("suivant", 18)}</a>` : "") });
     panMission.append(bravo);
     // Barre « objectif en cours » (téléphone) et progression de la mission.
     const barreObj = LS.el("button", { class: "barre-objectif", onclick: () => { ouvrir("mission"); consignes.scrollIntoView({ behavior: "smooth", block: "start" }); } });
     document.body.append(barreObj);
-    const voyantsMission = () => LS.el("span", { class: "bargraphe mission", style: "--n:" + Math.max(1, nObj) }, (tp.objectifs || []).map((o, i) => LS.el("i", { class: etat.objectifs[i] ? "on" : "" })));
+    const voyantsMission = () => LS.el("span", { class: "cases-mission", "aria-hidden": "true" }, (tp.objectifs || []).map((o, i) => LS.el("i", { class: etat.objectifs[i] ? "on" : "" })));
     let dernierAffiche = "";
     function majMission() {
       const faits = (tp.objectifs || []).filter((o, i) => etat.objectifs[i]).length;
@@ -199,7 +200,7 @@
       panneaux.mission.b.querySelector(".compte").textContent = cle;
       const i = (tp.objectifs || []).findIndex((o, k) => !etat.objectifs[k]);
       barreObj.innerHTML = "";
-      if (i < 0) barreObj.append(LS.el("span", { class: "num fini", text: "✓" }), LS.el("span", { class: "txt", text: "Mission accomplie : voir la suite" }));
+      if (i < 0) barreObj.append(LS.el("span", { class: "num fini", html: LS.icone("coche") }), LS.el("span", { class: "txt", text: "Mission accomplie : voir la suite" }));
       else barreObj.append(LS.el("span", { class: "num", text: String(i + 1) }), LS.el("span", { class: "txt", text: String(tp.objectifs[i].texte).replace(/\*\*|`/g, "") }), LS.el("span", { class: "cpt", text: cle }));
     }
     majMission();
@@ -245,7 +246,7 @@
         };
         const montrer = () => {
           choix.querySelectorAll("button").forEach((x, k) => { x.disabled = true; if (k === q.bonne) x.classList.add("bon"); });
-          expl.innerHTML = (etat.questions[i] ? "✓ " : "La bonne réponse est surlignée. ") + LS.texte(q.explication || "");
+          expl.innerHTML = (etat.questions[i] ? '<span class="ok-ic">' + LS.icone("coche", 18) + "</span> " : "La bonne réponse est encadrée en vert. ") + LS.texte(q.explication || "");
         };
         q.choix.forEach((c, j) => {
           const b = LS.el("button", { html: LS.texte(c), onclick: () => {
@@ -265,7 +266,7 @@
         });
         if (etat.questions[i] || etat.questionsVues[i]) montrer();
         majEssais();
-        panQuiz.append(LS.el("div", { class: "question" }, [LS.el("div", { html: `<strong>${i + 1}.</strong> ` + LS.texte(q.q) }), choix, expl, essais]));
+        panQuiz.append(LS.el("div", { class: "question" }, [LS.el("span", { class: "num-q", "aria-hidden": "true", text: (i + 1) + "." }), LS.el("div", { html: LS.texte(q.q) }), choix, expl, essais]));
       });
     }
 
@@ -278,16 +279,16 @@
         const corps = LS.el("div", {});
         if (n) {
           corps.innerHTML = LS.texte(n.d || "") + (n.f ? `<div class="formule">${LS.texte(n.f)}</div>` : "") + (n.ex ? `<div class="note astuce"><strong>Exemple :</strong> ${LS.texte(n.ex)}</div>` : "") + (n.an ? `<div class="note"><strong>Analogie :</strong> ${LS.texte(n.an)}</div>` : "");
-          corps.append(LS.el("a", { href: `carte.html?id=${idCarte}&n=${LS.slug(n.t)}`, text: "Voir dans la carte mentale →" }));
+          corps.append(LS.el("a", { href: `carte.html?id=${idCarte}&n=${LS.slug(n.t)}`, html: "Voir dans la carte mentale " + LS.icone("suivant", 18) }));
         } else corps.textContent = "(notion à venir)";
         panNotions.append(LS.el("details", { class: "notion" }, [LS.el("summary", { text: n ? n.t : libelle }), corps]));
       });
     }
     if (tp.suite) panPlus.append(LS.el("div", { html: LS.texte(tp.suite) }));
     if (pos) {
-      const nav = LS.el("div", { style: "display:flex;justify-content:space-between;gap:8px;margin-top:16px;flex-wrap:wrap" });
-      if (pos.precedent) nav.append(LS.el("a", { class: "btn secondaire petit", href: pos.precedent.href, text: "← " + pos.precedent.titre }));
-      if (pos.suivant) nav.append(LS.el("a", { class: "btn petit", href: pos.suivant.href, text: pos.suivant.titre + " →" }));
+      const nav = LS.el("div", { class: "nav-suite" });
+      if (pos.precedent) nav.append(LS.el("a", { class: "btn secondaire petit", href: pos.precedent.href }, [ic("retour", 18), LS.el("span", { text: pos.precedent.titre })]));
+      if (pos.suivant) nav.append(LS.el("a", { class: "btn petit", href: pos.suivant.href }, [LS.el("span", { text: pos.suivant.titre }), ic("suivant", 18)]));
       panPlus.append(nav);
     }
     // Compteur du quiz
@@ -298,12 +299,13 @@
       if (ev.detail.id !== cle) return;
       const fermer = () => fond.remove();
       const fond = LS.el("div", { class: "fin-mission", role: "dialog", "aria-modal": "true", "aria-labelledby": "fin-titre", onclick: e => { if (e.target === fond) fermer(); } }, [
-        LS.el("div", { class: "fin-carte" }, [
-          LS.el("span", { class: "voyants grands", "aria-hidden": "true" }, [0, 1, 2].map(() => LS.el("i", { class: "on" }))),
+        LS.el("div", { class: "fin-carte cahier" }, [
+          LS.el("span", { class: "tampon-fin", "aria-hidden": "true", text: "Très bien" }),
           LS.el("h2", { id: "fin-titre", text: "Mission accomplie" }),
           LS.el("p", { text: tp.titre + " : tous les objectifs et toutes les questions sont réussis." }),
+          LS.el("p", { class: "mot-prof", text: "Bravo, tu as tout réussi !" }),
           LS.el("div", { class: "fin-actions" }, [
-            pos && pos.suivant ? LS.el("a", { class: "btn", href: pos.suivant.href, text: "Étape suivante →" }) : null,
+            pos && pos.suivant ? LS.el("a", { class: "btn", href: pos.suivant.href }, [LS.el("span", { text: "Étape suivante" }), ic("suivant", 20)]) : null,
             LS.el("button", { class: "btn secondaire", text: "Rester ici", onclick: fermer })])
         ])]);
       document.body.append(fond);

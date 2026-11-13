@@ -7,10 +7,10 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icones/icone-180.png">
-  <meta name="theme-color" content="#1e5b44">
+  <meta name="theme-color" content="#2a1a10">
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    .texte-legal { max-width: 70ch; }
+    .texte-legal > * { max-width: 70ch; }
     .texte-legal h2 { margin-top: 1.6em; }
     .texte-legal li { margin: 4px 0; }
     .etat-journal { padding: 12px 0; border-top: 2px solid var(--texte); border-bottom: 1px solid var(--bordure); display: grid; gap: 10px; }
@@ -26,7 +26,7 @@
   <script src="assets/js/niveaux.js"></script>
 </head>
 <body>
-  <main class="page texte-legal">
+  <main class="page cahier texte-legal">
     <h1>Confidentialité</h1>
     <p>Learn Space est gratuit et sans compte. <strong>Ta progression</strong> (tes points, tes TP réussis) <strong>reste dans ce navigateur</strong>. Pour améliorer le site, il peut aussi compter comment il est utilisé. Tu peux refuser ici : le site marche pareil.</p>
 
@@ -48,6 +48,7 @@
 
     <p class="pied"><a href="index.html">Retour à l'accueil</a></p>
   </main>
+  <div class="bas-de-page" aria-hidden="true"></div>
   <script>
   (function () {
     const LS = window.LS;

@@ -500,6 +500,50 @@ proposition est GitHub Actions, avec FTPS et `tmp/restart.txt`, en attente de so
 **En cours :** une instance refait toute l'interface au style cahier et bogolan. Le juge la relira
 ensuite.
 
+## 13/11/2026 : nouvelle interface « cahier d'écolier malien »
+
+**Demande de l'utilisateur.** Il trouvait l'ancienne interface « IA slop » (machine en métal, écrans LCD,
+carte électronique). Parmi trois maquettes, il a choisi « la A (cahier) avec des idées de B (bogolan) »,
+puis, en voyant les captures : « raccourcis l'accueil au téléphone et pousse ».
+
+**Fait par l'auteur** (instance de design) :
+- l'en-tête en couverture brune avec une frise bogolan (SVG en ligne, en bordure seulement) ;
+- les pages en papier de cahier : lignes bleues pâles, marge rouge, encre bleue ;
+- l'ocre et l'argile pour les boutons et le surligneur ;
+- les brevets en tampons verts, et un mot du professeur en rouge ;
+- le sommaire numéroté, avec un pictogramme bogolan par atelier (`LS.pictoAtelier`) ;
+- les objectifs des TP en exercices numérotés dans la marge, et les onglets en intercalaires ;
+- la carte mentale « au stylo » sur petits carreaux ;
+- le tableau de bord du journal dans le même style, toujours sans script ;
+- la nouvelle icône de l'application ;
+- les symboles Unicode décoratifs remplacés par des SVG, avec un test qui le vérifie.
+
+**Écarté** :
+- les lignes derrière les simulations et dans le panneau d'exercices, pour la lisibilité ;
+- la toile bogolan au téléphone ;
+- les voyants et les pastilles, remplacés par des cases cochées.
+
+**Accueil raccourci au téléphone** (auteur principal) :
+- les ateliers « pour plus tard », les leçons éloignées de la leçon en cours et les brevets à venir
+  au-delà de 3 sont repliés derrière des boutons « Voir… » ;
+- les descriptions des ateliers sont masquées ;
+- la page passe d'environ 13 600 px à 3 400 px de haut à 390 px de large, et rien ne change sur grand
+  écran.
+
+**Vérifié** :
+- 133 tests réussis ;
+- 84 captures (360, 390 et 1280 px, en clair, en sombre et au niveau primaire), sans débordement ni
+  erreur JavaScript ;
+- le site marche en file://.
+
+**Non vérifié** :
+- les contrastes, qui n'ont pas été mesurés ;
+- un vrai téléphone ;
+- les polices du tableau de bord une fois en ligne.
+
+Le juge est en train de relire l'interface au moment du push, à la demande de l'utilisateur de pousser
+sans attendre. Ses remarques seront traitées ensuite.
+
 ---
 
 ## Reste à faire et à décider

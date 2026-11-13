@@ -1,6 +1,6 @@
 /* Carte mentale : lisible et utilisable au doigt.
    Texte des notions ≥ 14 px à l'écran (16 unités, zoom minimal 0,875), zones de toucher ≥ 44 px,
-   panneau du bas limité à 40 % de l'écran au téléphone. Couleurs : jetons de style.css. */
+   panneau du bas limité à 40 % de l'écran au téléphone. Couleurs : jetons de style.css (encre, ocre, argile, papier). */
 
 .carte-page { height: 100vh; height: 100dvh; }
 
@@ -10,40 +10,51 @@
 .carte-outils h1 { margin: 0; font-size: 1.3rem; line-height: 1.2; }
 .carte-prog { display: flex; align-items: center; gap: 8px; }
 .carte-prog .barre { width: 120px; }
+.carte-outils { background: var(--papier); }
 .carte-prog small { font-size: .9rem; color: var(--texte-doux); }
 .carte-boutons { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 .carte-boutons .btn { min-height: 44px; padding-inline: 12px; font-size: .95rem; }
 
-/* Notions */
-.carte-svg .noeud > text { font-size: 16px; font-weight: 600; }
-.carte-svg .noeud.racine > text { font-size: 24px; }
-.carte-svg .noeud.n1 > text { font-size: 19px; }
-/* Racine : texte clair sur cuivre foncé (contraste ≥ 4,5:1 dans les deux thèmes). */
-.carte-svg .noeud.racine .fond { fill: var(--accent-fort); }
-.carte-svg .noeud.racine > text { fill: var(--sur-accent); }
+/* Notions : une carte dessinée au stylo sur une feuille à petits carreaux.
+   Racine en aplat argile, branches entourées à l'encre bleue, notions écrites au stylo ;
+   la notion choisie est passée au surligneur, la notion comprise cochée en vert. */
+.carte-zone { background-color: var(--papier);
+  background-image: linear-gradient(var(--ligne) 1px, transparent 1px), linear-gradient(90deg, var(--ligne) 1px, transparent 1px);
+  background-size: 24px 24px; }
+.carte-svg .lien-arbre { fill: none; stroke: var(--encre); stroke-width: 2.2; stroke-linecap: round; opacity: .75; }
+.carte-svg .lien-croise { fill: none; stroke: var(--argile); stroke-width: 1.6; stroke-dasharray: 2 6; stroke-linecap: round; }
+.carte-svg .noeud > text { font-size: 16px; font-weight: 600; fill: var(--texte); pointer-events: none; }
+.carte-svg .noeud.racine > text { font-size: 24px; font-family: var(--police-titre); font-weight: 800; fill: #fff8ec; }
+.carte-svg .noeud.n1 > text { font-size: 19px; font-family: var(--police-titre); font-weight: 700; fill: var(--encre); }
+.carte-svg .noeud .fond { fill: var(--papier); stroke: var(--encre); stroke-width: 2.2; }
+.carte-svg .noeud.racine .fond { fill: var(--argile); stroke: var(--terre); stroke-width: 2.5; }
+.carte-svg .noeud.feuille .fond { fill: transparent; stroke: transparent; }
 .carte-svg .noeud .zone-toucher, .carte-svg .noeud:hover .zone-toucher, .carte-svg .noeud.feuille:hover .zone-toucher { fill: transparent !important; stroke: none !important; }
-.carte-svg .noeud.feuille .fond { fill: transparent; }
 .carte-svg .noeud.feuille:hover .fond, .carte-svg .noeud.feuille:focus-visible .fond { fill: var(--fond-2); }
-.carte-svg .noeud:hover .fond { stroke: var(--accent-fort); }
-.carte-svg .noeud.choisi .fond { stroke: var(--accent-fort); stroke-width: 3; }
-.carte-svg .noeud.compris .fond { stroke: var(--ok); }
+.carte-svg .noeud:hover .fond { stroke: var(--argile); }
+.carte-svg .noeud.feuille:hover .fond { stroke: transparent; }
+.carte-svg .noeud.choisi .fond { stroke: var(--ocre); stroke-width: 3.5; }
+.carte-svg .noeud.feuille.choisi .fond { fill: var(--surligne); stroke: transparent; }
+.carte-svg .noeud.compris:not(.feuille):not(.racine) .fond { stroke: var(--ok); }
+.carte-svg .noeud.feuille.compris > text { fill: var(--ok); }
 .carte-svg .noeud:focus { outline: none; }
-.carte-svg .noeud:focus-visible .fond { stroke: var(--accent); stroke-width: 3; }
-.carte-svg .noeud .etiquette-tp rect, .carte-svg .noeud.feuille:hover .etiquette-tp rect { fill: color-mix(in srgb, var(--pcb) 78%, #000) !important; stroke: none !important; }
-.carte-svg .noeud .etiquette-tp text { fill: var(--pcb-texte); font-size: 16px; font-weight: 700; font-family: var(--police); }
-.carte-svg .coche { fill: var(--ok); font-size: 18px; font-weight: 700; }
-.carte-svg .bulle text { font-size: 16px; }
-.carte-svg .noeud .tag rect, .carte-svg .noeud.feuille:hover .tag rect { fill: var(--fond-2) !important; stroke: var(--bordure) !important; }
+.carte-svg .noeud:focus-visible .fond { stroke: var(--ocre); stroke-width: 3.5; }
+.carte-svg .noeud .etiquette-tp rect, .carte-svg .noeud.feuille:hover .etiquette-tp rect { fill: var(--ocre) !important; stroke: none !important; }
+.carte-svg .noeud .etiquette-tp text { fill: var(--terre); font-size: 15px; font-weight: 700; font-family: var(--police); }
+.carte-svg .coche { fill: none; stroke: var(--ok); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.carte-svg .bulle rect { fill: var(--noeud); stroke: var(--bordure); stroke-width: 1; }
+.carte-svg .bulle text { fill: var(--noeud-texte); font-size: 16px; }
+.carte-svg .noeud .tag rect, .carte-svg .noeud.feuille:hover .tag rect { fill: var(--papier) !important; stroke: var(--texte-doux) !important; stroke-dasharray: 3 3; }
 .carte-svg .tag text { fill: var(--texte); font-size: 16px; }
 
 /* Bouton déplier / replier */
 .carte-svg .plier { cursor: pointer; }
 .carte-svg .plier .zone-toucher { fill: transparent; stroke: none; }
-.carte-svg .plier rect { fill: var(--carte); stroke: var(--accent-fort); stroke-width: 2; }
-.carte-svg .plier text { fill: var(--accent-fort); font-size: 16px; font-weight: 700; font-family: var(--mono); pointer-events: none; }
-.carte-svg .plier.ferme rect { fill: var(--noeud); stroke: var(--noeud); }
-.carte-svg .plier.ferme text { fill: var(--noeud-texte); }
-.carte-svg .plier:hover rect, .carte-svg .plier:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+.carte-svg .plier rect { fill: var(--papier); stroke: var(--encre); stroke-width: 2; }
+.carte-svg .plier text { fill: var(--encre); font-size: 16px; font-weight: 700; font-family: var(--mono); pointer-events: none; }
+.carte-svg .plier.ferme rect { fill: var(--encre); stroke: var(--encre); }
+.carte-svg .plier.ferme text { fill: var(--papier); }
+.carte-svg .plier:hover rect, .carte-svg .plier:focus-visible rect { stroke: var(--ocre); stroke-width: 3; }
 .carte-svg .plier:focus { outline: none; }
 
 /* Panneau de définition */
@@ -60,7 +71,7 @@
 .bande-depart {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; gap: 8px; flex-wrap: wrap;
   padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-  background: var(--fond-2); border-top: 2px solid var(--accent);
+  background: var(--terre); border-top: 3px solid var(--ocre);
 }
 .bande-depart .btn { min-height: 44px; flex: 1 1 auto; margin-bottom: 3px; }
 
@@ -73,11 +84,14 @@
   .carte-boutons { flex-wrap: nowrap; overflow-x: auto; margin-left: 0; width: 100%; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
   .carte-boutons .btn { flex: none; }
   .panneau { max-height: 40%; padding-top: 0; }
-  .panneau .poignee { display: block; position: sticky; top: 0; height: 22px; margin: 0 -16px 4px; background: var(--carte); cursor: grab; touch-action: none; z-index: 1; }
-  .panneau .poignee::after { content: ""; display: block; width: 44px; height: 5px; border-radius: 3px; margin: 9px auto 0; background: var(--bordure); }
+  .panneau .poignee { display: block; position: sticky; top: 0; height: 22px; margin: 0 -16px 4px; background: var(--papier); cursor: grab; touch-action: none; z-index: 1; }
+  .panneau .poignee::after { content: ""; display: block; width: 44px; height: 5px; border-radius: 3px; margin: 9px auto 0; background: var(--texte-doux); }
   .panneau .fermer { position: sticky; top: 22px; z-index: 1; }
   .panneau h2 { font-size: 1.25rem; }
 }
 @media (pointer: coarse) {
   .carte-boutons .btn, .bande-depart .btn { min-height: 48px; }
 }
+/* Sur la bande brune : boutons crème, comme le bouton « Continuer » de l'accueil */
+.bande-depart .btn { background: var(--creme); color: var(--terre); border-color: var(--creme); box-shadow: 3px 3px 0 #000; }
+.bande-depart .btn.secondaire { background: transparent; color: var(--creme); border-color: var(--sable); box-shadow: none; }

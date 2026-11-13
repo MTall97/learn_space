@@ -23,3 +23,22 @@ test("chaque simulation de TP a ses scripts, et le dernier la définit", () => {
   }
   assert.deepStrictEqual(pb, []);
 });
+
+/* Identité « cahier d'écolier » : pas de symboles Unicode décoratifs dans l'interface (les pictogrammes
+   sont des SVG au trait de LS.icone), et les jetons que lisent les simulations existent toujours. */
+test("interface : pas de symbole décoratif, jetons des simulations présents, ancienne carte électronique retirée", () => {
+  const lire = f => fs.readFileSync(path.join(racine, f), "utf8");
+  const sansCommentaires = t => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const pb = [];
+  for (const f of ["index.html", "tp.html", "carte.html", "confidentialite.html", "hors-ligne.html", "assets/js/commun.js", "assets/js/tp.js", "assets/js/carte-mentale.js", "assets/js/jeu.js"]) {
+    const m = sansCommentaires(lire(f)).match(/[✓✗✔✘★☆§•→←⚡]/g);
+    if (m) pb.push(f + " : " + [...new Set(m)].join(" "));
+  }
+  assert.deepStrictEqual(pb, []);
+  const css = lire("assets/css/style.css");
+  for (const j of ["--texte", "--texte-doux", "--fond", "--carte", "--accent", "--accent-fort", "--noeud", "--bordure", "--ok", "--alerte", "--info"])
+    assert.ok(new RegExp("\\s" + j + ":").test(css), "jeton " + j);
+  assert.ok(/prefers-color-scheme: dark/.test(css) && /data-theme="dark"/.test(css), "mode sombre");
+  assert.ok(/body\[data-niveau="primaire"\] \.outil-avance/.test(css), "mode primaire");
+  assert.ok(!/tracerPistes|carte-mere|pistes-cuivre/.test(lire("index.html")), "carte électronique retirée");
+});

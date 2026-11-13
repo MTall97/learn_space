@@ -70,16 +70,28 @@ Plateforme **publique et gratuite** pour aider les plus jeunes à apprendre et c
 - `assets/js/sims/modele-moteur.js` : modèle thermodynamique du cylindre (testable sous Node).
 
 ## Interface et jeu
-- Identité « atelier d'électronique » : façade d'appareil (niveau, jauge à aiguille, série, brevets),
-  ateliers posés comme des composants sur une carte électronique reliés par des pistes de cuivre,
-  piste de pastilles pour les étapes. **Pas de cartes génériques** (boîtes arrondies ombrées en grille),
-  **pas d'émojis ni de symboles Unicode décoratifs** dans l'interface : texte simple, ou pictogrammes au
-  trait de `LS.icone` (`commun.js`). Les symboles techniques restent (V⎓, ▶| du test diode, Ω…).
-- Polices : Baloo 2 pour les titres (ludique), Atkinson Hyperlegible pour le texte (sérieux, lisible),
-  JetBrains Mono pour les chiffres et la sérigraphie. Couleurs : jetons de `:root` dans `style.css`.
-- `assets/js/jeu.js` : points (notion 10, objectif 25, question 10, TP ou carte terminé 50), niveaux,
-  série de jours, objectif du jour (60 pts), brevets. Registre de gains idempotent dans le navigateur,
-  détecté en enveloppant `LS.marquerCompris` et `LS.enregistrerTP` (charger `jeu.js` après
+- Identité « cahier d'écolier malien » (13/11/2026, choix de l'utilisateur : « la A avec des idées de B ») :
+  couverture brune (`--terre`) bordée d'une frise bogolan pour l'en-tête, les bas de page et les fenêtres ;
+  page de cahier (`.cahier` : lignes `--ligne`, marge `--trait-marge`) pour le contenu ; encre bleue
+  (`--encre`) ; ocre et argile pour les accents (boutons `--bouton`, surligneur `--surligne`) ; tampon vert
+  (`--tampon`) pour les brevets ; mot du professeur en rouge (`--rouge`). Frises en bordure seulement,
+  jamais derrière le texte ; SVG écrits dans le CSS (`--frise`, `--frise-fine`, `--toile`), sans fichier.
+- À éviter (l'utilisateur rejette le « design IA générique ») : cartes arrondies ombrées en grille,
+  dégradés décoratifs, effet verre, surtitre + titre + sous-titre, émojis et symboles Unicode décoratifs
+  (✓, →, ★… ; `tests/interface.test.js` le vérifie), l'ancienne machine en métal / écrans LCD.
+  Pictogrammes : SVG au trait de `LS.icone` (`commun.js`) ; un par atelier (`dom-<id>`), en clair sur un
+  carré sombre par `LS.pictoAtelier`. Les symboles techniques restent (V⎓, ▶| du test diode, Ω…).
+- Accueil au téléphone court : les éléments `.loin` (ateliers pour plus tard, leçons éloignées de la
+  leçon en cours, brevets à venir au-delà de 3) sont repliés derrière un bouton « Voir… » (`voirPlus`
+  dans `index.html`) ; tout reste affiché sur grand écran.
+- Polices : Baloo 2 (titres), Atkinson Hyperlegible (texte), JetBrains Mono (chiffres). Couleurs : jetons de
+  `:root` dans `style.css` ; les simulations lisent `--texte`, `--texte-doux`, `--fond`, `--carte`,
+  `--accent`, `--accent-fort`, `--noeud`, `--bordure`, `--ok`, `--alerte`, `--info` (`LS.couleurs`) : garder
+  ces noms. Mode sombre : page de cahier sombre (`prefers-color-scheme` ou `data-theme`). Cibles tactiles
+  de 44 px au moins.
+- `assets/js/jeu.js` : points (notion 10, objectif 25, question 10, TP ou carte terminé 50), rangs, série de
+  jours, objectif du jour (60 pts), brevets (affichés en tampons). Registre de gains idempotent dans le
+  navigateur, détecté en enveloppant `LS.marquerCompris` et `LS.enregistrerTP` (charger `jeu.js` après
   `progression.js`).
 
 ## Niveaux

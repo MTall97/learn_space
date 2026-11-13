@@ -182,7 +182,9 @@
       const tt = svg("text", { x: 18, y: 12, "text-anchor": "middle", "dominant-baseline": "central" }, b); tt.textContent = "TP";
     }
     if (compris && n._niveau > 0) {
-      const c = svg("text", { class: "coche", x: n._dir < 0 ? n._w + 6 : -18, y: n._h / 2, "dominant-baseline": "central" }, grp); c.textContent = "✓";
+      // Coche tracée au stylo (un trait, pas un caractère), à l'extérieur de la notion.
+      const x0 = n._dir < 0 ? n._w + 6 : -22, y0 = n._h / 2;
+      svg("path", { class: "coche", d: `M${x0} ${y0} l5 5 l10 -11` }, grp);
     }
     const tronquer = (txt, taille, max) => {
       if (largeurTexte(txt, taille, false) <= max) return txt;
@@ -301,8 +303,8 @@
     }
     const i = this.ordre.indexOf(n);
     const nav = LS.el("div", { class: "nav-notions" });
-    if (i > 0) nav.append(LS.el("button", { class: "btn secondaire petit", text: "← Précédente", onclick: () => self.choisir(self.ordre[i - 1], true) }));
-    if (i < this.ordre.length - 1) nav.append(LS.el("button", { class: "btn petit", text: "Notion suivante →", onclick: () => self.choisir(self.ordre[i + 1], true) }));
+    if (i > 0) nav.append(LS.el("button", { class: "btn secondaire petit", text: "Précédente", onclick: () => self.choisir(self.ordre[i - 1], true) }));
+    if (i < this.ordre.length - 1) nav.append(LS.el("button", { class: "btn petit", text: "Notion suivante", onclick: () => self.choisir(self.ordre[i + 1], true) }));
     pan.append(nav);
     pan.scrollTop = 0;
     this._gestePanneau();
@@ -475,7 +477,7 @@
         rep.classList.remove("cache-tout"); voir.remove();
         actions.append(
           LS.el("button", { class: "btn secondaire", text: "À revoir", onclick: () => { i++; montrer(); } }),
-          LS.el("button", { class: "btn", text: "Je savais ✓", onclick: () => { LS.marquerCompris(n._id, true); sus++; i++; montrer(); } }));
+          LS.el("button", { class: "btn", text: "Je savais", onclick: () => { LS.marquerCompris(n._id, true); sus++; i++; montrer(); } }));
       } });
       actions.append(voir, LS.el("button", { class: "btn secondaire", text: "Arrêter", onclick: fermer }));
       fiche.append(rep, actions);

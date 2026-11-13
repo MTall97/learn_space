@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icone.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icones/icone-180.png">
-  <meta name="theme-color" content="#1e5b44">
+  <meta name="theme-color" content="#2a1a10">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/carte.css">
   <script src="assets/js/commun.js"></script>
@@ -73,8 +73,8 @@
         LS.el("button", { class: "btn secondaire petit fermer", text: "Fermer", onclick: () => cm.fermerPanneau() }),
         LS.el("h2", { text: carte.titre }), LS.el("div", { html: LS.texte(carte.intro) }),
         LS.el("p", { class: "note astuce", html: "Touche une notion pour lire ce qu'elle veut dire. Touche le bouton <strong>+</strong> à côté d'une notion pour voir ce qu'elle contient. <strong>Notion suivante</strong> te fait lire la carte dans l'ordre. L'étiquette <strong>TP</strong> veut dire qu'un exercice pratique existe." }),
-        LS.el("button", { class: "btn", text: "Commencer : " + premiere.t + " →", onclick: () => cm.choisir(premiere, true) }));
-      if (pos && pos.suivant) pan.append(LS.el("p", {}, [LS.el("a", { href: pos.suivant.href, text: "Étape suivante du parcours : " + pos.suivant.titre + " →" })]));
+        LS.el("button", { class: "btn", text: "Commencer : " + premiere.t, onclick: () => cm.choisir(premiere, true) }));
+      if (pos && pos.suivant) pan.append(LS.el("p", {}, [LS.el("a", { href: pos.suivant.href, text: "Étape suivante du parcours : " + pos.suivant.titre })]));
       cm._gestePanneau();
     }
     bande.append(LS.el("button", { class: "btn", text: "Commencer : " + premiere.t, onclick: () => cm.choisir(premiere, true) }),
