@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Le va-et-vient de la maison",
   domaine: "electricite", niveau: 2, duree: "25 min",
   sim: "circuit", securite: "secteur",
-  intro: "Dans un couloir, on veut allumer et éteindre la même lampe depuis **deux endroits**. On utilise deux **interrupteurs va-et-vient** (à trois bornes : une borne commune et deux sorties) reliés par deux fils appelés **navettes**. Ici, le réseau est simulé par un générateur alternatif de **220 V efficaces** (311 V crête, 50 Hz), comme le réseau malien (230 V en Europe), protégé par un fusible F1 de 10 A, et une lampe de 220 V, 60 W. Ces trois éléments sont imposés (réglages verrouillés).\n\n⚠ En vrai : on coupe le disjoncteur avant de câbler, et la **phase** passe par les interrupteurs, jamais le neutre.",
+  intro: "Dans un couloir, on veut allumer et éteindre la même lampe depuis **deux endroits**. On utilise deux **interrupteurs va-et-vient** (à trois bornes : une borne commune et deux sorties) reliés par deux fils appelés **navettes**. Ici, le réseau est simulé par un générateur alternatif de **220 V efficaces** (311 V crête, 50 Hz), comme le réseau malien (230 V en Europe), protégé par un fusible F1 de 10 A, et une lampe de 220 V, 60 W. Ces trois éléments sont imposés (réglages verrouillés).\n\nAttention, en vrai : on coupe le disjoncteur avant de câbler, et la **phase** passe par les interrupteurs, jamais le neutre.",
   config: {
     palette: ["vaetvient", "interrupteur", "lampe", "voltmetre", "amperemetre", "fusible"],
     schema: {

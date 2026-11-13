@@ -239,7 +239,7 @@
           const ys = pts.map(p => p[1]), y0 = Math.floor(Math.min(...ys)), y1 = Math.ceil(Math.max(...ys));
           D().graphe(ctx, ...g.g, { c, xlim: [0, 4], ylim: [y0, Math.max(y1, y0 + 1)], series: [{ pts, coul: c.ok, ep: 2.5 }],
             points: [{ x: Math.log10(s.p.f), y: Math.log10(z.module), coul: c.accentFort }, { x: Math.log10(z.f0), y: Math.log10(s.p.R), coul: c.info, r: 4 }],
-            titre: W >= 640 ? "|Z| selon f (échelles log : 1 Hz → 10 kHz, 10^" + y0 + " → 10^" + Math.max(y1, y0 + 1) + " Ω)" : "|Z| selon f (log-log)", xlab: "log₁₀ f", ylab: "bleu : résonance" });
+            titre: W >= 640 ? "|Z| selon f (échelles log : de 1 Hz à 10 kHz, de 10^" + y0 + " à 10^" + Math.max(y1, y0 + 1) + " Ω)" : "|Z| selon f (log-log)", xlab: "log₁₀ f", ylab: "bleu : résonance" });
         }
       },
       mesures(s) {
@@ -255,7 +255,7 @@
         if (s.p.vue === "plan") return "Un nombre complexe z = a + jb est un **point du plan** (en électricité on écrit **j** au lieu de i, réservé au courant ; j² = −1). Sa distance à l'origine est le **module** |z| = √(a² + b²), son angle est l'**argument**. Forme exponentielle : z = |z|·e^(jθ).\n- **Additionner**, c'est mettre les flèches bout à bout.\n- **Multiplier**, c'est multiplier les modules et **ajouter les arguments** : multiplier par j, c'est tourner de 90°.";
         const z = LS.impedanceRLC(s.p.R, s.p.L, s.p.C, s.p.f), r = s.p.f / z.f0;
         return "En alternatif, chaque dipôle a une **impédance complexe** : Z_R = R, Z_L = jLω (vers le haut), Z_C = −j/(Cω) (vers le bas). En série, on **additionne** ces flèches. Le module |Z| = U/I, l'argument est le **déphasage** entre u et i.\n\n" +
-          (Math.abs(r - 1) < 0.03 ? "✔ **Résonance** : Lω = 1/(Cω), les deux parties imaginaires s'annulent, Z = R et le courant est maximal." : r < 1 ? "Sous la résonance, le condensateur domine : circuit **capacitif** (φ < 0)." : "Au-dessus de la résonance, la bobine domine : circuit **inductif** (φ > 0).");
+          (Math.abs(r - 1) < 0.03 ? "**Résonance** : Lω = 1/(Cω), les deux parties imaginaires s'annulent, Z = R et le courant est maximal." : r < 1 ? "Sous la résonance, le condensateur domine : circuit **capacitif** (φ < 0)." : "Au-dessus de la résonance, la bobine domine : circuit **inductif** (φ > 0).");
       }
     }, cfg);
   };
@@ -504,7 +504,7 @@
         return l;
       },
       explication(s) {
-        if (s.p.exp === "nuage") return "Le coefficient de **corrélation** r (entre −1 et 1) mesure à quel point les points s'alignent ; la **régression linéaire** trace la droite qui minimise la somme des carrés des écarts verticaux. Avec peu de points, r varie beaucoup d'une graine à l'autre : une corrélation observée sur 20 points peut être due au hasard.\n\n⚠ **Corrélation n'est pas causalité** : les ventes de glaces et les noyades montent ensemble… parce qu'il fait chaud.";
+        if (s.p.exp === "nuage") return "Le coefficient de **corrélation** r (entre −1 et 1) mesure à quel point les points s'alignent ; la **régression linéaire** trace la droite qui minimise la somme des carrés des écarts verticaux. Avec peu de points, r varie beaucoup d'une graine à l'autre : une corrélation observée sur 20 points peut être due au hasard.\n\nAttention, **corrélation n'est pas causalité** : les ventes de glaces et les noyades montent ensemble… parce qu'il fait chaud.";
         return "**Loi des grands nombres** : plus on fait de tirages, plus la moyenne observée se rapproche de l'**espérance**. L'erreur typique diminue comme **σ/√n** : pour diviser l'incertitude par 10, il faut 100 fois plus de tirages. L'**intervalle de confiance à 95 %** (moyenne ± 1,96·σ/√n) contient la vraie moyenne dans 95 % des expériences.\n\nPour une loi normale, environ **68 %** des valeurs tombent à moins d'un écart type de la moyenne, et 95 % à moins de deux. C'est la même idée qui juge un backtest : un résultat sur 20 trades est très incertain.";
       }
     }, cfg);

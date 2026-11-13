@@ -98,7 +98,7 @@
         D().engrenage(ctx, xc, yc, rc, s.p.zc, s.etat.a * s.p.zp / s.p.zc, "#c0c0c0", "#333");
         D().texte(ctx, "pignon " + s.p.zp + " dents", xp, yp + rp + 40, c.texte, 12, "center", true);
         D().texte(ctx, "couronne " + s.p.zc + " dents", xc, yc + rr + 12 > H - 6 ? H - 8 : yc + rr + 12, c.texte, 12, "center", true);
-        D().texte(ctx, "moteur → primaire (÷" + PRIMAIRE_MOTO + ") → boîte (÷" + BOITE_MOTO[s.p.rapport - 1] + ") → pignon → chaîne → couronne → roue", 10, 16, c.doux, 12);
+        D().texte(ctx, "moteur, primaire (÷" + PRIMAIRE_MOTO + "), boîte (÷" + BOITE_MOTO[s.p.rapport - 1] + "), pignon, chaîne, couronne, roue", 10, 16, c.doux, 12);
       },
       mesures(s) {
         const k = this.calc(s);
@@ -310,8 +310,8 @@
         if (xr < W - 120) {
           D().texte(ctx, "Vue de dessus de l'essieu moteur", xr, 40, c.texte, 13, "left", true);
           D().texte(ctx, "N couronne = (N gauche + N droite) / 2", xr, 70, c.doux, 12);
-          if (k.glisse > 0.01) D().texte(ctx, "⚠ Pneus forcés de glisser : " + LS.nombre(k.glisse * 3.6, 1) + " km/h", xr, 100, c.alerte, 13, "left", true);
-          if (s.p.glace && !s.p.bloque) D().texte(ctx, "⚠ La roue sur la glace patine, la voiture ne bouge pas", xr, 100, c.alerte, 13, "left", true);
+          if (k.glisse > 0.01) D().texte(ctx, "Attention, pneus forcés de glisser : " + LS.nombre(k.glisse * 3.6, 1) + " km/h", xr, 100, c.alerte, 13, "left", true);
+          if (s.p.glace && !s.p.bloque) D().texte(ctx, "Attention, la roue sur la glace patine, la voiture ne bouge pas", xr, 100, c.alerte, 13, "left", true);
         }
       },
       mesures(s) {

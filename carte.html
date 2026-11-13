@@ -44,7 +44,7 @@
     const id = LS.param("id");
     const zone = document.getElementById("zone");
     try { await LS.charger("contenu/cartes/" + id + ".js"); }
-    catch (e) { zone.innerHTML = "<p style='padding:16px'>Carte introuvable. <a href='index.html#ateliers'>Voir les ateliers</a></p>"; return; }
+    catch (e) { zone.innerHTML = "<p class='carte-introuvable' style='padding:16px'>Carte introuvable. <a href='index.html#ateliers'>Voir les ateliers</a></p>"; return; }
     const carte = LS.cartes[id];
     if (LS.jeu) LS.jeu.visiter("carte", id);
     document.body.dataset.domaine = LS.domaineDe("carte", id) || "";

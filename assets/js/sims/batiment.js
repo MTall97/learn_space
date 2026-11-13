@@ -155,7 +155,7 @@
         { k: "longueur", nom: "Longueur du circuit", min: 5, max: 60, pas: 1, defaut: 20, unite: "m" },
         { k: "vitesse", nom: "Accélération du temps", choix: [[1, "temps réel"], [10, "× 10"], [60, "× 60 (1 s = 1 min)"]], nombres: true, defaut: 60 }
       ].concat(APPAREILS.map(ap => ({ k: ap.k, nom: ap.nom + " (" + ap.P + " W)", bool: true, defaut: ap.k === "lampes" }))).concat([
-        { k: "courtcircuit", nom: "⚡ Court-circuit en bout de ligne", bool: true, defaut: false }
+        { k: "courtcircuit", nom: "Court-circuit en bout de ligne", bool: true, defaut: false }
       ]),
       boutons: [
         { k: "rearmer", texte: "Réarmer le disjoncteur", action: s => { Object.assign(s.etat, { ouvert: false, bilame: 0, cause: null, tOuvert: null }); } },
@@ -210,8 +210,8 @@
           D().texte(ctx, ap.nom, bx + (bw - 8) / 2, by + 12, c.texte, 10, "center", true);
           D().texte(ctx, p[ap.k] ? ap.P + " W" : "arrêt", bx + (bw - 8) / 2, by + 26, c.doux, 10, "center");
         });
-        if (p.courtcircuit) { D().texte(ctx, "⚡ court-circuit", x1 - 40, cy + 92, c.alerte, 13, "center", true); }
-        if (e.abime) D().texte(ctx, "⚠ isolant du câble abîmé par le court-circuit", sx, sy + hs - 30 > sy + 150 ? sy + 140 : sy + 140, c.alerte, 12, "left", true);
+        if (p.courtcircuit) { D().texte(ctx, "court-circuit !", x1 - 40, cy + 92, c.alerte, 13, "center", true); }
+        if (e.abime) D().texte(ctx, "Attention, isolant du câble abîmé par le court-circuit", sx, sy + hs - 30 > sy + 150 ? sy + 140 : sy + 140, c.alerte, 12, "left", true);
         // Graphe de température
         const gx = etroit ? 44 : W * 0.56, gy = etroit ? hs + 20 : 30, gw = etroit ? W - 60 : W - gx - 16, gh = etroit ? (H - hs - 60) / 2 - 10 : (H - 90) / 2;
         const tmax = Math.max(100, e.Tmax * 1.1);
@@ -237,11 +237,11 @@
       },
       explication(s) {
         const e = s.etat, p = s.p, k = calc(s);
-        let t = "Le disjoncteur a deux déclencheurs :\n- **thermique** (un bilame qui chauffe) : il coupe une **surcharge** d'autant plus vite qu'elle est forte : rien à 1,13 In pendant 1 h, en moins d'1 h à 1,45 In, en quelques secondes à 5 In ;\n- **magnétique** (une bobine) : il coupe un **court-circuit** en quelques millisecondes, au-delà de 3-5 In (courbe B), 5-10 In (C) ou 10-20 In (D).\nLe disjoncteur protège le **câble**, pas l'appareil : son calibre doit être inférieur ou égal au courant admissible du câble (Iz). Usage courant : 1,5 mm² → 16 A (10 A en éclairage) ; 2,5 mm² → 20 A ; 6 mm² → 32 A.\n\nLa norme demande **deux** conditions : **In ≤ Iz**, et **I2 ≤ 1,45 Iz**, I2 étant le courant qui fait sûrement déclencher en 1 h (1,45 In pour un disjoncteur domestique). Elle **accepte** donc qu'entre Iz et 1,45 Iz le câble dépasse 70 °C pendant une surcharge qui peut durer longtemps (des heures, voire plus juste au-dessus de 1,13 In) : l'isolant le supporte temporairement, mais il vieillit. Une surcharge permanente reste à éviter : c'est pourquoi on limite le nombre de prises par circuit.";
+        let t = "Le disjoncteur a deux déclencheurs :\n- **thermique** (un bilame qui chauffe) : il coupe une **surcharge** d'autant plus vite qu'elle est forte : rien à 1,13 In pendant 1 h, en moins d'1 h à 1,45 In, en quelques secondes à 5 In ;\n- **magnétique** (une bobine) : il coupe un **court-circuit** en quelques millisecondes, au-delà de 3-5 In (courbe B), 5-10 In (C) ou 10-20 In (D).\nLe disjoncteur protège le **câble**, pas l'appareil : son calibre doit être inférieur ou égal au courant admissible du câble (Iz). Usage courant : 1,5 mm² : 16 A (10 A en éclairage) ; 2,5 mm² : 20 A ; 6 mm² : 32 A.\n\nLa norme demande **deux** conditions : **In ≤ Iz**, et **I2 ≤ 1,45 Iz**, I2 étant le courant qui fait sûrement déclencher en 1 h (1,45 In pour un disjoncteur domestique). Elle **accepte** donc qu'entre Iz et 1,45 Iz le câble dépasse 70 °C pendant une surcharge qui peut durer longtemps (des heures, voire plus juste au-dessus de 1,13 In) : l'isolant le supporte temporairement, mais il vieillit. Une surcharge permanente reste à éviter : c'est pourquoi on limite le nombre de prises par circuit.";
         if (p.calibre <= k.Iz && k.I > k.Iz && !e.ouvert) t += "\n\nℹ Surcharge modérée (" + LS.nombre(k.I, 1) + " A, soit " + LS.nombre(k.I / p.calibre, 2) + " In) : le circuit est bien protégé au sens de la norme, mais le câble monte vers **" + LS.nombre(k.Tfin, 0) + " °C** et le disjoncteur peut mettre très longtemps à couper" + (isFinite(LS.tempsThermique(k.I, p.calibre)) ? " (≈ " + dureeLisible(LS.tempsThermique(k.I, p.calibre)) + ")" : " (jamais à moins de 1,13 In)") + ". Toléré temporairement, pas en permanence.";
-        if (p.calibre > k.Iz) t += "\n\n⚠ **Calibre trop fort pour ce câble** (" + p.calibre + " A > Iz = " + k.Iz + " A) : le câble peut dépasser 70 °C sans que le disjoncteur réagisse. L'isolant vieillit, durcit, puis peut fondre : c'est un départ de feu classique.";
-        if (LS.declenchementMagnetique(k.Icc, p.calibre, p.courbe) !== "certain") t += "\n\n⚠ Avec cette longueur, le courant de court-circuit (" + LS.nombre(k.Icc, 0) + " A) n'est pas assez fort pour un déclenchement magnétique **certain** : c'est le thermique qui coupera, plus lentement. La norme limite la longueur des circuits pour cette raison.";
-        if (e.abime) t += "\n\n⚠ L'énergie du court-circuit (I²t) a dépassé ce que l'isolant supporte (k²S² avec k = 115) : il faudrait remplacer le câble.";
+        if (p.calibre > k.Iz) t += "\n\nAttention, **calibre trop fort pour ce câble** (" + p.calibre + " A > Iz = " + k.Iz + " A) : le câble peut dépasser 70 °C sans que le disjoncteur réagisse. L'isolant vieillit, durcit, puis peut fondre : c'est un départ de feu classique.";
+        if (LS.declenchementMagnetique(k.Icc, p.calibre, p.courbe) !== "certain") t += "\n\nAttention, avec cette longueur, le courant de court-circuit (" + LS.nombre(k.Icc, 0) + " A) n'est pas assez fort pour un déclenchement magnétique **certain** : c'est le thermique qui coupera, plus lentement. La norme limite la longueur des circuits pour cette raison.";
+        if (e.abime) t += "\n\nAttention, l'énergie du court-circuit (I²t) a dépassé ce que l'isolant supporte (k²S² avec k = 115) : il faudrait remplacer le câble.";
         return t;
       }
     }, cfg);
@@ -264,7 +264,7 @@
       hauteur: 460,
       controles: [
         { k: "IDn", nom: "Protection différentielle", choix: [[0, "aucune"], [0.03, "30 mA"], [0.3, "300 mA"], [0.5, "500 mA (branchement)"]], nombres: true, defaut: 0 },
-        { k: "defaut", nom: "Défaut d'isolement dans l'appareil (phase → carcasse)", bool: true, defaut: true },
+        { k: "defaut", nom: "Défaut d'isolement dans l'appareil (de la phase à la carcasse)", bool: true, defaut: true },
         { k: "Rd", nom: "Résistance du défaut", min: 0.1, max: 100000, log: true, defaut: 1, format: v => LS.si(v, "Ω") },
         { k: "RA", nom: "Prise de terre de la maison RA", choix: [[10, "10 Ω"], [30, "30 Ω"], [100, "100 Ω"], [500, "500 Ω"], [1500, "1 500 Ω"], [Infinity, "absente"]], nombres: true, defaut: 30 },
         { k: "touche", nom: "Une personne touche la carcasse", bool: true, defaut: false },
@@ -351,7 +351,7 @@
         const p = s.p, k = calc(s);
         let t = "En schéma **TT** (le plus courant chez les particuliers en France et dans de nombreux pays), le neutre est relié à la terre au transformateur (RB), et les carcasses métalliques à la **prise de terre** de la maison (RA) par le conducteur vert-jaune. Lors d'un défaut d'isolement, un courant **Id** part dans la terre : la carcasse monte à **Uc = Id × RA**. Ce courant est trop faible pour faire déclencher le disjoncteur (quelques ampères) : seul le **différentiel**, qui compare le courant qui part par la phase à celui qui revient par le neutre, le détecte.\nLa tension de contact ne doit pas dépasser **50 V** (25 V en milieu mouillé) : avec un différentiel, il faut **RA × IΔn ≤ 50 V**.";
         if (p.touche && k.brut.Ib > 0) t += "\n\nZone **" + k.zone + "** : " + ZONES[k.zone] + ".";
-        if (p.touche && !isFinite(p.RA) && k.brut.Ib > 0) t += "\n\n⚠ Sans terre, **tout** le courant de défaut passe par la personne. Le 30 mA reste la dernière protection : il coupe en quelques dizaines de millisecondes, avant la fibrillation.";
+        if (p.touche && !isFinite(p.RA) && k.brut.Ib > 0) t += "\n\nAttention, sans terre, **tout** le courant de défaut passe par la personne. Le 30 mA reste la dernière protection : il coupe en quelques dizaines de millisecondes, avant la fibrillation.";
         t += "\n\nCe TP ne remplace pas une formation : on n'intervient jamais sur une installation sous tension.";
         return t;
       }
@@ -441,7 +441,7 @@
       explication(s) {
         const k = calc(s);
         let t = "Un câble a une résistance **R = ρ × 2L / S** (aller et retour) : le courant y perd une tension **ΔU ≈ R × I × cos φ**, transformée en chaleur. Plus la ligne est **longue** et **fine**, plus la tension baisse au bout. Usages courants : chute ≤ **3 %** pour l'éclairage, ≤ **5 %** pour le reste (installation alimentée par le réseau public). L'aluminium conduit moins bien que le cuivre (ρ ≈ 0,036 contre 0,0225 Ω·mm²/m) : il faut une section environ 1,6 fois plus grande.\nUne lampe à incandescence ou halogène perd beaucoup de lumière quand la tension baisse (flux ≈ U^3,4). Un moteur appelle 5 à 8 fois son courant nominal au démarrage : la chute est alors bien plus forte, son couple (∝ U²) baisse, et il peut ne pas démarrer.";
-        if (k.pourcent > k.limite) t += "\n\n⚠ Chute de " + LS.nombre(k.pourcent, 1) + " % : prends une section plus grande, ou rapproche le tableau.";
+        if (k.pourcent > k.limite) t += "\n\nAttention, chute de " + LS.nombre(k.pourcent, 1) + " % : prends une section plus grande, ou rapproche le tableau.";
         return t;
       }
     }, cfg);

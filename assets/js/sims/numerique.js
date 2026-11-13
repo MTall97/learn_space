@@ -74,7 +74,7 @@
           series: [{ pts, coul: c.info, ep: 2 }, { pts: esc, coul: c.accentFort, ep: 1.5 }].concat(s.p.f > s.p.fe / 2 ? [{ pts: rec, coul: c.alerte, ep: 1.5 }] : []),
           points: ech, titre: "Bleu : signal analogique · orange : échantillons quantifiés (" + N + " niveaux)" + (s.p.f > s.p.fe / 2 ? " · rouge : ce que l'on croit avoir mesuré" : ""), xlab: "temps (s)" });
         for (let k = 0; k <= N && N <= 16; k++) { ctx.strokeStyle = "rgba(128,128,128,.15)"; ctx.beginPath(); ctx.moveTo(40, g.Y(-1 + k * q)); ctx.lineTo(W - 20, g.Y(-1 + k * q)); ctx.stroke(); }
-        if (s.p.f > s.p.fe / 2) D().texte(ctx, "⚠ Repliement de spectre : fe < 2f, le signal semble avoir une fréquence de " + LS.nombre(fa, 1) + " Hz", W / 2, H - 14, c.alerte, 13, "center", true);
+        if (s.p.f > s.p.fe / 2) D().texte(ctx, "Attention, repliement de spectre : fe < 2f, le signal semble avoir une fréquence de " + LS.nombre(fa, 1) + " Hz", W / 2, H - 14, c.alerte, 13, "center", true);
       },
       mesures(s) {
         const N = Math.pow(2, s.p.n);

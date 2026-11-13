@@ -3,7 +3,7 @@ LS.ajouterCarte({
   titre: "Le modèle OSI",
   intro: "Reprise de ta carte XMind « OSI ». Le modèle **OSI** découpe une communication réseau en **7 couches** ; chacune rend un service à celle du dessus et dialogue avec la couche de même niveau chez le correspondant. Les « ??? » de ta carte (flags, checksum) sont complétés ici.",
   racine: { t: "OSI", c: [
-    { t: "Encapsulation", d: "À l'émission, chaque couche ajoute son **en-tête** (et parfois une fin) aux données de la couche supérieure ; à la réception, chaque couche lit et retire le sien. Les noms des unités changent : données → segment → paquet → trame → bits.", tp: "tel-05-encapsulation" },
+    { t: "Encapsulation", d: "À l'émission, chaque couche ajoute son **en-tête** (et parfois une fin) aux données de la couche supérieure ; à la réception, chaque couche lit et retire le sien. Les noms des unités changent : données, segment, paquet, trame, puis bits.", tp: "tel-05-encapsulation" },
     { t: "Application", d: "Couche 7 : les protocoles utilisés directement par les programmes : HTTP/HTTPS (web), DNS (noms de domaine), SMTP/IMAP (courriel), FTP, MQTT (objets connectés)." },
     { t: "Présentation", d: "Couche 6 : représentation commune des données : encodage des caractères (UTF-8), formats (JSON, JPEG), compression, chiffrement (TLS)." },
     { t: "Session", d: "Couche 5 : ouverture, maintien, synchronisation et fermeture du dialogue entre deux applications (reprise d'un transfert interrompu)." },

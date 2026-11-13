@@ -172,8 +172,8 @@
         D().texte(ctx, "secondaire : " + s.p.N2 + " spires", cx + 110, cy + 112, "#1565c0", 12, "center", true);
         D().texte(ctx, "U1 = " + s.p.U1 + " V", cx - 190, cy, c.texte, 14, "center", true);
         D().texte(ctx, "U2 = " + LS.nombre(k.U2, 1) + " V", cx + 200, cy, c.texte, 14, "center", true);
-        if (s.p.continu && k.grille) D().texte(ctx, "⚠ En continu : pas de variation de flux, donc rien au secondaire ; au primaire, seule la résistance du fil limite le courant : il brûle !", W / 2, H - 14, c.alerte, 12, "center", true);
-        else if (k.sature) D().texte(ctx, "⚠ Trop de volts par spire : le fer sature, le courant à vide explose" + (k.grille ? " et le primaire brûle !" : "."), W / 2, H - 14, c.alerte, 12, "center", true);
+        if (s.p.continu && k.grille) D().texte(ctx, "Attention, en continu : pas de variation de flux, donc rien au secondaire ; au primaire, seule la résistance du fil limite le courant : il brûle !", W / 2, H - 14, c.alerte, 12, "center", true);
+        else if (k.sature) D().texte(ctx, "Attention, trop de volts par spire : le fer sature, le courant à vide explose" + (k.grille ? " et le primaire brûle !" : "."), W / 2, H - 14, c.alerte, 12, "center", true);
       },
       mesures(s) {
         const k = this.calc(s);
@@ -271,7 +271,7 @@
           ["Couple de démarrage / maximal", LS.nombre(k.Cd, 0) + " / " + LS.nombre(k.Cmax, 0) + " N·m"], ["Puissance utile", LS.nombre(s.p.Cr * k.n * 2 * Math.PI / 60, 0) + " W"]];
       },
       explication(s) {
-        return "Trois bobines alimentées par des courants **décalés de 120°** créent un **champ magnétique tournant** à la vitesse de synchronisme **ns = 60·f / p**. Il induit des courants dans les barres du rotor (cage d'écureuil), qui est entraîné… sans jamais l'atteindre : s'il tournait aussi vite, plus rien ne serait induit. L'écart relatif est le **glissement** g = (ns − n) / ns, quelques %. Un **variateur** change f pour régler la vitesse.\n\nAu démarrage, le moteur ne fournit que le **couple de démarrage** (environ 70 % du couple maximal ici) : une charge plus lourde l'empêche de démarrer, alors qu'il la supporte une fois lancé. Le courant de démarrage vaut 5 à 8 fois le courant nominal (non simulé)." + (this.calc(s).cale ? (s.p.Cr >= this.calc(s).Cmax ? "\n\n⚠ La charge dépasse le couple maximal : le moteur **décroche** et cale." : "\n\n⚠ Moteur à l'arrêt : la charge dépasse le **couple de démarrage**, il ne peut pas démarrer. Allège la charge.") : "");
+        return "Trois bobines alimentées par des courants **décalés de 120°** créent un **champ magnétique tournant** à la vitesse de synchronisme **ns = 60·f / p**. Il induit des courants dans les barres du rotor (cage d'écureuil), qui est entraîné… sans jamais l'atteindre : s'il tournait aussi vite, plus rien ne serait induit. L'écart relatif est le **glissement** g = (ns − n) / ns, quelques %. Un **variateur** change f pour régler la vitesse.\n\nAu démarrage, le moteur ne fournit que le **couple de démarrage** (environ 70 % du couple maximal ici) : une charge plus lourde l'empêche de démarrer, alors qu'il la supporte une fois lancé. Le courant de démarrage vaut 5 à 8 fois le courant nominal (non simulé)." + (this.calc(s).cale ? (s.p.Cr >= this.calc(s).Cmax ? "\n\nAttention, la charge dépasse le couple maximal : le moteur **décroche** et cale." : "\n\nAttention, moteur à l'arrêt : la charge dépasse le **couple de démarrage**, il ne peut pas démarrer. Allège la charge.") : "");
       }
     }, cfg);
   };

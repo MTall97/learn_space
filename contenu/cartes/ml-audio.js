@@ -4,7 +4,7 @@ LS.ajouterCarte({
   intro: "L'apprentissage automatique (machine learning) consiste à faire **apprendre** une tâche à un modèle à partir d'exemples, plutôt qu'à la programmer règle par règle. Cette carte va des notions générales jusqu'à la parole : représentation du son, reconnaissance, traduction, et surtout **évaluation honnête**.",
   racine: { t: "Machine learning", c: [
     { t: "Notions générales", c: [
-      { t: "Apprentissage supervisé", d: "On apprend à partir d'exemples **annotés** (entrée → sortie attendue) : audio → transcription, image → étiquette.", tp: "ia-01-neurone" },
+      { t: "Apprentissage supervisé", d: "On apprend à partir d'exemples **annotés** (une entrée et la sortie attendue) : un audio et sa transcription, une image et son étiquette.", tp: "ia-01-neurone" },
       { t: "Apprentissage non supervisé", d: "On cherche des structures sans étiquettes : regroupement (clustering), réduction de dimension." },
       { t: "Auto-supervisé", d: "Le modèle apprend sur des données brutes en devinant des parties masquées (wav2vec 2.0, HuBERT pour la parole) ; on l'affine ensuite sur peu de données annotées. Clé pour les langues peu dotées." },
       { t: "Entraînement, validation, test", d: "Trois ensembles séparés : **entraînement** (apprendre), **validation** (régler les choix), **test** (mesurer une seule fois à la fin). Le test ne doit jamais influencer les choix, sinon la mesure est faussée." },
@@ -29,8 +29,8 @@ LS.ajouterCarte({
       { t: "Compromis temps-fréquence", d: "Une fenêtre d'analyse longue sépare bien les fréquences mais brouille les instants ; une fenêtre courte fait l'inverse. Résolution en fréquence ≈ fe / N, durée de la fenêtre = N / fe.", ex: "16 kHz, 512 échantillons : 31 Hz et 32 ms.", tp: "ia-03-spectrogramme" },
       { t: "Formants", d: "Fréquences renforcées par la forme du conduit vocal (gorge, bouche, lèvres). Les deux premiers (F1, F2) suffisent presque à reconnaître une voyelle, quelle que soit la note de la voix.", ex: "« i » : F1 ≈ 270 Hz, F2 ≈ 2 300 Hz ; « a » : 730 et 1 090 Hz ; « ou » : 300 et 870 Hz (voix d'homme).", tp: "ia-03-spectrogramme" },
       { t: "Détection d'activité vocale", d: "VAD : repérer les passages où quelqu'un parle, pour découper l'audio en segments et ignorer silences et musique." },
-      { t: "Reconnaissance de la parole", d: "ASR : audio → texte dans la même langue. Mesurée par le **taux d'erreur sur les mots** (WER)." },
-      { t: "Traduction de la parole", d: "Audio d'une langue → texte (ou parole) dans une autre. **En cascade** : reconnaissance puis traduction de texte (les erreurs s'additionnent). **Directe** (bout en bout) : un seul modèle, utile quand la langue source s'écrit peu ou mal." }
+      { t: "Reconnaissance de la parole", d: "ASR : de l'audio vers du texte dans la même langue. Mesurée par le **taux d'erreur sur les mots** (WER)." },
+      { t: "Traduction de la parole", d: "De l'audio d'une langue vers du texte (ou de la parole) dans une autre. **En cascade** : reconnaissance puis traduction de texte (les erreurs s'additionnent). **Directe** (bout en bout) : un seul modèle, utile quand la langue source s'écrit peu ou mal." }
     ] },
     { t: "Évaluation", c: [
       { t: "WER et CER", d: "Taux d'erreur sur les mots (ou caractères) : (substitutions + suppressions + insertions) / nombre de mots de référence. Plus bas = mieux. Peut dépasser 100 % (insertions).", f: "WER = (S + D + I) / N", tp: "ia-04-evaluation" },

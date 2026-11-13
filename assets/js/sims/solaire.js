@@ -318,7 +318,7 @@
         D().graphe(ctx, gx, gy2, gw, gh, { c, xlim: [0, xmax], ylim: [0, 360], titre: "Puissance selon la tension", xlab: xmax + " V", ylab: "360 W",
           series: [{ pts: k.ref.pts.map(([v, i]) => [v, v * i]), coul: c.bordure, ep: 1 }, { pts: k.iv.pts.map(([v, i]) => [v, v * i]), coul: c.accent, ep: 2.5 }],
           points: [{ x: k.iv.Vmp, y: k.iv.Pmp, coul: c.ok }, { x: k.op.V, y: k.op.P, coul: c.accentFort, r: 6 }] });
-        D().texte(ctx, st ? "orange : fonctionnement · vert : maximum (MPP)" : "● orange : point de fonctionnement · ● vert : puissance maximale (MPP)", gx, gy2 + gh + 16, c.doux, 11, "left");
+        D().texte(ctx, st ? "gros point : fonctionnement · vert : maximum (MPP)" : "gros point : point de fonctionnement · point vert : puissance maximale (MPP)", gx, gy2 + gh + 16, c.doux, 11, "left");
         D().texte(ctx, st ? "trait fin : V = R·I · gris : conditions standard" : "trait fin : droite de charge V = R·I · gris : conditions standard", gx, gy2 + gh + 30, c.doux, 11, "left");
         void g1;
       },
@@ -335,8 +335,8 @@
         let t = "Un panneau est une **source de courant** commandée par la lumière (Isc ∝ ensoleillement) tant que la tension reste basse, puis une **source de tension** (≈ Voc) quand le courant s'annule. Entre les deux, un seul point donne la puissance maximale : le **MPP** (≈ 80 % de Voc). La charge impose le point de fonctionnement : intersection de la courbe et de la droite V = R·I.\n\nLa chaleur fait **baisser la tension** (≈ −0,3 %/°C) donc la puissance ; un ciel voilé fait baisser surtout le **courant**.";
         if (s.p.ombre >= 30) t += s.p.bypass
           ? "\n\nAvec l'ombre, la **diode bypass** court-circuite le groupe de 20 cellules concerné : la courbe fait une **marche** et le panneau perd environ un tiers de sa tension au lieu de tout son courant."
-          : "\n\n⚠ **Sans diode bypass**, la cellule ombragée limite le courant de tout le panneau, ou se met en **inverse** et chauffe (**point chaud**) : elle peut brûler le panneau.";
-        if (k.op.Pcellule > 15) t += "\n\n⚠ La cellule ombragée dissipe **" + LS.nombre(k.op.Pcellule, 0) + " W** sur quelques cm² : point chaud.";
+          : "\n\nAttention, **sans diode bypass**, la cellule ombragée limite le courant de tout le panneau, ou se met en **inverse** et chauffe (**point chaud**) : elle peut brûler le panneau.";
+        if (k.op.Pcellule > 15) t += "\n\nAttention, la cellule ombragée dissipe **" + LS.nombre(k.op.Pcellule, 0) + " W** sur quelques cm² : point chaud.";
         return t;
       }
     }, cfg);
@@ -429,7 +429,7 @@
           ? "Une batterie **plomb** voit sa tension baisser régulièrement quand elle se vide (12,7 V pleine, 12,2 V à 50 % au repos) : la tension renseigne sur la charge. Elle donne **moins d'Ah si on la décharge vite** (loi de Peukert) et s'abîme si on la vide souvent sous 50 % (sulfatation)."
           : "Une batterie **LiFePO4** garde une tension presque **plate** (≈ 13,2 V) de 90 % à 15 % : la tension ne dit presque rien de la charge, il faut compter les Ah (BMS, shunt). Elle accepte des décharges profondes (80 %), des milliers de cycles, et son **BMS** la coupe si une cellule sort de ses limites.";
         if (s.p.mode === "charge") t += "\n\nLe chargeur pousse d'abord un **courant constant** (CC), puis, quand la tension atteint " + LS.nombre(LS.BATTERIES[s.p.chimie].vAbs, 1) + " V, il tient cette **tension constante** (CV) : le courant diminue tout seul." + (pb ? " En plomb, cette fin de charge (absorption) dure des heures, puis le chargeur passe en **floating**." : " En lithium, la fin de charge est courte et on arrête au lieu d'entretenir.");
-        if (e.coupure) t += "\n\n⚠ " + (e.motif ? "Le **BMS** a coupé : " + e.motif.replace("BMS : ", "") + "." : pb ? "Tension minimale atteinte : continuer abîmerait la batterie." : "Le **BMS** a coupé la sortie pour protéger les cellules.");
+        if (e.coupure) t += "\n\nAttention, " + (e.motif ? "Le **BMS** a coupé : " + e.motif.replace("BMS : ", "") + "." : pb ? "Tension minimale atteinte : continuer abîmerait la batterie." : "Le **BMS** a coupé la sortie pour protéger les cellules.");
         t += pb ? "\n\nLe plomb n'a **pas de BMS** : rien ne l'empêche d'être chargé trop fort (au-delà de 0,2-0,3 C il chauffe et dégaze) ou usé par la chaleur (durée de vie divisée par 2 tous les 10 °C au-dessus de 25 °C)."
           : "\n\nLe BMS limite le courant à environ **1 C** (charge conseillée ≤ 0,5 C) et **bloque la charge sous 0 °C**.";
         return t;
@@ -466,7 +466,7 @@
         D().graphe(ctx, 16, 30, gw, gh, { c, xlim: [0, xmax], ylim: [0, ymax], titre: "Courbe I-V du panneau et point imposé par le régulateur", xlab: LS.nombre(xmax, 0) + " V", ylab: LS.nombre(ymax, 1) + " A",
           series: [{ pts: iv.pts, coul: c.info, ep: 2.5 }, { pts: [[s.p.Vbat + 0.3, 0], [s.p.Vbat + 0.3, ymax]], coul: c.doux, ep: 1 }],
           points: [{ x: iv.Vmp, y: iv.Imp, coul: c.ok }, { x: r.Vpanneau, y: r.Ipanneau, coul: c.accentFort, r: 6 }] });
-        D().texte(ctx, "trait gris : tension batterie · ● MPP · ● point de fonctionnement", 16, 30 + gh + 14, c.doux, 11, "left");
+        D().texte(ctx, "trait gris : tension batterie · point vert : MPP · gros point : point de fonctionnement", 16, 30 + gh + 14, c.doux, 11, "left");
         // Énergie sur une journée claire
         const bx = st ? 16 : 16 + gw + 30, by = st ? 30 + gh + 50 : 50, bw = W - bx - 16, pasB = st ? 42 : 50;
         const Em = Math.max(1, k.jour.Edispo);
@@ -490,9 +490,9 @@
         let t = s.p.type === "pwm"
           ? "Un régulateur **PWM** n'est qu'un interrupteur rapide : quand il est fermé, le panneau est **collé à la tension de la batterie**. Il ne travaille donc pas à son MPP : la puissance perdue est la différence de tension. Il convient à un panneau « 12 V » de 36 cellules (Vmp ≈ 17-18 V)."
           : "Un régulateur **MPPT** est un convertisseur : il cherche en permanence le **point de puissance maximale** du panneau, puis abaisse la tension en augmentant le courant (P = U·I conservée, ≈ 96 % de rendement). Il permet des panneaux de 60 cellules ou en série, à tension élevée.";
-        if (s.p.type === "pwm" && s.p.module === "m60") t += "\n\n⚠ Panneau 60 cellules sur un PWM : le panneau est tiré à ≈ 13 V au lieu de ≈ 31 V, **plus de la moitié de la puissance est perdue**.";
-        if (s.p.type === "mppt" && k.froid > 100) t += "\n\n⚠ Par un matin froid, la tension à vide de la chaîne (" + LS.nombre(k.froid, 0) + " V) dépasse les **100 V** admis : le régulateur serait détruit. On calcule toujours la Voc à la température minimale du site.";
-        if (s.p.type === "pwm" && k.froid > LS.VMAX_PWM) t += "\n\n⚠ La tension à vide de la chaîne par matin froid (" + LS.nombre(k.froid, 0) + " V) dépasse les **" + LS.VMAX_PWM + " V** qu'accepte un régulateur PWM 12/24 V courant : il serait détruit, et la batterie avec lui. Un PWM se branche sur un seul panneau « 12 V » (ou deux en série pour une batterie 24 V).";
+        if (s.p.type === "pwm" && s.p.module === "m60") t += "\n\nAttention, panneau 60 cellules sur un PWM : le panneau est tiré à ≈ 13 V au lieu de ≈ 31 V, **plus de la moitié de la puissance est perdue**.";
+        if (s.p.type === "mppt" && k.froid > 100) t += "\n\nAttention, par un matin froid, la tension à vide de la chaîne (" + LS.nombre(k.froid, 0) + " V) dépasse les **100 V** admis : le régulateur serait détruit. On calcule toujours la Voc à la température minimale du site.";
+        if (s.p.type === "pwm" && k.froid > LS.VMAX_PWM) t += "\n\nAttention, la tension à vide de la chaîne par matin froid (" + LS.nombre(k.froid, 0) + " V) dépasse les **" + LS.VMAX_PWM + " V** qu'accepte un régulateur PWM 12/24 V courant : il serait détruit, et la batterie avec lui. Un PWM se branche sur un seul panneau « 12 V » (ou deux en série pour une batterie 24 V).";
         if (s.p.type === "mppt" && r.limite) t += "\n\nLe régulateur plafonne à 30 A : le surplus est perdu.";
         return t;
       }
@@ -558,7 +558,7 @@
         t += "\n\nRègle rapide : Wc ≈ conso (Wh/j) ÷ (irradiation × 0,75) ; capacité (Ah) ≈ conso × jours d'autonomie ÷ (tension × profondeur de décharge).";
         t += "\n\nIci : il faudrait ≈ **" + LS.nombre(r.consoJour / (r.H * r.pr), 0) + " Wc** et ≈ **" + LS.nombre(r.consoJour * 3 / (s.p.tension * LS.BATTERIES[s.p.chimie].dodConseil), 0) + " Ah** en " + s.p.tension + " V pour 3 jours d'autonomie.";
         if (s.p.capacite * s.p.tension > 3000 && s.p.tension === 12) t += "\n\nAu-delà de 2-3 kWh, on passe le parc en **24 V ou 48 V** : à puissance égale, le courant et la section des câbles sont divisés.";
-        if (r.limD.niveau !== "ok" || r.limC.niveau !== "ok") t += "\n\n⚠ Courant trop fort pour la batterie : " + [r.limD.msg, r.limC.msg].filter(Boolean).join(" ; ") + ". Augmente la capacité ou la tension du parc. (Le bilan ci-dessus n'en tient pas compte.)";
+        if (r.limD.niveau !== "ok" || r.limC.niveau !== "ok") t += "\n\nAttention, courant trop fort pour la batterie : " + [r.limD.msg, r.limC.msg].filter(Boolean).join(" ; ") + ". Augmente la capacité ou la tension du parc. (Le bilan ci-dessus n'en tient pas compte.)";
         if (r.fT < 1) t += "\n\nÀ " + LS.nombre(r.Tbat, 0) + " °C de moyenne, la durée de vie de la batterie est multipliée par " + LS.nombre(r.fT, 2) + (s.p.chimie === "plomb" ? " (plomb : divisée par 2 tous les 10 °C au-dessus de 25 °C). Une batterie au frais, ventilée, dure plus longtemps." : " (effet plus faible que pour le plomb, ordre de grandeur).");
         t += "\n\n_Prix d'ordre de grandeur (Afrique de l'Ouest, 2025), à vérifier chez un fournisseur._";
         return t;

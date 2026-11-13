@@ -9,25 +9,25 @@
   const POINTS = { notion: 10, objectif: 25, question: 10, tp: 50, carte: 50 };
   const OBJECTIF_JOUR = 60;
 
-  /* Domaines : marquage façon composant, teinte (degrés HSL) et brevet obtenu en terminant le domaine. */
+  /* Domaines : brevet obtenu en terminant le domaine. */
   const DOMAINES = {
-    maths: { code: "∑", h: 262, brevet: "Calculateur" },
-    electricite: { code: "Ω", h: 28, brevet: "Électricien" },
-    electronique: { code: "Si", h: 200, brevet: "Électronicien" },
-    numerique: { code: "01", h: 150, brevet: "Logicien" },
-    solaire: { code: "PV", h: 45, brevet: "Installateur solaire" },
-    batiment: { code: "220", h: 8, brevet: "Électricien du bâtiment" },
-    electromecanique: { code: "M~", h: 330, brevet: "Électromécanicien" },
-    telecom: { code: "dB", h: 190, brevet: "Télécommunicant" },
-    moteurs: { code: "4T", h: 15, brevet: "Motoriste" },
-    transmissions: { code: "i", h: 95, brevet: "Mécanicien transmission" },
-    esp32: { code: "IO", h: 175, brevet: "Développeur embarqué" },
-    capteurs: { code: "°C", h: 120, brevet: "Métrologue" },
-    drones: { code: "4×", h: 215, brevet: "Télépilote" },
-    python: { code: "py", h: 52, brevet: "Pythoniste" },
-    "ml-audio": { code: "Hz", h: 290, brevet: "Ingénieur ML" },
-    finance: { code: "FX", h: 140, brevet: "Analyste" },
-    git: { code: "git", h: 12, brevet: "Versionneur" }
+    maths: { brevet: "Calculateur" },
+    electricite: { brevet: "Électricien" },
+    electronique: { brevet: "Électronicien" },
+    numerique: { brevet: "Logicien" },
+    solaire: { brevet: "Installateur solaire" },
+    batiment: { brevet: "Électricien du bâtiment" },
+    electromecanique: { brevet: "Électromécanicien" },
+    telecom: { brevet: "Télécommunicant" },
+    moteurs: { brevet: "Motoriste" },
+    transmissions: { brevet: "Mécanicien transmission" },
+    esp32: { brevet: "Développeur embarqué" },
+    capteurs: { brevet: "Métrologue" },
+    drones: { brevet: "Télépilote" },
+    python: { brevet: "Pythoniste" },
+    "ml-audio": { brevet: "Ingénieur ML" },
+    finance: { brevet: "Analyste" },
+    git: { brevet: "Versionneur" }
   };
   const TITRES = [[1, "Apprenti"], [3, "Bricoleur averti"], [5, "Câbleur"], [8, "Technicien"], [12, "Technicien confirmé"], [16, "Ingénieur"], [20, "Expert"]];
 
@@ -125,19 +125,19 @@
     (LS.parcours || []).forEach(d => d.etapes.forEach(e => { if (e.type === "tp" && tps[e.id] && Object.keys(tps[e.id].objectifs || {}).length) domainesPratiques.add(d.id); }));
     const cartesFinies = Object.keys(g).filter(k => k.startsWith("carte:")).length;
     const liste = [
-      { id: "premier", code: "1", nom: "Premier contact", desc: "Atteindre un premier objectif de TP.", ok: Object.keys(g).some(k => k.startsWith("o:")) },
-      { id: "serie3", code: "3j", nom: "Régulier", desc: "3 jours d'affilée.", ok: s >= 3 },
-      { id: "serie7", code: "7j", nom: "Assidu", desc: "7 jours d'affilée.", ok: s >= 7 },
-      { id: "serie30", code: "30j", nom: "Endurant", desc: "30 jours d'affilée.", ok: s >= 30 },
-      { id: "sansfaute", code: "10/10", nom: "Sans faute", desc: "10 questions réussies du premier coup.", ok: premierCoup >= 10 },
-      { id: "cartographe", code: "3×", nom: "Cartographe", desc: "Terminer 3 cartes mentales.", ok: cartesFinies >= 3 },
-      { id: "polyvalent", code: "5D", nom: "Polyvalent", desc: "Réussir un objectif dans 5 domaines différents.", ok: domainesPratiques.size >= 5 },
-      { id: "niv5", code: "R5", nom: "Câbleur", desc: "Atteindre le rang 5.", ok: niv >= 5 },
-      { id: "niv10", code: "R10", nom: "Technicien", desc: "Atteindre le rang 10.", ok: niv >= 10 }
+      { id: "premier", nom: "Premier contact", desc: "Atteindre un premier objectif de TP.", ok: Object.keys(g).some(k => k.startsWith("o:")) },
+      { id: "serie3", nom: "Régulier", desc: "3 jours d'affilée.", ok: s >= 3 },
+      { id: "serie7", nom: "Assidu", desc: "7 jours d'affilée.", ok: s >= 7 },
+      { id: "serie30", nom: "Endurant", desc: "30 jours d'affilée.", ok: s >= 30 },
+      { id: "sansfaute", nom: "Sans faute", desc: "10 questions réussies du premier coup.", ok: premierCoup >= 10 },
+      { id: "cartographe", nom: "Cartographe", desc: "Terminer 3 cartes mentales.", ok: cartesFinies >= 3 },
+      { id: "polyvalent", nom: "Polyvalent", desc: "Réussir un objectif dans 5 domaines différents.", ok: domainesPratiques.size >= 5 },
+      { id: "niv5", nom: "Câbleur", desc: "Atteindre le rang 5.", ok: niv >= 5 },
+      { id: "niv10", nom: "Technicien", desc: "Atteindre le rang 10.", ok: niv >= 10 }
     ];
     (LS.parcours || []).forEach(d => {
-      const info = DOMAINES[d.id] || { code: "?", brevet: d.titre };
-      liste.push({ id: "dom-" + d.id, code: info.code, h: info.h, nom: info.brevet, desc: "Terminer toutes les étapes : " + d.titre + ".", ok: avancement ? (avancement[d.id] || 0) >= 0.999 : false, domaine: true });
+      const info = DOMAINES[d.id] || { brevet: d.titre };
+      liste.push({ id: "dom-" + d.id, nom: info.brevet, desc: "Terminer toutes les étapes : " + d.titre + ".", ok: avancement ? (avancement[d.id] || 0) >= 0.999 : false, domaine: true });
     });
     return liste;
   }

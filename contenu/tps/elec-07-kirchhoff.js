@@ -43,7 +43,7 @@ LS.ajouterTP({
       verif: s => { const r1 = s.trouver("R1"), r3 = s.trouver("R3"); const v = s.liste("voltmetre"); const sur = r => v.some(x => (s.memeNet(x, 0, r, 0) && s.memeNet(x, 1, r, 1)) || (s.memeNet(x, 0, r, 1) && s.memeNet(x, 1, r, 0))); return sur(r1) && sur(r3); } }
   ],
   questions: [
-    { q: "Avec E1 = 9 V et E2 = 6 V, quel est le potentiel du nœud N ?", choix: ["4,5 V", "5 V", "7,5 V"], bonne: 1, explication: "Loi des nœuds : (9 − V)/1k = V/1k + (V − 6)/1k → 15 = 3V → V = 5 V." },
+    { q: "Avec E1 = 9 V et E2 = 6 V, quel est le potentiel du nœud N ?", choix: ["4,5 V", "5 V", "7,5 V"], bonne: 1, explication: "Loi des nœuds : (9 − V)/1k = V/1k + (V − 6)/1k, donc 15 = 3V et V = 5 V." },
     { q: "Un ampèremètre affiche −1 mA. Cela veut dire :", choix: ["Il est en panne", "Le courant circule dans le sens inverse de celui supposé", "Le courant est presque nul"], bonne: 1 }
   ],
   notions: [["elec-bases", "Loi des nœuds"], ["elec-bases", "Loi des mailles"], ["elec-bases", "Générateur"], ["elec-bases", "Potentiel"]]

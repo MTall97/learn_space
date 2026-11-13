@@ -544,6 +544,46 @@ puis, en voyant les captures : « raccourcis l'accueil au téléphone et pousse 
 L'interface a été poussée à la demande de l'utilisateur, sans attendre l'avis du juge et donc sans son
 approbation. L'avis rendu ensuite (13/11) est dans `AVIS_DU_JUGE.md`.
 
+## 13/11/2026 : corrections de l'interface après l'avis du juge
+
+Fait par l'auteur de l'interface :
+- **Brevets** : les brevets obtenus sont des tampons, les autres une liste simple « À gagner ». Les
+  libellés ne se chevauchent plus.
+- **Niveau** : la puce ouvre le choix du niveau sur l'accueil. Tant que l'élève n'a pas de profil, elle
+  affiche « Mon niveau ? ».
+- **Contrastes** : tous les cas cités atteignent au moins 4,5:1. Il y a un nouveau jeton
+  `--argile-texte`, le bouton passe à #a44c23 en sombre, les ateliers « pour plus tard » ne sont plus
+  rendus transparents, et « Tout effacer » passe à #b3261e.
+- **Marge** : elle est retirée des onglets « Notions » et « Aller plus loin ».
+- **Ton** : plus de compteurs rouges ni de zéros. Un nouvel élève voit une phrase d'accueil, plus aucun
+  « 0 sur N » n'apparaît, et au primaire on n'affiche jamais de total.
+- **Moins générique** :
+  - accueil « Aujourd'hui : … » ;
+  - en-tête de TP « TP n : … », suivi d'une phrase ;
+  - journée écrite en deux lignes ;
+  - niveaux présentés comme une liste de cahier.
+- **Mineurs** :
+  - symboles ⚠, ⚡, ✓, ✗ et ● remplacés dans les simulations et le contenu, avec un test étendu à ces
+    dossiers ;
+  - flèches de liaison remplacées par des mots ;
+  - numérotation des ateliers sans trous ;
+  - focus et lien « Aller au contenu » ;
+  - cibles de 44 px ;
+  - points gagnés affichés dans la barre d'objectif ;
+  - petit test indiquant « question n sur 8 » ;
+  - code mort de `jeu.js` retiré ;
+  - nouveaux pictogrammes ;
+  - `esp-01-blink` ne valide plus l'objectif 1 dès l'ouverture ;
+  - définition de « Grandeurs » ajoutée.
+- **Écarté** :
+  - aligner les lignes du cahier sur l'accueil et les TP, trop fragile ;
+  - une case à cocher de 44 px, puisque la ligne cliquable fait déjà 44 px.
+- **Vérifié** :
+  - 133 tests réussis ;
+  - scripts du juge relancés : 178 textes sous le seuil de contraste avant, 0 après ; cibles de moins de
+    44 px passées de 374 à 75, sur deux éléments.
+- **Non vérifié** : de vrais appareils, un vrai lecteur d'écran, et une nouvelle relecture par le juge.
+
 ---
 
 ## Reste à faire et à décider

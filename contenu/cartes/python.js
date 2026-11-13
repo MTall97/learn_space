@@ -5,7 +5,7 @@ LS.ajouterCarte({
   racine: { t: "Python", c: [
     { t: "Bases du langage", c: [
       { t: "Variables et types", d: "Une variable est un nom qui désigne une valeur. Types de base : int (entier), float (réel), str (texte), bool (True/False), None.", ex: "prix = 1.0845\npaire = \"EURUSD\"" },
-      { t: "Listes et dictionnaires", d: "**Liste** : suite ordonnée modifiable [1, 2, 3]. **Tuple** : suite non modifiable (1, 2). **Dictionnaire** : associations clé → valeur {\"EURUSD\": 1.08}. **Ensemble** : valeurs uniques {1, 2}." },
+      { t: "Listes et dictionnaires", d: "**Liste** : suite ordonnée modifiable [1, 2, 3]. **Tuple** : suite non modifiable (1, 2). **Dictionnaire** : associations clé : valeur {\"EURUSD\": 1.08}. **Ensemble** : valeurs uniques {1, 2}." },
       { t: "Conditions et boucles", d: "if / elif / else pour choisir ; for pour parcourir une séquence ; while pour répéter tant qu'une condition est vraie. L'indentation (4 espaces) délimite les blocs.", ex: "for mois in range(1, 13):\n    if mois == 9:\n        print(\"septembre\")" },
       { t: "Fonctions", d: "Bloc de code nommé et réutilisable, avec paramètres et valeur de retour (def). Une bonne fonction fait une seule chose et se teste facilement.", ex: "def rendement(debut, fin):\n    return fin / debut - 1" },
       { t: "Modules et paquets", d: "On importe du code avec import. Bibliothèque standard (math, datetime, json, pathlib) ; paquets externes installés avec pip dans un **environnement virtuel** (python -m venv .venv)." },

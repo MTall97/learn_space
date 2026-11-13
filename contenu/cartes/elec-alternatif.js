@@ -5,7 +5,7 @@ LS.ajouterCarte({
   racine: { t: "Courant alternatif", c: [
     { t: "Signal sinusoïdal", d: "Tension ou courant qui varie comme une sinusoïde : u(t) = Û·sin(2π·f·t + φ). C'est la forme produite naturellement par un alternateur qui tourne.", tp: "elec-12-alternatif", c: [
       { t: "Valeur crête", d: "Valeur maximale atteinte, notée Û (ou Umax). L'amplitude crête-à-crête vaut 2·Û.", ex: "Réseau malien 220 V : Û ≈ 311 V (en Europe, 230 V : Û ≈ 325 V)." },
-      { t: "Période", d: "Durée d'un motif complet, notée T, en secondes.", f: "T = 1 / f", ex: "50 Hz → T = 20 ms." },
+      { t: "Période", d: "Durée d'un motif complet, notée T, en secondes.", f: "T = 1 / f", ex: "50 Hz donne T = 20 ms." },
       { t: "Fréquence (alternatif)", d: "Nombre de périodes par seconde, en hertz (Hz). 50 Hz en Europe et en Afrique de l'Ouest, 60 Hz aux États-Unis." },
       { t: "Pulsation", d: "Vitesse angulaire de la sinusoïde, en radians par seconde.", f: "ω = 2π·f" },
       { t: "Déphasage", d: "Décalage dans le temps entre deux sinusoïdes de même fréquence, exprimé en degrés ou en radians (φ). Une bobine retarde le courant sur la tension, un condensateur l'avance." },

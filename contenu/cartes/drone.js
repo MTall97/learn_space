@@ -9,7 +9,7 @@ LS.ajouterCarte({
     ] },
     { t: "Propulsion", c: [
       { t: "Moteur brushless", d: "Moteur sans balais à aimants : très bon rendement, durée de vie élevée. Désigné par la taille du stator (2207 = 22 mm de diamètre, 7 mm de hauteur) et son KV.", tp: "dr-01-propulsion" },
-      { t: "KV", d: "Vitesse à vide par volt (tr/min/V). Grand KV : petites hélices, vitesse ; petit KV : grandes hélices, couple et efficacité.", f: "N_vide ≈ KV × U_batterie", ex: "2 400 KV en 4S (14,8 V) → ≈ 35 500 tr/min à vide.", tp: "dr-01-propulsion" },
+      { t: "KV", d: "Vitesse à vide par volt (tr/min/V). Grand KV : petites hélices, vitesse ; petit KV : grandes hélices, couple et efficacité.", f: "N_vide ≈ KV × U_batterie", ex: "2 400 KV en 4S (14,8 V) donnent ≈ 35 500 tr/min à vide.", tp: "dr-01-propulsion" },
       { t: "Hélice", d: "Désignée par diamètre × pas en pouces (5 × 4,3) et nombre de pales. La poussée croît comme le carré de la vitesse et la puissance comme son cube.", f: "T = Ct·ρ·n²·D⁴ ; P = Cp·ρ·n³·D⁵", tp: "dr-01-propulsion" },
       { t: "ESC", d: "Contrôleur électronique de vitesse : il alimente les trois phases du moteur brushless dans l'ordre, au rythme commandé par le contrôleur de vol (protocoles DShot, PWM). Caractérisé par son courant maximal." },
       { t: "Couple de réaction", d: "Une hélice qui tourne fait tourner le châssis en sens inverse. Les hélices tournent donc deux à deux en sens opposés pour s'annuler ; le lacet joue sur ce déséquilibre.", tp: "dr-03-mixage" }

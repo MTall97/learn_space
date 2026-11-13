@@ -82,7 +82,7 @@
     ctx.fillRect(cx - 3, yCulasse - 40, 6, 40);
     if (!cyc.diesel) {
       const etincelle = p.allumage !== false && Math.abs(th - (360 - p.avance)) < 6;
-      if (etincelle) { ctx.fillStyle = "#fff59d"; ctx.beginPath(); ctx.arc(cx, yCulasse + 3, 7, 0, 2 * Math.PI); ctx.fill(); D().texte(ctx, "⚡", cx + 9, yCulasse + 8, "#ffb300", 16); }
+      if (etincelle) { ctx.fillStyle = "#fff59d"; ctx.beginPath(); ctx.arc(cx, yCulasse + 3, 7, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = "#ffb300"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + 9, yCulasse - 4); ctx.lineTo(cx + 13, yCulasse + 3); ctx.lineTo(cx + 9, yCulasse + 4); ctx.lineTo(cx + 14, yCulasse + 12); ctx.stroke(); }
     } else {
       const inj = th > 360 - p.avance && th < 360 - p.avance + 18 + 20 * (p.charge / 100);
       if (inj) {
@@ -179,7 +179,7 @@
       ],
       boutons: [
         { k: "pas", texte: "+10°", titre: "Avancer de 10° (pense à mettre en pause)", action: s => { s.etat.th = (s.etat.th + 10) % 720; } },
-        { k: "phase", texte: "Temps suivant →", action: s => { s.etat.th = (Math.floor(s.etat.th / 180) + 1) * 180 % 720; } }
+        { k: "phase", texte: "Temps suivant", action: s => { s.etat.th = (Math.floor(s.etat.th / 180) + 1) * 180 % 720; } }
       ],
       init(s) { s.etat.th = 0; s.p.bielle = 140; this.changement(s); },
       changement(s, k) {
@@ -210,7 +210,7 @@
         }
         D().texte(ctx, "Temps " + ph.n + " : " + ph.nom, 12, 16, COUL_PHASE[ph.n - 1], 16, "left", true);
         if (!cyc.allume) D().texte(ctx, cyc.diesel ? "Pas d'auto-inflammation : air pas assez chaud (ε trop faible)" : "Allumage coupé : le moteur est entraîné sans produire de travail", xr + wr / 2, H - 10, c.alerte, 12, "center", true);
-        else if (cyc.cliquetis) D().texte(ctx, "⚠ Cliquetis : le mélange s'enflamme tout seul avant l'étincelle", xr + wr / 2, H - 10, c.alerte, 12, "center", true);
+        else if (cyc.cliquetis) D().texte(ctx, "Attention, cliquetis : le mélange s'enflamme tout seul avant l'étincelle", xr + wr / 2, H - 10, c.alerte, 12, "center", true);
       },
       mesures(s) {
         const cyc = s.etat.cyc, th = Math.round(s.etat.th) % 721;

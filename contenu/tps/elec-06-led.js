@@ -20,7 +20,7 @@ LS.ajouterTP({
       verif: s => s.liste("led").some(l => l.etat && l.etat.grille), bravo: "Le courant n'est limité que par la résistance interne de la pile : bien plus de 30 mA, la LED surchauffe. La résistance série est obligatoire." }
   ],
   questions: [
-    { q: "Avec une pile de 5 V et une LED rouge (1,9 V) à 15 mA, quelle résistance ?", choix: ["≈ 120 Ω", "≈ 210 Ω (220 Ω normalisée)", "≈ 330 Ω"], bonne: 1, explication: "R = (5 − 1,9) / 0,015 ≈ 207 Ω → 220 Ω." },
+    { q: "Avec une pile de 5 V et une LED rouge (1,9 V) à 15 mA, quelle résistance ?", choix: ["≈ 120 Ω", "≈ 210 Ω (220 Ω normalisée)", "≈ 330 Ω"], bonne: 1, explication: "R = (5 − 1,9) / 0,015 ≈ 207 Ω, on prend 220 Ω." },
     { q: "Pourquoi la tension de la LED reste presque constante quand le courant change ?", choix: ["Parce que c'est une diode : au-delà du seuil, son courant monte très vite pour une faible hausse de tension", "Parce que la pile la régule", "Par hasard"], bonne: 0 }
   ],
   notions: [["elec-composants", "LED"], ["elec-composants", "Diode"], ["elec-bases", "Loi d'Ohm"], ["elec-bases", "En série"]]

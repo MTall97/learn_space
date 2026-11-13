@@ -170,9 +170,9 @@
       explication(s) {
         const m = s.etat.m || LS.mesureThermistance(s.p, 0);
         let t = "Une **CTN** (thermistance à coefficient de température négatif) voit sa résistance **baisser** quand elle chauffe : 10 kΩ à 25 °C, environ 680 Ω à 100 °C. Le **diviseur de tension** transforme cette résistance en tension que l'ADC peut lire ; on remonte ensuite à la résistance (R = R_fixe·V/(3,3 − V)), puis à la température. La sensibilité est maximale quand la résistance fixe vaut celle de la CTN au milieu de la plage visée.";
-        if (s.p.conversion === "naive") t += "\n\n⚠ La conversion **naïve** suppose un ADC parfait de 0 à 3,3 V. Celui de l'ESP32 ne l'est pas (zone morte sous 0,075 V, plafond vers 3,1 V, courbure en haut) : plusieurs degrés d'erreur.";
-        if (m.horsPlage) t += "\n\n⚠ La tension sort de la plage de l'ADC : la mesure est impossible. Change la résistance fixe.";
-        if (m.dT > 0.5) t += "\n\n⚠ Le courant chauffe la CTN elle-même (**auto-échauffement**) : elle mesure sa propre chaleur. Résistance fixe plus grande, ou alimentation par une GPIO seulement pendant la mesure.";
+        if (s.p.conversion === "naive") t += "\n\nAttention, la conversion **naïve** suppose un ADC parfait de 0 à 3,3 V. Celui de l'ESP32 ne l'est pas (zone morte sous 0,075 V, plafond vers 3,1 V, courbure en haut) : plusieurs degrés d'erreur.";
+        if (m.horsPlage) t += "\n\nAttention, la tension sort de la plage de l'ADC : la mesure est impossible. Change la résistance fixe.";
+        if (m.dT > 0.5) t += "\n\nAttention, le courant chauffe la CTN elle-même (**auto-échauffement**) : elle mesure sa propre chaleur. Résistance fixe plus grande, ou alimentation par une GPIO seulement pendant la mesure.";
         if (s.p.calcul === "beta" && (s.p.T < 0 || s.p.T > 70)) t += "\n\nLa formule **Beta** n'est exacte qu'autour de 25–50 °C ; loin de là, **Steinhart-Hart** (3 coefficients de la fiche technique) est plus juste.";
         return t;
       }
@@ -285,9 +285,9 @@
       explication(s) {
         const m = s.etat.m;
         let t = "Le HC-SR04 émet une salve de 8 impulsions à **40 kHz** quand on envoie 10 µs sur **TRIG**, puis met **ECHO** à l'état haut jusqu'au retour de l'écho. La distance vaut **d = v·t / 2** (aller-retour). La vitesse du son dépend de la température : **v ≈ 331,3 + 0,606·T** m/s. La formule toute faite « t / 58 » suppose environ 345 m/s, soit l'air vers 23 °C. Portée annoncée 2 cm à 4 m ; faisceau d'environ ± 15° (ordre de grandeur, variable d'un module à l'autre).";
-        if (!s.p.correction && Math.abs(m.c - m.cCalc) > 2) t += "\n\n⚠ Sans correction de température, l'erreur est **proportionnelle à la distance** : environ 1,7 % pour 10 °C d'écart.";
-        if (!m.vu && !m.aveugle) t += "\n\n⚠ " + (m.raison === "l'écho est renvoyé de côté" ? "Une surface lisse et inclinée renvoie le son comme un miroir renvoie la lumière : l'écho part de côté et ne revient pas." : m.raison === "écho trop faible" ? "Les matières molles absorbent les ultrasons, et un petit objet renvoie peu d'énergie : l'écho est trop faible à cette distance." : "L'objet est hors du faisceau : le capteur ne le voit pas.") + (s.p.fond === "mur" ? " Le capteur mesure alors le **mur du fond** : une valeur plausible mais fausse." : "");
-        if (m.aveugle) t += "\n\n⚠ Sous 2 cm, l'émetteur vibre encore quand l'écho revient : la mesure est fausse (**zone aveugle**).";
+        if (!s.p.correction && Math.abs(m.c - m.cCalc) > 2) t += "\n\nAttention, sans correction de température, l'erreur est **proportionnelle à la distance** : environ 1,7 % pour 10 °C d'écart.";
+        if (!m.vu && !m.aveugle) t += "\n\nAttention, " + (m.raison === "l'écho est renvoyé de côté" ? "Une surface lisse et inclinée renvoie le son comme un miroir renvoie la lumière : l'écho part de côté et ne revient pas." : m.raison === "écho trop faible" ? "Les matières molles absorbent les ultrasons, et un petit objet renvoie peu d'énergie : l'écho est trop faible à cette distance." : "L'objet est hors du faisceau : le capteur ne le voit pas.") + (s.p.fond === "mur" ? " Le capteur mesure alors le **mur du fond** : une valeur plausible mais fausse." : "");
+        if (m.aveugle) t += "\n\nAttention, sous 2 cm, l'émetteur vibre encore quand l'écho revient : la mesure est fausse (**zone aveugle**).";
         return t;
       }
     }, cfg);
@@ -394,7 +394,7 @@
       },
       explication(s) {
         let t = "Une centrale inertielle (MPU6050, ICM42688…) contient un **gyroscope**, qui mesure une **vitesse de rotation** (°/s), et un **accéléromètre**, qui mesure l'accélération, dont la pesanteur : à l'arrêt, il donne la direction de la verticale, donc l'inclinaison.\n- Le gyroscope est précis à court terme, mais il faut **intégrer** sa mesure : le moindre **biais** s'accumule, l'angle **dérive** sans fin.\n- L'accéléromètre ne dérive pas, mais il est **bruité** et trompé par les vibrations et les accélérations.\n- Le **filtre complémentaire** prend le meilleur des deux : angle = α·(angle + gyro·dt) + (1 − α)·angle_accéléro. Plus α est proche de 1, plus on fait confiance au gyroscope.";
-        if (s.p.chariot) t += "\n\n⚠ Quand le chariot accélère, l'accéléromètre ne sait pas distinguer cette accélération de la pesanteur : il croit la plateforme inclinée (environ 22° pour 4 m/s²).";
+        if (s.p.chariot) t += "\n\nAttention, quand le chariot accélère, l'accéléromètre ne sait pas distinguer cette accélération de la pesanteur : il croit la plateforme inclinée (environ 22° pour 4 m/s²).";
         return t;
       }
     }, cfg);
@@ -499,7 +499,7 @@
       explication(s) {
         let t = "Une balance électronique mesure la déformation d'une **jauge de contrainte** (pont de Wheatstone) amplifiée et numérisée par un HX711. La lecture brute vaut **décalage + gain × masse + bruit** : il faut l'**étalonner** sur deux points connus (la **tare** à vide, puis une **masse étalon**) pour corriger décalage et gain.\n- La **moyenne glissante** sur N mesures divise le bruit par √N, mais retarde d'environ N/2 mesures.\n- Le **passe-bas exponentiel** (y ← y + a·(x − y)) lisse d'autant plus que a est petit, au prix d'une réponse plus lente.";
         if (s.p.conv === "adc10") t += "\n\nAvec l'ADC 10 bits, un pas vaut environ **2 g** : si le bruit est plus petit qu'un pas, la lecture reste bloquée sur une marche et moyenner n'améliore pas la **résolution**.";
-        if (s.p.derive) t += "\n\n⚠ La **dérive** décale lentement le zéro (température de la jauge) : il faut refaire la tare de temps en temps.";
+        if (s.p.derive) t += "\n\nAttention, la **dérive** décale lentement le zéro (température de la jauge) : il faut refaire la tare de temps en temps.";
         return t;
       }
     }, cfg);

@@ -25,6 +25,7 @@
   --sable: #e6d3b1;
   --ocre: #c8812f;
   --argile: #9b4a26;
+  --argile-texte: #9b4a26;
   /* Page du cahier */
   --papier: #fdfaf2;
   --ligne: #dbe4f1;
@@ -68,7 +69,7 @@
   :root:not([data-theme="light"]) {
     --papier: #1d1914; --ligne: rgba(157, 178, 255, .09); --trait-marge: #8c4640; --encre: #a7baff; --rouge: #ff9384;
     --tampon: #74c896; --surligne: #6b4a1f; --fond: #1d1914; --fond-2: #27211a; --carte: #231e18;
-    --texte: #eee6d6; --texte-doux: #b9ae98; --accent: #e3995a; --accent-fort: #f2b882; --bouton: #b9592c;
+    --texte: #eee6d6; --texte-doux: #b9ae98; --accent: #e3995a; --accent-fort: #f2b882; --bouton: #a44c23; --argile-texte: #f0a072;
     --bouton-texte: #fff6ea; --ombre-bouton: #000; --noeud: #4b3524; --noeud-texte: #f6e6cc; --lien: #a7baff;
     --bordure: #423829; --ok: #74c896; --alerte: #ff9384; --info: #a7baff; --or: #e3a24f; --sur-accent: #fff6ea;
     color-scheme: dark;
@@ -77,7 +78,7 @@
 :root[data-theme="dark"] {
   --papier: #1d1914; --ligne: rgba(157, 178, 255, .09); --trait-marge: #8c4640; --encre: #a7baff; --rouge: #ff9384;
   --tampon: #74c896; --surligne: #6b4a1f; --fond: #1d1914; --fond-2: #27211a; --carte: #231e18;
-  --texte: #eee6d6; --texte-doux: #b9ae98; --accent: #e3995a; --accent-fort: #f2b882; --bouton: #b9592c;
+  --texte: #eee6d6; --texte-doux: #b9ae98; --accent: #e3995a; --accent-fort: #f2b882; --bouton: #a44c23; --argile-texte: #f0a072;
   --bouton-texte: #fff6ea; --ombre-bouton: #000; --noeud: #4b3524; --noeud-texte: #f6e6cc; --lien: #a7baff;
   --bordure: #423829; --ok: #74c896; --alerte: #ff9384; --info: #a7baff; --or: #e3a24f; --sur-accent: #fff6ea;
   color-scheme: dark;
@@ -124,7 +125,7 @@ code, .mono { font-family: var(--mono); font-size: .9em; font-variant-numeric: t
 .onglet.actif { color: var(--creme); border-bottom-color: var(--ocre); }
 .puce-niveau { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 2px solid var(--sable); border-radius: 3px; color: var(--creme); font-weight: 700; font-size: .95rem; text-decoration: none; white-space: nowrap; transform: rotate(-2deg); }
 .puce-niveau:hover { background: var(--terre-2); }
-.puce-joueur { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 4px; color: var(--creme); text-decoration: none; font-family: var(--mono); font-size: .85rem; font-weight: 700; white-space: nowrap; }
+.puce-joueur { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 4px; color: var(--creme); text-decoration: none; font-family: var(--police-titre); font-size: .98rem; font-weight: 700; white-space: nowrap; }
 .puce-barre { width: 46px; height: 6px; background: var(--terre-2); border: 1px solid #6b4a33; overflow: hidden; }
 .puce-barre > span { display: block; height: 100%; background: var(--ocre); transition: width .5s; }
 .puce-serie { color: var(--sable); }
@@ -238,8 +239,8 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
   background: var(--argile); color: var(--creme); padding: 18px 20px 20px; border-left: 12px solid var(--terre);
   border-image: var(--frise-fine) 0 0 0 12 / 0 0 0 12px round; }
 .reprendre h1 { margin: 0; font-size: clamp(1.55rem, 5vw, 2.3rem); line-height: 1.12; color: #fff8ec; }
-.reprendre h1 .quand { display: block; font-size: .55em; font-weight: 600; color: var(--sable); margin-bottom: 2px; }
-.reprendre p { margin: 4px 0 0; color: var(--sable); font-size: 1rem; }
+.reprendre h1 .souligne { text-decoration: underline; text-decoration-color: var(--ocre); text-decoration-thickness: 4px; text-underline-offset: 6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.reprendre p { margin: 6px 0 0; color: var(--creme); font-size: 1.02rem; }
 .reprendre p a { color: var(--creme); }
 .btn-reprendre { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; padding: 10px 26px; background: var(--creme); color: var(--terre);
   font-family: var(--police-titre); font-weight: 800; font-size: 1.25rem; text-decoration: none; border-radius: 4px; box-shadow: 4px 4px 0 var(--terre); transition: transform .06s, box-shadow .06s; white-space: nowrap; }
@@ -251,43 +252,36 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
   .btn-reprendre { justify-self: stretch; }
 }
 
-/* La journée : points du jour, série, rang, mot du professeur */
-.journee { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 34px; margin-top: 22px; }
-.journee > div { display: grid; gap: 4px; min-width: 0; }
-.chiffre { font-family: var(--police-titre); font-weight: 800; font-size: 1.7rem; line-height: 1; color: var(--rouge); }
-.chiffre small { font-family: var(--police); font-size: 1rem; font-weight: 400; color: var(--texte); }
-.journee .legende { font-size: .95rem; color: var(--texte); }
-.journee .legende small { display: block; color: var(--texte-doux); font-size: .88rem; }
-.jauge-jour { display: block; width: 180px; max-width: 100%; height: 10px; background: var(--fond-2); border: 1.5px solid var(--texte); }
-.jauge-jour > i { display: block; height: 100%; background: var(--ocre); width: var(--p, 0%); }
-.semaine { display: inline-grid; grid-template-columns: repeat(7, 16px); gap: 5px; margin-top: 2px; }
-.semaine i { height: 16px; border: 1.5px solid var(--texte-doux); }
-.semaine i.on { background: var(--ocre); border-color: var(--ocre); }
-.semaine i.auj { outline: 2px solid var(--encre); outline-offset: 1px; }
-.mot-prof { flex-basis: 100%; margin: 4px 0 0; font-style: italic; font-size: 1.05rem; color: var(--rouge); }
+/* La journée : une ou deux lignes écrites (pas de compteurs), puis le mot du professeur en rouge */
+.journee { margin-top: 18px; max-width: 70ch; }
+.ligne-journee { margin: 0 0 6px; font-size: 1.05rem; line-height: 1.6; }
+.ligne-journee b { color: var(--encre); font-family: var(--police-titre); font-weight: 800; font-size: 1.12em; }
+.mot-prof { margin: 6px 0 0; font-style: italic; font-size: 1.05rem; color: var(--rouge); }
 
-/* Choix du niveau et petit test : grosses touches sur la page */
+/* Choix du niveau : une liste de cahier ; petit test : une question à la fois */
 .choix-niveau { margin-top: 10px; }
 .choix-niveau h1 { margin: 0 0 4px; }
-.choix-niveau > p { margin: 0 0 10px; color: var(--texte-doux); }
-.touches-niveau { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-.touches-niveau.deux { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; }
-.touche-niveau { display: grid; gap: 2px; align-content: start; text-align: left; padding: 12px 14px; min-height: 64px; border-radius: 4px; cursor: pointer; font: inherit; color: var(--texte);
-  background: var(--papier); border: 2px solid var(--texte); box-shadow: 3px 3px 0 var(--bordure); transition: transform .06s, box-shadow .06s; }
-.touche-niveau strong { font-family: var(--police-titre); font-size: 1.4rem; line-height: 1.1; color: var(--encre); }
-.touche-niveau span { font-size: .95rem; }
-.touche-niveau small { font-size: .88rem; color: var(--texte-doux); }
-.touche-niveau:hover { background: var(--fond-2); }
-.touche-niveau:active { transform: translate(3px, 3px); box-shadow: none; }
-.touche-niveau.actif { border-color: var(--argile); box-shadow: 3px 3px 0 var(--argile); }
-.touche-niveau.actif strong { color: var(--argile); }
-.touche-test { margin-top: 14px; }
-.question-test { font-size: clamp(1.3rem, 4vw, 1.8rem) !important; }
-.reponses-test { display: grid; gap: 10px; margin-top: 10px; max-width: 640px; }
-.reponses-test .touche-niveau { font-size: 1.08rem; min-height: 56px; align-content: center; }
-.test-avance { color: var(--texte-doux); font-size: .95rem; margin: 0; }
-@media (max-width: 860px) { .touches-niveau { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 360px) { .touches-niveau { grid-template-columns: 1fr; } }
+.choix-niveau > p { margin: 0 0 6px; color: var(--texte-doux); }
+.liste-niveaux { list-style: none; margin: 8px 0 0; padding: 0; max-width: 760px; }
+.liste-niveaux li { position: relative; }
+.niveau-ligne { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; width: 100%; min-height: 60px; padding: 10px 6px 10px 0; text-align: left; cursor: pointer;
+  background: none; border: none; border-bottom: 1px solid var(--ligne); font: inherit; color: var(--texte); }
+.niveau-ligne .num { position: absolute; left: calc(-14px - var(--marge)); width: calc(var(--marge) - 8px); text-align: right; font-family: var(--police-titre); font-weight: 700; color: var(--rouge); }
+.niveau-ligne strong { font-family: var(--police-titre); font-size: 1.4rem; line-height: 1.2; color: var(--encre); }
+.niveau-ligne span:last-child { font-size: 1rem; color: var(--texte-doux); }
+.niveau-ligne:hover strong { text-decoration: underline; text-decoration-color: var(--ocre); text-decoration-thickness: 3px; }
+.niveau-ligne.actif strong { background: linear-gradient(transparent 55%, var(--surligne) 55%, var(--surligne) 92%, transparent 92%); }
+.touche-test { margin-top: 16px; }
+.question-test { font-size: clamp(1.3rem, 4vw, 1.8rem) !important; margin: 0 0 6px; }
+.reponses-test { display: grid; gap: 0; margin: 6px 0 14px; max-width: 680px; }
+.reponse-test { display: grid; grid-template-columns: 2em minmax(0, 1fr); align-items: baseline; gap: 6px; min-height: 56px; padding: 12px 6px 12px 0; text-align: left; cursor: pointer;
+  background: none; border: none; border-bottom: 1px solid var(--ligne); font: inherit; font-size: 1.1rem; color: var(--texte); }
+.reponse-test .lettre { font-family: var(--police-titre); font-weight: 800; color: var(--encre); }
+.reponse-test:hover span:last-child { text-decoration: underline; text-decoration-color: var(--ocre); text-decoration-thickness: 3px; }
+.test-avance { color: var(--texte-doux); font-size: .95rem; margin: 0 0 4px; }
+.actions-test { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; margin-top: 16px; }
+/* Pendant le test, le reste de la page est masqué */
+body.en-test #journee, body.en-test main > .section, body.en-test .pied { display: none !important; }
 
 /* Sommaire des ateliers et leçons de l'atelier choisi */
 .sommaire-zone { display: grid; gap: 28px; }
@@ -305,7 +299,8 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 .atelier[aria-pressed="true"] { background: linear-gradient(transparent 0, transparent); box-shadow: inset 5px 0 0 var(--ocre); padding-left: 0; }
 .atelier[aria-pressed="true"] .atelier-nom { background: linear-gradient(transparent 55%, var(--surligne) 55%, var(--surligne) 92%, transparent 92%); }
 .atelier.termine .atelier-nom { color: var(--ok); }
-.atelier.plus-tard { opacity: .62; }
+.atelier.plus-tard .atelier-nom, .atelier.plus-tard .atelier-prog { color: var(--texte-doux); }
+.atelier.plus-tard .picto-atelier { background: var(--fond-2); color: var(--texte-doux); box-shadow: inset 0 0 0 2px var(--bordure); }
 @media (max-width: 760px) { .atelier-texte small { display: none; } .atelier.plus-tard .atelier-texte small { display: -webkit-box; } .atelier { grid-template-columns: 44px minmax(0, 1fr) auto; } .atelier .picto-atelier { width: 44px; height: 44px; } }
 
 .lecons { scroll-margin-top: 90px; }
@@ -320,7 +315,7 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 .lecon.carte .case { border-radius: 50%; }
 .lecon.fait .case { border-color: var(--ok); color: var(--ok); }
 .lecon.fait .case svg { width: 24px; height: 24px; stroke-width: 2.6; }
-.lecon.courant .case { border-color: var(--argile); color: var(--argile); border-width: 3px; }
+.lecon.courant .case { border-color: var(--argile-texte); color: var(--argile-texte); border-width: 3px; }
 .lecon.plus-tard .case { border-style: dashed; border-color: var(--texte-doux); }
 .lecon-texte { display: grid; gap: 3px; min-width: 0; }
 .lecon-lien { font-family: var(--police-titre); font-weight: 700; font-size: 1.15rem; line-height: 1.25; color: var(--encre); text-decoration: none; justify-self: start; padding: 2px 0; }
@@ -330,21 +325,22 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 .ici { flex: none; font-weight: 700; color: var(--texte); background: var(--surligne); padding: 0 6px; }
 .plus-tard-etiquette { font-size: .88rem; font-weight: 700; color: var(--texte-doux); border: 1.5px dashed var(--texte-doux); border-radius: 3px; padding: 0 6px; }
 
-/* Brevets : tampons */
-.tampons { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 22px 16px; }
-@media (max-width: 760px) { .tampons { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 8px; } .tampon { min-width: 0; width: 100%; min-height: 56px; } .brevet small { font-size: .78rem; } .brevet strong { font-size: .92rem; } }
-.brevet { display: grid; justify-items: center; text-align: center; gap: 6px; }
-.tampon { display: inline-grid; justify-items: center; align-content: center; gap: 0; min-width: 104px; min-height: 64px; padding: 6px 10px;
-  border: 2px dashed var(--bordure); border-radius: 4px; color: var(--texte-doux); font-family: var(--police-titre); font-weight: 800; line-height: 1.05; }
-.tampon .code { font-family: var(--mono); font-size: 1.15rem; }
+/* Brevets : un tampon vert par brevet obtenu ; ceux à gagner en liste simple */
+.tampons { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 22px 18px; }
+.brevet { display: grid; justify-items: center; text-align: center; gap: 6px; min-width: 0; }
+.tampon { display: inline-grid; justify-items: center; align-content: center; gap: 2px; max-width: 100%; min-width: 0; min-height: 64px; padding: 6px 12px;
+  border: 3px double var(--tampon); border-radius: 4px; color: var(--tampon); transform: rotate(-4deg); }
+.brevet:nth-child(2n) .tampon { transform: rotate(3deg); }
 .tampon .picto { display: inline-flex; }
-.brevet.obtenu .tampon { border: 3px double var(--tampon); color: var(--tampon); transform: rotate(-4deg); }
-.brevet.obtenu:nth-child(2n) .tampon { transform: rotate(3deg); }
-.brevet strong { font-family: var(--police-titre); font-weight: 700; font-size: 1rem; line-height: 1.2; }
-.brevet small { font-size: .82rem; color: var(--texte-doux); line-height: 1.3; }
-.brevet:not(.obtenu) strong { color: var(--texte-doux); }
-/* Un tampon « Brevet » dans la journée */
-.tampon-mini { display: inline-block; border: 2px solid var(--tampon); color: var(--tampon); font-family: var(--police-titre); font-weight: 800; padding: 0 8px; border-radius: 3px; transform: rotate(-3deg); }
+.tampon strong { font-family: var(--police-titre); font-weight: 800; font-size: 1.05rem; line-height: 1.15; }
+.brevet strong, .brevet small, .brevets-a-venir li { overflow-wrap: anywhere; -webkit-hyphens: auto; hyphens: auto; }
+.brevet small { font-size: .85rem; color: var(--texte-doux); line-height: 1.3; }
+.pas-encore { margin: 0; color: var(--texte); }
+.titre-a-gagner { margin: 20px 0 4px; color: var(--encre); }
+.brevets-a-venir { list-style: none; margin: 0; padding: 0; max-width: 760px; }
+.brevets-a-venir li { padding: 8px 0; border-bottom: 1px solid var(--ligne); color: var(--texte-doux); }
+.brevets-a-venir strong { color: var(--texte); }
+@media (max-width: 760px) { .tampons { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 10px; } .tampon { min-height: 56px; padding: 6px 8px; } .tampon strong { font-size: .95rem; } .brevet small { font-size: .8rem; } }
 
 /* Recherche */
 #recherche { width: 100%; max-width: 560px; padding: 10px 12px; }
@@ -363,14 +359,14 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 #ls-avis .avis { pointer-events: auto; background: var(--papier); color: var(--texte); border: 2px solid var(--texte); border-left: 6px solid var(--ocre); box-shadow: 3px 3px 0 var(--ombre-bouton); padding: 10px 14px; cursor: pointer; }
 
 /* Annonces de gains : une étiquette collée dans le cahier */
-#ls-gains { position: fixed; z-index: 70; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(84px + env(safe-area-inset-top, 0px)); display: grid; gap: 8px; justify-items: end; pointer-events: none; }
+#ls-gains { position: fixed; z-index: 70; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(78px + env(safe-area-inset-top, 0px)); display: grid; gap: 8px; justify-items: end; pointer-events: none; }
 .gain { display: flex; align-items: center; gap: 10px; background: var(--papier); color: var(--texte); border: 2px solid var(--texte); padding: 6px 12px 6px 6px; font-weight: 700; box-shadow: 3px 3px 0 var(--ombre-bouton); }
 .gain-pts { font-family: var(--police-titre); font-weight: 800; background: var(--ocre); color: var(--terre); padding: 1px 8px; }
 .gain.niveau .gain-pts { background: var(--tampon); color: #fff; }
 .gain.anime { animation: gain-entree .35s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes gain-entree { from { transform: translateY(-10px) scale(.92); opacity: 0; } }
 @media (max-width: 760px) {
-  #ls-gains { top: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); left: 50%; right: auto; transform: translateX(-50%); justify-items: center; }
+  #ls-gains { top: calc(78px + env(safe-area-inset-top, 0px)); left: 50%; right: auto; transform: translateX(-50%); justify-items: center; width: max-content; max-width: 92vw; }
 }
 
 /* Application installable (assets/js/pwa.js) : bouton discret, avis de nouvelle version */
@@ -387,15 +383,15 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 .chemin-tp { display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap; }
 .retour-atelier { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; text-decoration: none; color: var(--texte); }
 .retour-atelier:hover span:last-child { text-decoration: underline; }
-.difficulte { display: inline-flex; align-items: center; gap: 4px; font-size: .9rem; font-weight: 700; color: var(--texte-doux); }
-.difficulte span { margin-right: 4px; }
-.difficulte i { width: 10px; height: 14px; border: 1.5px solid var(--texte-doux); }
-.difficulte i.on { background: var(--ocre); border-color: var(--ocre); }
+.chemin-tp { justify-content: space-between; }
+.numero-tp { color: var(--encre); }
+.phrase-tp { margin: 0; font-size: 1.02rem; line-height: 1.7; }
+.phrase-tp .mission-prog { display: inline; }
+.phrase-tp .cases-mission { vertical-align: -3px; margin-left: 6px; }
 .niveau-tp { display: inline-flex; align-items: center; min-height: 32px; text-decoration: none; border-color: var(--texte); color: var(--texte); transform: rotate(-1.5deg); }
-.mission-prog { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .mission-texte { font-weight: 700; }
 .cases-mission { display: inline-flex; gap: 5px; flex-wrap: wrap; }
-.cases-mission i { width: 18px; height: 18px; border: 2px solid var(--texte); }
+.cases-mission i { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--texte); }
 .cases-mission i.on { background: var(--ok); border-color: var(--ok); }
 /* Encart de sécurité : écrit à l'encre rouge, dans la marge du professeur */
 .securite { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: start; margin: 4px 0; max-width: 900px; padding: 10px 14px; border: 2px solid var(--alerte); border-left-width: 6px; background: var(--papier); color: var(--texte); font-size: 1rem; }
@@ -434,12 +430,12 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 .objectif.en-cours .texte { color: var(--texte); }
 .objectif.en-cours .texte > :first-child, .objectif.en-cours .texte { font-weight: 400; }
 .objectif.en-cours { box-shadow: inset 4px 0 0 var(--ocre); }
-.objectif.en-cours .etat { border-color: var(--argile); color: var(--argile); border-width: 3px; }
+.objectif.en-cours .etat { border-color: var(--argile-texte); color: var(--argile-texte); border-width: 3px; }
 .objectif.verrouille .texte { color: var(--texte-doux); }
 .objectif.verrouille .etat { border-style: dashed; color: var(--texte-doux); border-color: var(--texte-doux); }
 .objectif .corps-objectif { min-width: 0; }
 .objectif .indice { font-size: .92rem; color: var(--texte-doux); }
-.objectif details.indice summary { cursor: pointer; display: inline-flex; align-items: center; min-height: 40px; font-weight: 700; color: var(--argile); }
+.objectif details.indice summary { cursor: pointer; display: inline-flex; align-items: center; min-height: 40px; font-weight: 700; color: var(--argile-texte); }
 .objectif .retour { font-size: .95rem; color: var(--texte); }
 .objectif .retour:empty { display: none; }
 .objectif .saisie { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 2px; }
@@ -553,7 +549,7 @@ select:focus-visible, input:focus-visible { outline: 3px solid var(--ocre); outl
 .mesure.alerte .val { color: var(--alerte); }
 .explication-live { padding: 0 12px 12px; }
 .reglages-plus { margin: 0 12px 10px; border-top: 1px dashed var(--bordure); }
-.reglages-plus > summary { cursor: pointer; display: flex; align-items: center; min-height: 44px; color: var(--argile); font-weight: 700; }
+.reglages-plus > summary { cursor: pointer; display: flex; align-items: center; min-height: 44px; color: var(--argile-texte); font-weight: 700; }
 .reglages-plus > .controles { padding: 0 0 6px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .reglages-plus > summary { color: var(--accent); } }
 :root[data-theme="dark"] .reglages-plus > summary { color: var(--accent); }
@@ -664,3 +660,37 @@ body[data-niveau="primaire"] .question .choix button { min-height: 56px; font-si
   .voir-plus { display: inline-flex; }
   .sommaire .atelier-texte small { display: none; }
 }
+
+/* =================== Suites de l'avis du juge du 13/11/2026 =================== */
+/* M3 : lien « Aller au contenu », visible seulement au clavier */
+.aller-contenu { position: absolute; left: 8px; top: -100px; z-index: 100; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; background: var(--creme); color: var(--terre); font-weight: 700; border: 2px solid var(--ocre); }
+.aller-contenu:focus { top: 8px; }
+main:focus, .carte-zone:focus { outline: none; }
+/* M5 : sur la page de TP au téléphone, les points gagnés s'affichent dans la barre d'objectif (en bas),
+   jamais sur la simulation ni sur les réponses du quiz. */
+@media (max-width: 1000px) {
+  body.page-tp #ls-gains { top: auto; bottom: 0; left: 0; right: 0; transform: none; width: auto; max-width: none; justify-items: stretch; gap: 0; z-index: 56; }
+  body.page-tp .gain { min-height: calc(60px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); justify-content: center; border: none; border-top: 3px solid var(--ocre); box-shadow: none; background: var(--terre); color: var(--creme); font-size: 1.05rem; }
+  body.page-tp .gain + .gain { display: none; }
+}
+/* I4 : pas de marge rouge derrière les notions ni « Aller plus loin » (texte sur toute la largeur) */
+#pan-notions, #pan-plus { background-image: none; padding-left: 12px; }
+/* M4 : cibles d'au moins 44 px */
+body .info-journal a { padding: 13px 0; } /* zone de toucher de 44 px sans changer la ligne */
+body .info-journal button.btn { min-height: 44px; }
+.lecon-lien { display: inline-flex; align-items: center; min-height: 44px; }
+.resultats li a { display: inline-flex; align-items: center; min-height: 44px; padding: 0; }
+.controle label:has(input[type="checkbox"]), .sim-barre label:has(input[type="checkbox"]) { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.controle input[type="checkbox"], .sim-barre input[type="checkbox"], .panneau label.compris input { width: 26px; height: 26px; flex: none; }
+.panneau .enfants button { min-height: 44px; }
+.atelier-prog { min-height: 1em; }
+/* M7 : pages de texte (confidentialité, hors ligne) écrites sur les lignes du cahier */
+.page.aligne { padding-top: var(--interligne); background-position: 0 0, 0 -8px; }
+.page.aligne h1 { font-size: 2rem; line-height: calc(2 * var(--interligne)); margin: 0; }
+.page.aligne h2 { font-size: 1.3rem; line-height: var(--interligne); margin: var(--interligne) 0 0; }
+.page.aligne p, .page.aligne li { line-height: var(--interligne); margin: 0 0 var(--interligne); }
+body[data-niveau="primaire"] .page.aligne p { font-size: 1.05rem; }
+.niveau-tp { min-height: 44px; }
+.objectif details.indice summary { min-height: 44px; }
+input[type="range"] { height: 44px; }
+.carte-introuvable a { display: inline-flex; align-items: center; min-height: 44px; }

@@ -20,6 +20,8 @@
   };
   // Niveau en vigueur (pour un atelier si on le donne) ; collège si aucun profil.
   LS.niveau = domaine => { const p = LS.profil(); return (domaine && p.parAtelier && p.parAtelier[domaine]) || p.niveau || DEFAUT; };
+  // Texte de la puce de l'en-tête : « Mon niveau ? » tant qu'aucun niveau n'est choisi.
+  LS.nomPuceNiveau = domaine => { const p = LS.profil(); return p.niveau || (domaine && (p.parAtelier || {})[domaine]) ? LS.infoNiveau(LS.niveau(domaine)).nom : "Mon niveau ?"; };
   LS.infoNiveau = n => (LS.NIVEAUX || []).find(x => x.n === n) || { n, nom: "Niveau " + n };
 
   // Un élément (étape, objectif, question) est-il prévu pour ce niveau ?
@@ -70,7 +72,7 @@
     const page = document.body.dataset.domaine || null;
     const n = LS.niveau(page);
     document.body.dataset.niveau = (LS.infoNiveau(n).id || "") ;
-    document.querySelectorAll(".puce-niveau").forEach(e => { e.textContent = LS.infoNiveau(LS.niveau(page)).nom; });
+    document.querySelectorAll(".puce-niveau").forEach(e => { e.textContent = LS.nomPuceNiveau(page); });
   }
   LS.appliquerNiveau = appliquer;
   if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("DOMContentLoaded", appliquer);

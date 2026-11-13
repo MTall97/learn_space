@@ -28,7 +28,7 @@ LS.ajouterCarte({
     { t: "Caractéristiques", c: [
       { t: "PMH et PMB", d: "Point mort haut et point mort bas : positions extrêmes du piston, où sa vitesse s'annule.", tp: "meca-01-quatre-temps" },
       { t: "Alésage et course", d: "Alésage : diamètre du cylindre. Course : distance parcourue par le piston du PMH au PMB (deux fois le rayon de la manivelle). « Carré » si égaux ; « super-carré » (alésage > course) pour les moteurs qui montent haut en régime (motos)." },
-      { t: "Cylindrée", d: "Volume balayé par les pistons.", f: "Cylindrée unitaire = π × alésage² / 4 × course\nCylindrée totale = unitaire × nombre de cylindres", ex: "75 mm × 84,8 mm → 375 cm³ par cylindre, 1 500 cm³ pour 4 cylindres.", tp: "meca-01-quatre-temps" },
+      { t: "Cylindrée", d: "Volume balayé par les pistons.", f: "Cylindrée unitaire = π × alésage² / 4 × course\nCylindrée totale = unitaire × nombre de cylindres", ex: "75 mm × 84,8 mm donnent 375 cm³ par cylindre, 1 500 cm³ pour 4 cylindres.", tp: "meca-01-quatre-temps" },
       { t: "Taux de compression", d: "Rapport entre le volume total au PMB et le volume de la chambre au PMH. Plus il est élevé, meilleur est le rendement, jusqu'à la limite du cliquetis (essence) ou de la résistance mécanique (diesel).", f: "ε = (V cylindrée + V chambre) / V chambre", tp: ["meca-01-quatre-temps", "meca-02-diesel"] },
       { t: "Couple", d: "Effort de rotation fourni au vilebrequin, en newtons-mètres (N·m). C'est lui qui fait accélérer ; il est maximal là où le cylindre se remplit le mieux.", tp: "meca-05-couple-puissance" },
       { t: "Puissance", d: "Travail fourni par seconde, en kilowatts (kW) ou chevaux (1 ch ≈ 736 W).", f: "P = C × ω = C × 2π × N / 60", tp: "meca-05-couple-puissance" },

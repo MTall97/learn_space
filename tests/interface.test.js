@@ -34,6 +34,14 @@ test("interface : pas de symbole décoratif, jetons des simulations présents, a
     const m = sansCommentaires(lire(f)).match(/[✓✗✔✘★☆§•→←⚡]/g);
     if (m) pb.push(f + " : " + [...new Set(m)].join(" "));
   }
+  // Simulations et contenu : pas de ⚠ ⚡ ✓ ✗ ● ★ (remplacés par du texte ou des tracés) ; dans le contenu, pas
+  // de flèche → non plus. Les flèches de direction d'axe des simulations et les symboles techniques restent.
+  const parcourir = d => fs.readdirSync(path.join(racine, d), { withFileTypes: true }).flatMap(e => e.isDirectory() ? parcourir(d + "/" + e.name) : e.name.endsWith(".js") ? [d + "/" + e.name] : []);
+  for (const f of parcourir("assets/js/sims").concat(parcourir("assets/js/circuit"), parcourir("contenu"))) {
+    const t = sansCommentaires(lire(f)).replace(/^.*\/\/.*$/gm, l => l.replace(/\/\/[^"']*$/, ""));
+    const m = t.match(f.startsWith("contenu") ? /[⚠⚡✓✗✔✘●★☆→]/g : /[⚠⚡✓✗✔✘●★☆]/g);
+    if (m) pb.push(f + " : " + [...new Set(m)].join(" "));
+  }
   assert.deepStrictEqual(pb, []);
   const css = lire("assets/css/style.css");
   for (const j of ["--texte", "--texte-doux", "--fond", "--carte", "--accent", "--accent-fort", "--noeud", "--bordure", "--ok", "--alerte", "--info"])

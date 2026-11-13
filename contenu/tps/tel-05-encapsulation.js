@@ -14,7 +14,7 @@ LS.ajouterTP({
       aide: "L'en-tête TCP fait 20 octets au lieu de 8.", bravo: "10 + 20 + 20 + 18 = 68 ≥ 64 : pas besoin de bourrage. Mais 58 octets d'en-têtes pour 10 utiles !" },
     { texte: "Pour envoyer **4 000 octets** en TCP, combien faut-il de paquets ? (MTU 1 500 octets, en-têtes IP 20 + TCP 20)",
       reponse: { valeur: 3 },
-      aide: "Chaque paquet transporte au plus 1 500 − 20 − 20 = 1 460 octets de données.", bravo: "4 000 / 1 460 = 2,7 → 3 paquets." },
+      aide: "Chaque paquet transporte au plus 1 500 − 20 − 20 = 1 460 octets de données.", bravo: "4 000 / 1 460 = 2,7, donc 3 paquets." },
     { texte: "Règle 4 000 octets en TCP : quelle est l'**efficacité** sur le câble (en %) ? Compare avec 10 octets.",
       reponse: { valeur: 94.5, tolerance: 1, unite: "%" }, verif: s => s.p.taille === 4000 && s.p.proto === "TCP", condition: "Règle 4 000 octets en TCP, puis lis l'efficacité.",
       bravo: "≈ 94 % contre ≈ 11 % pour 10 octets : envoyer de gros blocs amortit les en-têtes." }

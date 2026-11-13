@@ -2,7 +2,8 @@ LS.ajouterTP({
   id: "esp-01-blink",
   titre: "Faire clignoter une LED",
   domaine: "esp32", niveau: 1, duree: "15 min",
-  sim: "esp32", config: { p: { mode: "blink" } },
+  // Au départ, la LED est sur GPIO 4 avec 1 kΩ : l'objectif 1 demande vraiment de choisir GPIO 2 et 220 Ω.
+  sim: "esp32", config: { p: { mode: "blink", gpio: "4", R: 1000 } },
   intro: "Le « Hello world » de l'électronique embarquée. La carte **ESP32 DevKitC** a 38 broches ; chaque **GPIO** (entrée/sortie à usage général) peut être programmée. Les couleurs indiquent les broches à éviter. Clique sur une broche pour y brancher la LED et sa résistance (l'autre côté va à GND) ; le programme Arduino se met à jour.",
   objectifs: [
     { texte: "Fais clignoter la LED sur **GPIO 2** (souvent reliée à la LED bleue de la carte) avec une résistance de **220 Ω**.", verif: s => String(s.p.gpio) === "2" && s.p.R === 220 },

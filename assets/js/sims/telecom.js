@@ -97,7 +97,7 @@
         D().graphe(ctx, 40, 24 + h + 10, W - 60, h - 20, { c, xlim: [0, T], ylim: [-1.3, 1.3], series: [{ pts: por, coul: c.doux, ep: 1 }], titre: "Porteuse haute fréquence (seule, elle ne transporte rien)" });
         const lim = s.p.type === "AM" ? 1 + s.p.m + 0.2 : 1.3;
         D().graphe(ctx, 40, 24 + 2 * h + 20, W - 60, h - 20, { c, xlim: [0, T], ylim: [-lim, lim], series: [{ pts: mod, coul: c.accentFort, ep: 1.4 }], titre: "Signal modulé (ce qui est émis par l'antenne)", xlab: "temps (s)" });
-        if (s.p.type === "AM" && s.p.m > 1) D().texte(ctx, "⚠ Surmodulation : l'enveloppe se croise, le son sera déformé", W / 2, H - 10, c.alerte, 12, "center", true);
+        if (s.p.type === "AM" && s.p.m > 1) D().texte(ctx, "Attention, surmodulation : l'enveloppe se croise, le son sera déformé", W / 2, H - 10, c.alerte, 12, "center", true);
       },
       mesures(s) {
         const bw = s.p.type === "AM" ? 2 * s.p.fm : s.p.type === "FM" ? 2 * (s.p.m * s.p.fc * 0.5 + s.p.fm) : 2 * s.p.fm * (s.p.type === "FSK" ? 2 : 1);
@@ -207,7 +207,7 @@
         s.etat.lu = lu;
         D().texte(ctx, "▲ instants où le récepteur lit la ligne (au milieu des bits, à SA vitesse)", x0, yb + 80, c.info, 11);
         const ok = lu === s.p.code;
-        D().texte(ctx, "Reçu : " + lu + " = « " + String.fromCharCode(lu) + " » " + (ok ? "✓" : "✗ erreur"), x0, H - 30, ok ? c.ok : c.alerte, 15, "left", true);
+        D().texte(ctx, "Reçu : " + lu + " = « " + String.fromCharCode(lu) + " » " + (ok ? ": correct" : ": erreur"), x0, H - 30, ok ? c.ok : c.alerte, 15, "left", true);
       },
       mesures(s) {
         const n = this.trame(s).length, tb = 1 / s.p.baud;
@@ -431,7 +431,7 @@
           D().texte(ctx, String(p.n), x, y, "#fff", 12, "center", true);
         });
         D().texte(ctx, "Reçus dans l'ordre : " + e.recus.join(" "), 20, H - 20, c.texte, 13, "left", true);
-        if (e.coupure) D().texte(ctx, "✗ Liaison coupée sur le circuit réservé : la communication est interrompue", W / 2, H - 44, c.alerte, 14, "center", true);
+        if (e.coupure) D().texte(ctx, "Erreur : liaison coupée sur le circuit réservé : la communication est interrompue", W / 2, H - 44, c.alerte, 14, "center", true);
       },
       mesures(s) {
         const e = s.etat;

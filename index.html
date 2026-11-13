@@ -84,52 +84,65 @@
     /* ---------- La date, en haut de la page ---------- */
     try { document.getElementById("date").textContent = majuscule(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })); } catch (e) { /* ancien navigateur */ }
 
-    /* ---------- On reprend ---------- */
+    /* ---------- Aujourd'hui : la leçon à reprendre, écrite comme une phrase de cahier ---------- */
+    const primaire = LS.niveau() <= 1;
+    const minuscule = t => t ? t.charAt(0).toLowerCase() + t.slice(1) : "";
     const der = LS.lire("derniere", null);
-    let cible = null, raison = "";
+    let cible = null;
     if (der) {
       const dom = domaines.find(x => x.etapes.some(e => e.type === der.type && e.id === der.id));
       const e = dom && dom.etapes.find(x => x.type === der.type && x.id === der.id);
-      if (e && !fini(e.a) && e.portee) { cible = e; raison = "On reprend :"; }
-      else if (dom && dom.courante) { cible = dom.courante; raison = "Étape suivante :"; }
+      if (e && !fini(e.a) && e.portee) cible = e;
+      else if (dom && dom.courante) cible = dom.courante;
     }
-    if (!cible) { const dom = domaines.find(x => x.d.id === "electricite" && x.courante) || domaines.find(x => x.courante); if (dom) { cible = dom.courante; raison = der ? "Prochaine étape :" : "Pour commencer :"; } }
-    const rep = document.getElementById("reprendre");
+    if (!cible) { const dom = domaines.find(x => x.d.id === "electricite" && x.courante) || domaines.find(x => x.courante); if (dom) cible = dom.courante; }
+    const rep = document.getElementById("reprendre"), jr = document.getElementById("journee");
     const sansProfil = !LS.profil().niveau;
-    const ecranChoix = sansProfil || location.hash === "#niveau";
-    if (ecranChoix) choixNiveau();
-    else if (cible) {
-      const numero = cible.type === "tp" ? parId[cible.domaine].etapes.filter(e => e.type === "tp").indexOf(cible) + 1 : 0;
-      const ou = (cible.type === "carte" ? "Carte mentale" : "TP " + numero) + " de l'atelier " + LS.nomDomaine(cible.domaine) + "." +
-        (cible.a.total ? " Tu as fait " + cible.a.faits + " sur " + cible.a.total + "." : "");
+    jr.hidden = sansProfil;
+    const titre = h => { h.setAttribute("tabindex", "-1"); return h; };
+    const focusTitre = () => { const h = document.getElementById("titre-reprendre"); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } } };
+    function aujourdhui() {
+      document.body.classList.remove("en-test");
+      rep.innerHTML = ""; jr.hidden = sansProfil;
+      if (!cible) { rep.className = "reprendre"; rep.append(titre(LS.el("h1", { id: "titre-reprendre", text: "Tout est terminé. Bravo !" }))); return; }
+      const nom = LS.nomDomaine(cible.domaine), numero = cible.type === "tp" ? parId[cible.domaine].etapes.filter(e => e.type === "tp").indexOf(cible) + 1 : 0;
+      const quoi = (cible.type === "carte" ? "la carte mentale" : "le TP " + numero) + " de l'atelier «\u00a0" + nom + "\u00a0»";
+      const phrase = cible.a.faits
+        ? "Tu continues " + quoi + ". " + (primaire ? "Tu as déjà réussi " + cible.a.faits + (cible.a.faits > 1 ? " exercices." : " exercice.") : "Tu as déjà réussi " + cible.a.faits + " exercice" + (cible.a.faits > 1 ? "s" : "") + " sur " + cible.a.total + ".")
+        : "C'est " + quoi + "." + (cible.desc ? " Tu vas découvrir : " + minuscule(cible.desc) : "");
       rep.className = "reprendre";
       rep.append(
         LS.el("div", {}, [
-          LS.el("h1", { id: "titre-reprendre" }, [LS.el("span", { class: "quand", text: raison }), document.createTextNode(sansCarte(cible.titre))]),
-          LS.el("p", { text: ou })]),
+          titre(LS.el("h1", { id: "titre-reprendre" }, [document.createTextNode((der ? "Aujourd'hui" : "Pour commencer") + " : "), LS.el("span", { class: "souligne", text: sansCarte(cible.titre) })])),
+          LS.el("p", { text: phrase })]),
         LS.el("a", { class: "btn-reprendre", href: LS.etapeHref(cible) }, [LS.el("span", { text: cible.a.faits ? "Continuer" : "Commencer" }), LS.el("span", { html: LS.icone("suivant", 24) })]));
-    } else rep.append(LS.el("h1", { id: "titre-reprendre", text: "Tout est terminé. Bravo !" }));
+    }
 
-    /* ---------- Choix du niveau, ou petit test de placement, sur la page ---------- */
+    /* ---------- Choix du niveau (une liste de cahier), ou petit test de placement ---------- */
     function choixNiveau() {
       const p = LS.profil();
+      document.body.classList.remove("en-test");
       rep.className = "choix-niveau";
       rep.innerHTML = "";
       rep.append(
-        LS.el("h1", { id: "titre-reprendre", text: p.niveau ? "Change de niveau" : "Bonjour ! Choisis ton niveau" }),
-        LS.el("p", { text: p.niveau ? "Ton niveau actuel : " + nomNiveau(p.niveau) + "." : "On te proposera les bonnes activités. Tu pourras en changer quand tu veux." }),
-        LS.el("div", { class: "touches-niveau" }, LS.NIVEAUX.map(x => LS.el("button", { class: "touche-niveau" + (p.niveau === x.n ? " actif" : ""), "aria-pressed": p.niveau === x.n ? "true" : "false", onclick: () => valider(x.n) }, [
-          LS.el("strong", { text: x.nom }), LS.el("span", { text: x.ecole }), LS.el("small", { text: x.age })]))),
-        LS.el("button", { class: "btn secondaire touche-test", onclick: test, text: "Je ne sais pas : faire le petit test (8 questions)" }));
+        titre(LS.el("h1", { id: "titre-reprendre", text: p.niveau ? "Change de niveau" : "Bonjour ! Choisis ton niveau" })),
+        LS.el("p", { text: p.niveau ? "Ton niveau actuel : " + nomNiveau(p.niveau) + ". Touche une ligne pour en changer." : "Touche ta classe : on te proposera les bonnes activités. Tu pourras en changer quand tu veux." }),
+        LS.el("ol", { class: "liste-niveaux" }, LS.NIVEAUX.map((x, k) => LS.el("li", {}, [LS.el("button", { class: "niveau-ligne" + (p.niveau === x.n ? " actif" : ""), "aria-pressed": p.niveau === x.n ? "true" : "false", onclick: () => valider(x.n) }, [
+          LS.el("span", { class: "num", "aria-hidden": "true", text: (k + 1) + "." }),
+          LS.el("strong", { text: x.nom }), LS.el("span", { text: x.ecole + ", " + x.age + (p.niveau === x.n ? " (ton niveau)" : "") })])]))),
+        LS.el("button", { class: "btn secondaire touche-test", onclick: test, text: "Je ne sais pas : faire le petit test" }));
     }
     function valider(n) {
       LS.choisirNiveau(n);
+      try { sessionStorage.setItem("learnspace:focusTitre", "1"); } catch (e) { /* refusé */ }
       try { history.replaceState(null, "", "#tableau"); } catch (e) { /* cadre */ }
       location.reload();
     }
     function test() {
       const Q = LS.TEST_PLACEMENT, reps = {};
       let niv = 1, k = 0;
+      document.body.classList.add("en-test");
+      scrollTo(0, 0);
       const suivante = () => {
         const qs = Q.map((q, i) => i).filter(i => Q[i].niv === niv);
         if (k >= qs.length) {
@@ -137,60 +150,69 @@
           if (justes === 0 || niv === 4) return fin();
           niv++; k = 0; return suivante();
         }
-        const i = qs[k], q = Q[i];
+        const i = qs[k], q = Q[i], numero = Object.keys(reps).length + 1;
         rep.innerHTML = "";
-        rep.append(LS.el("p", { class: "test-avance", text: "Petit test, question " + (Object.keys(reps).length + 1) }),
-          LS.el("h1", { id: "titre-reprendre", class: "question-test", text: q.q }),
-          LS.el("div", { class: "reponses-test" }, q.choix.map((c, j) => LS.el("button", { class: "touche-niveau", text: c, onclick: () => { reps[i] = j; k++; suivante(); } }))));
-        const b = rep.querySelector(".touche-niveau"); if (b) b.focus();
+        rep.append(LS.el("p", { class: "test-avance", text: "Petit test, question " + numero + " sur " + Q.length + (numero === 1 ? ". Il s'arrête quand les questions deviennent trop dures : c'est normal." : "") }),
+          titre(LS.el("h1", { id: "titre-reprendre", class: "question-test", text: q.q })),
+          LS.el("div", { class: "reponses-test" }, q.choix.map((c, j) => LS.el("button", { class: "reponse-test", onclick: () => { reps[i] = j; k++; suivante(); } }, [LS.el("span", { class: "lettre", "aria-hidden": "true", text: "abc"[j] + ")" }), LS.el("span", { text: c })]))),
+          LS.el("button", { class: "btn petit secondaire", text: "Arrêter le test", onclick: () => { choixNiveau(); focusTitre(); } }));
+        focusTitre();
       };
       const fin = () => {
         const n = LS.niveauDuTest(reps);
         rep.innerHTML = "";
-        rep.append(LS.el("h1", { id: "titre-reprendre" }, [document.createTextNode("Merci ! On te propose : "), LS.el("span", { class: "surligne", text: LS.infoNiveau(n).nom })]),
+        rep.append(titre(LS.el("h1", { id: "titre-reprendre" }, [document.createTextNode("Merci ! On te propose le niveau "), LS.el("span", { class: "surligne", text: LS.infoNiveau(n).nom.toLowerCase() }), document.createTextNode(".")])),
           LS.el("p", { text: LS.infoNiveau(n).ecole + ". Tu pourras en changer quand tu veux." }),
-          LS.el("div", { class: "touches-niveau deux" }, [LS.el("button", { class: "touche-niveau actif", onclick: () => valider(n) }, [LS.el("strong", { text: "C'est parti" })]),
-            LS.el("button", { class: "touche-niveau", onclick: choixNiveau }, [LS.el("strong", { text: "Choisir moi-même" })])]));
+          LS.el("div", { class: "actions-test" }, [LS.el("button", { class: "btn gros", onclick: () => valider(n) }, [LS.el("span", { text: "C'est parti" }), LS.el("span", { html: LS.icone("suivant", 22) })]),
+            LS.el("button", { class: "btn secondaire", text: "Choisir moi-même", onclick: () => { choixNiveau(); focusTitre(); } })]));
+        focusTitre();
       };
       suivante();
     }
+    function ouvrirNiveau() { choixNiveau(); scrollTo(0, 0); focusTitre(); }
+    if (sansProfil || location.hash === "#niveau") choixNiveau(); else aujourdhui();
+    // La puce de niveau de l'en-tête mène à #niveau : sur l'accueil, on ouvre le choix sans recharger.
+    window.addEventListener("hashchange", () => { if (location.hash === "#niveau") ouvrirNiveau(); });
+    document.querySelectorAll(".puce-niveau").forEach(a => a.addEventListener("click", ev => {
+      ev.preventDefault();
+      try { history.replaceState(null, "", "#niveau"); } catch (e) { /* cadre */ }
+      ouvrirNiveau();
+    }));
+    try { if (sessionStorage.getItem("learnspace:focusTitre")) { sessionStorage.removeItem("learnspace:focusTitre"); focusTitre(); } } catch (e) { /* refusé */ }
 
-    /* ---------- Ma journée : points du jour, série, rang, mot du professeur ---------- */
+    /* ---------- Ma journée : une ou deux lignes écrites, et le mot du professeur ---------- */
     const etat = J.etat();
     const avDom = Object.fromEntries(domaines.map(x => [x.d.id, x.ratio]));
     const brevets = J.brevets(avDom), obtenus = brevets.filter(b => b.ok);
-    const jr = document.getElementById("journee");
-    if (sansProfil) jr.hidden = true;
-    else {
-      const jours = LS.lire("jours", {}), semaine = LS.el("span", { class: "semaine", role: "img", "aria-label": "Jours actifs sur les 7 derniers jours" });
-      let actifs7 = 0;
-      for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const on = (jours[J.jourISO(d)] || 0) > 0; if (on) actifs7++; semaine.append(LS.el("i", { class: (on ? "on" : "") + (i === 0 ? " auj" : "") })); }
-      const atteint = etat.jour >= etat.objectifJour;
-      jr.append(
-        LS.el("div", {}, [LS.el("span", { class: "chiffre" }, [document.createTextNode(String(etat.jour)), LS.el("small", { text: " / " + etat.objectifJour + " points aujourd'hui" })]),
-          LS.el("span", { class: "jauge-jour", role: "img", "aria-label": etat.jour + " points sur " + etat.objectifJour }, [LS.el("i", { style: "--p:" + pourcent(etat.jour / etat.objectifJour) })]),
-          LS.el("span", { class: "legende" }, [LS.el("small", { text: atteint ? "Objectif du jour atteint." : "Notion 10, objectif 25, question 10." })])]),
-        LS.el("div", {}, [LS.el("span", { class: "chiffre" }, [document.createTextNode(String(etat.serie)), LS.el("small", { text: etat.serie > 1 ? " jours de suite" : " jour de suite" })]), semaine]),
-        LS.el("div", {}, [LS.el("span", { class: "chiffre" }, [document.createTextNode("Rang " + etat.niveau.n), LS.el("small", { text: " " + etat.niveau.titre })]),
-          LS.el("span", { class: "legende" }, [LS.el("small", { text: (etat.niveau.pour - etat.niveau.dans) + " points avant le rang " + (etat.niveau.n + 1) + "." })])]),
-        LS.el("div", {}, [LS.el("span", { class: "chiffre" }, [document.createTextNode(String(obtenus.length)), LS.el("small", { text: " brevet" + (obtenus.length > 1 ? "s" : "") + " sur " + brevets.length })]),
-          obtenus.length ? LS.el("span", {}, [LS.el("span", { class: "tampon-mini", text: obtenus[obtenus.length - 1].nom })]) : LS.el("a", { href: "#brevets", class: "legende", text: "Voir les brevets" })]));
-      // Le mot du professeur, à l'encre rouge.
-      const mot = atteint ? "Objectif du jour atteint. Très bon travail !" : etat.serie >= 3 ? etat.serie + " jours de suite : continue comme ça !" :
-        etat.points === 0 ? "Un petit pas chaque jour suffit. À toi de jouer !" : actifs7 >= 2 ? "Bon travail cette semaine, continue !" : "Content de te revoir. On reprend doucement.";
-      jr.append(LS.el("p", { class: "mot-prof", text: mot }));
+    if (!sansProfil) {
+      const fort = t => LS.el("b", { text: t });
+      const ligne = enfants => LS.el("p", { class: "ligne-journee" }, enfants.map(x => typeof x === "string" ? document.createTextNode(x) : x));
+      if (etat.points === 0) {
+        jr.append(ligne(["Ton cahier est encore tout neuf. Commence ta première leçon : chaque bonne réponse te donne des points, et tes premiers brevets arrivent vite."]));
+      } else {
+        const atteint = etat.jour >= etat.objectifJour, reste = etat.objectifJour - etat.jour;
+        jr.append(
+          ligne(etat.jour === 0 ? ["Pas encore de points aujourd'hui. Une bonne réponse en rapporte 10, un objectif réussi 25 : il en faut ", fort(String(etat.objectifJour)), " pour l'objectif du jour."]
+            : atteint ? ["Aujourd'hui, tu as gagné ", fort(etat.jour + " points"), " : l'objectif du jour est atteint !"]
+            : ["Aujourd'hui, tu as gagné ", fort(etat.jour + " points"), ". Encore ", fort(String(reste)), " pour l'objectif du jour : une bonne réponse en rapporte\u00a010."]),
+          ligne((etat.serie > 1 ? ["Tu travailles depuis ", fort(etat.serie + " jours de suite"), "."] : etat.serie === 1 ? ["Ta série de jours commence : reviens demain pour la continuer."] : ["Reviens demain pour commencer une série de jours."])
+            .concat([" Tu es au rang ", fort(String(etat.niveau.n)), " (" + etat.niveau.titre + ") : encore " + (etat.niveau.pour - etat.niveau.dans) + " points pour monter."])));
+        const actifs = Object.keys(LS.lire("jours", {})).length;
+        const mot = atteint ? "Très bon travail aujourd'hui !" : etat.serie >= 3 ? "Continue comme ça, tu es régulier !" : actifs >= 2 ? "Bon travail, continue !" : "Content de te revoir. On reprend doucement.";
+        jr.append(LS.el("p", { class: "mot-prof", text: mot }));
+      }
     }
 
     /* ---------- Sommaire : un atelier par ligne, numéroté dans la marge ---------- */
     const sommaire = document.getElementById("sommaire"), zoneLecons = document.getElementById("lecons");
-    domaines.forEach((x, k) => {
+    domaines.filter(x => !x.plusTard).concat(domaines.filter(x => x.plusTard)).forEach((x, k) => {
       const desc = x.plusTard ? "Pour plus tard (" + nomNiveau(x.nivMin) + ")" : x.d.desc;
       sommaire.append(LS.el("li", { class: x.plusTard ? "loin" : "" }, [LS.el("button", { class: "atelier" + (x.ratio >= 0.999 ? " termine" : "") + (x.plusTard ? " plus-tard" : ""), id: "atelier-" + x.d.id, "aria-pressed": "false",
         "aria-label": x.d.titre + ", " + x.faites + " étapes terminées sur " + x.etapes.length + (x.plusTard ? ", pour plus tard" : ""), onclick: () => choisir(x.d.id, true) }, [
         LS.el("span", { class: "num", "aria-hidden": "true", text: (k + 1) + "." }),
         LS.pictoAtelier(x.d.id),
         LS.el("span", { class: "atelier-texte" }, [LS.el("span", { class: "atelier-nom", text: x.d.titre }), LS.el("small", { text: desc })]),
-        LS.el("span", { class: "atelier-prog" }, [LS.el("span", { text: x.faites + "/" + x.etapes.length }), trait(x.ratio)])
+        LS.el("span", { class: "atelier-prog" }, [x.faites ? LS.el("span", { text: x.faites + "/" + x.etapes.length }) : null, trait(x.ratio)])
       ])]));
     });
 
@@ -220,7 +242,7 @@
             LS.el("a", { href: LS.etapeHref(e), class: "lecon-lien", text: sansCarte(e.titre) }),
             LS.el("span", { class: "lecon-info" }, [cour ? LS.el("span", { class: "ici", text: "Tu en es là" }) : null,
               e.portee ? null : LS.el("span", { class: "plus-tard-etiquette", text: "Pour plus tard (" + nomNiveau(e.niv) + ")" }),
-              LS.el("span", { text: (e.type === "carte" ? "Carte mentale" : "TP " + nTP) + (f ? ", terminé" + (e.type === "carte" ? "e" : "") : e.a.total ? ", " + e.a.faits + " sur " + e.a.total : "") + (e.desc ? ". " + e.desc : "") })])
+              LS.el("span", { text: (e.type === "carte" ? "Carte mentale" : "TP " + nTP) + (f ? ", terminé" + (e.type === "carte" ? "e" : "") : e.a.faits ? ", déjà " + e.a.faits + (primaire ? "" : " sur " + e.a.total) + " réussi" + (e.a.faits > 1 ? "s" : "") : "") + (e.desc ? (e.a.faits || f ? ". " : " : ") + (e.a.faits || f ? e.desc : minuscule(e.desc)) : "") })])
           ])
         ]));
       });
@@ -244,21 +266,24 @@
     choisir(parId[h] ? h : (cible ? cible.domaine : domaines[0].d.id), false);
     if (parId[h]) document.getElementById("ateliers").scrollIntoView();
 
-    /* ---------- Brevets : des tampons ---------- */
+    /* ---------- Brevets : un tampon pour chaque brevet obtenu, une liste pour les autres ---------- */
     document.getElementById("brevets-resume").textContent = obtenus.length + " sur " + brevets.length;
     const gb = document.getElementById("grille-brevets");
     const vus = LS.lire("brevetsVus", {}), nouveaux = [];
-    brevets.forEach(b => {
-      if (b.ok && !vus[b.id]) { nouveaux.push(b); vus[b.id] = true; }
-      const idDom = b.domaine ? b.id.replace(/^dom-/, "") : null;
-      gb.append(LS.el("div", { class: "brevet" + (b.ok ? " obtenu" : "") + (b.domaine ? " domaine" : ""), title: b.desc }, [
-        LS.el("span", { class: "tampon", "aria-hidden": "true" }, idDom ? [LS.el("span", { class: "picto", html: LS.icone("dom-" + idDom, 30) })] : [LS.el("span", { class: "code", text: b.code })]),
-        LS.el("strong", { text: b.nom }),
-        LS.el("small", { text: b.ok ? "Obtenu" : b.domaine ? "Termine l'atelier " + LS.nomDomaine(idDom) : b.desc })]));
+    const idDom = b => b.domaine ? b.id.replace(/^dom-/, "") : null;
+    const tampons = LS.el("div", { class: "tampons" });
+    obtenus.forEach(b => {
+      if (!vus[b.id]) { nouveaux.push(b); vus[b.id] = true; }
+      tampons.append(LS.el("div", { class: "brevet obtenu", title: b.desc }, [
+        LS.el("span", { class: "tampon" }, [idDom(b) ? LS.el("span", { class: "picto", "aria-hidden": "true", html: LS.icone("dom-" + idDom(b), 26) }) : null, LS.el("strong", { text: b.nom })]),
+        LS.el("small", { text: b.desc })]));
     });
-    let aVenir = 0;
-    [...gb.children].forEach(el => { if (!el.classList.contains("obtenu") && ++aVenir > 3) el.classList.add("loin"); });
-    voirPlus(gb, "Voir tous les brevets ({n} de plus)");
+    gb.append(obtenus.length ? tampons : LS.el("p", { class: "pas-encore", text: "Pas encore de brevet. Le premier, « Premier contact », s'obtient en réussissant un objectif de TP." }));
+    const aGagner = LS.el("ul", { class: "brevets-a-venir" });
+    brevets.filter(b => !b.ok).forEach((b, k) => aGagner.append(LS.el("li", { class: k >= 3 ? "loin" : "" }, [LS.el("strong", { text: b.nom }),
+      document.createTextNode(" : " + (b.domaine ? "termine l'atelier " + LS.nomDomaine(idDom(b)) + "." : minuscule(b.desc)))])));
+    if (aGagner.children.length) gb.append(LS.el("h3", { class: "titre-a-gagner", text: "À gagner" }), aGagner);
+    voirPlus(aGagner, "Voir tous les brevets à gagner ({n} de plus)");
     LS.ecrire("brevetsVus", vus);
     nouveaux.slice(0, 3).forEach(b => LS.avis("Nouveau brevet : " + b.nom));
     if (location.hash === "#brevets") document.getElementById("brevets").scrollIntoView();

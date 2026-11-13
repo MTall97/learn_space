@@ -82,18 +82,21 @@
 
     if (LS.jeu) LS.jeu.visiter("tp", id);
     const nObj = (tp.objectifs || []).length;
-    const progMission = LS.el("div", { class: "mission-prog" });
+    const progMission = LS.el("span", { class: "mission-prog" });
     const premiereVisite = !Object.keys(etat.objectifs).length && !Object.keys(etat.questions).length;
     const ic = (nom, t) => LS.el("span", { class: "ic", "aria-hidden": "true", html: LS.icone(nom, t) });
+    // En-tête écrit comme dans un cahier : un lien de retour (navigation), le titre « TP n : … », puis une phrase.
+    const dom = (LS.parcours || []).find(d => d.id === tp.domaine);
+    const numeroTP = dom ? dom.etapes.filter(e => e.type === "tp").findIndex(e => e.id === id) + 1 : 0;
+    const nomAtelier = LS.nomDomaine ? LS.nomDomaine(tp.domaine) : "Ateliers";
+    const difficulte = ["facile", "moyen", "difficile"][Math.min(3, tp.niveau || 1) - 1];
     const entete = LS.el("div", { class: "tp-entete" }, [
       LS.el("div", { class: "chemin-tp" }, [
-        LS.el("a", { class: "retour-atelier", href: "index.html#" + (tp.domaine || "ateliers") }, [LS.pictoAtelier ? LS.pictoAtelier(tp.domaine, "mini") : null, ic("retour", 18), LS.el("span", { text: LS.nomDomaine ? LS.nomDomaine(tp.domaine) : "Ateliers" })]),
-        LS.el("span", { class: "difficulte", "aria-label": "Difficulté " + Math.min(3, tp.niveau || 1) + " sur 3" }, [LS.el("span", { text: "Difficulté" }), ...[1, 2, 3].map(k => LS.el("i", { class: k <= (tp.niveau || 1) ? "on" : "" }))]),
-        tp.duree ? LS.el("span", { class: "etiquette", text: tp.duree }) : null,
+        LS.el("a", { class: "retour-atelier", href: "index.html#" + (tp.domaine || "ateliers") }, [ic("retour", 20), LS.pictoAtelier ? LS.pictoAtelier(tp.domaine, "mini") : null, LS.el("span", { text: "Retour à l'atelier" })]),
         LS.infoNiveau ? LS.el("a", { class: "etiquette niveau-tp", href: "index.html#niveau", title: "Changer de niveau", text: "Niveau " + LS.infoNiveau(niv).nom.toLowerCase() }) : null
       ]),
-      LS.el("h1", { text: tp.titre }),
-      progMission,
+      LS.el("h1", {}, [numeroTP > 0 ? LS.el("span", { class: "numero-tp", text: "TP " + numeroTP + " : " }) : null, document.createTextNode(tp.titre)]),
+      LS.el("p", { class: "phrase-tp" }, [document.createTextNode("Atelier " + nomAtelier + (tp.duree ? ", environ " + tp.duree.replace(/\bmin\b/, "minutes") : "") + ", " + difficulte + ". "), progMission]),
       tp.securite ? LS.el("p", { class: "securite", role: "note" }, [ic("attention", 24), LS.el("span", {}, [LS.el("strong", { text: "Ici, on simule. " }),
         LS.el("span", { text: tp.securite === "batterie" ? "En vrai, n'ouvre jamais une batterie, ne la perce pas et ne la court-circuite pas : elle peut chauffer et prendre feu. Demande à un adulte." : "En vrai, ne touche jamais le 220 V : il peut tuer. Seul un électricien travaille dessus, courant coupé. Demande à un adulte." })])]) : null,
       tp.intro ? LS.el("details", { class: "briefing", open: premiereVisite ? "open" : null }, [LS.el("summary", { text: "Ce que tu vas faire" }), LS.el("div", { class: "intro-tp", html: LS.texte(tp.intro) })]) : null
@@ -196,7 +199,7 @@
       if (cle === dernierAffiche) return;
       dernierAffiche = cle;
       progMission.innerHTML = "";
-      progMission.append(LS.el("span", { class: "mission-texte", text: "Objectifs réussis : " + cle.replace("/", " sur ") }), voyantsMission());
+      progMission.append(LS.el("span", { class: "mission-texte", text: faits === nObj && nObj ? "Tous les objectifs sont réussis." : faits ? "Tu as réussi " + faits + " objectif" + (faits > 1 ? "s" : "") + " sur " + nObj + "." : nObj + " objectifs t'attendent." }), voyantsMission());
       panneaux.mission.b.querySelector(".compte").textContent = cle;
       const i = (tp.objectifs || []).findIndex((o, k) => !etat.objectifs[k]);
       barreObj.innerHTML = "";

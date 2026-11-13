@@ -850,7 +850,7 @@
     } else l = [];
     this.zoneMesures.innerHTML = "";
     l.forEach(([n, v]) => this.zoneMesures.append(LS.el("div", { class: "mesure" }, [LS.el("div", { class: "nom", text: n }), LS.el("div", { class: "val", text: v })])));
-    if (c.etat && c.etat.alerte) this.zoneMesures.append(LS.el("div", { class: "alerte-sim", style: "grid-column:1/-1", text: "⚠ " + c.etat.alerte }));
+    if (c.etat && c.etat.alerte) this.zoneMesures.append(LS.el("div", { class: "alerte-sim", style: "grid-column:1/-1", text: "Attention, " + c.etat.alerte }));
   };
 
   /* ---------- Oscilloscope ---------- */
@@ -888,7 +888,7 @@
     v.forEach((x, i) => {
       if (!x) return;
       const s = LS.el("span", { style: `color:${i ? "#4dd0e1" : "#ffd54f"};margin-left:8px;font-weight:700`, text: `Voie ${i + 1} : ${x.g === "I" ? "courant" : "tension"} ${x.c.nom} ` });
-      const bt = LS.el("button", { class: "btn petit secondaire", text: x.g === "I" ? "→ U" : "→ I", title: "Basculer tension / courant", onclick: () => { x.g = x.g === "I" ? "U" : "I"; this.osc.donnees = []; this._legendeOsc(); } });
+      const bt = LS.el("button", { class: "btn petit secondaire", text: x.g === "I" ? "Voir U" : "Voir I", title: "Basculer tension / courant", onclick: () => { x.g = x.g === "I" ? "U" : "I"; this.osc.donnees = []; this._legendeOsc(); } });
       this.oscLegende.append(s, bt);
     });
     if (!v[0] && !v[1]) this.oscLegende.textContent = " — " + (tactile() ? "touche" : "clique sur") + " un composant puis « Voie 1 » ou « Voie 2 ».";
@@ -1031,7 +1031,7 @@
     const a = def.affichage(this._mm);
     this.ecranMM.textContent = a.texte ? a.texte + " " + a.unite : "";
     this.ecranMM.classList.toggle("bip", !!a.bip);
-    this.alerteMM.textContent = a.alerte ? "⚠ " + a.alerte : "";
+    this.alerteMM.textContent = a.alerte ? "Attention, " + a.alerte : "";
     if (a.bip && !this._bipActif) this._bip(true);
     if (!a.bip && this._bipActif) this._bip(false);
   };

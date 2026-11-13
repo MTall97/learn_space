@@ -18,7 +18,7 @@ LS.ajouterTP({
   },
   objectifs: [
     { texte: "Construis la bascule RS (deux NON-OU croisés). Appuie sur **S** puis relâche : Q reste à 1. Appuie sur **R** puis relâche : Q reste à 0.",
-      indice: "Porte 1 : entrées R et la sortie de la porte 2 → sa sortie est Q. Porte 2 : entrées S et Q → sa sortie est Q̄. Les deux sorties se rebouclent en croix.",
+      indice: "Porte 1 : entrées R et la sortie de la porte 2 ; sa sortie est Q. Porte 2 : entrées S et Q ; sa sortie est Q̄. Les deux sorties se rebouclent en croix.",
       verif: (s, m) => {
         const S = s.trouver("S"), R = s.trouver("R"), Q = s.trouver("Q");
         const q = Q._e ? Q._e[0] : 0;
@@ -31,7 +31,7 @@ LS.ajouterTP({
     { texte: "Pose une **bascule D** et une **horloge** (1 Hz) : relie la sortie Q̄ de la bascule à son entrée D. Q change d'état à **chaque front montant** : c'est un diviseur de fréquence par 2.",
       verif: (s, m) => s.liste("basculeD").some(b => { const q = b._q; m.vus = m.vus || new Set(); m.vus.add(q); return s.memeNet(b, 0, b, 3) && m.vus.has(0) && m.vus.has(1); }) },
     { texte: "**Compteur 2 bits** : chaîne deux bascules D (la Q̄ de la première sert d'horloge à la seconde) et affiche le résultat sur l'**afficheur** (entrées 1 et 2). Il doit compter 0, 1, 2, 3…",
-      indice: "Bit de poids 1 = Q de la bascule 1 → entrée « 1 » de l'afficheur ; bit de poids 2 = Q de la bascule 2 → entrée « 2 ».",
+      indice: "Bit de poids 1 = Q de la bascule 1 vers l'entrée « 1 » de l'afficheur ; bit de poids 2 = Q de la bascule 2 vers l'entrée « 2 ».",
       verif: (s, m) => { const a = s.liste("afficheur")[0]; if (!a) return false; m.v = m.v || new Set(); m.v.add(a._valeur); return [0, 1, 2, 3].every(x => m.v.has(x)); } }
   ],
   questions: [

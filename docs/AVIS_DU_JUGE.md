@@ -430,7 +430,17 @@ traiter avant d'annoncer le site aux écoles.
 - Le poids reste raisonnable : `style.css` fait 11,9 Ko compressé.
 
 ### Suites
-Les corrections sont confiées à l'auteur de l'interface. Ce qui est fait sera noté dans le carnet.
+- **Corrections du 13/11/2026 (133 tests réussis)** :
+  - **faits** : I1 à I6, M2, M3, M5, M6, M8, M9 et M11 ;
+  - **partiels** :
+    - M1 : il reste 3 flèches de direction d'axe dans les simulations ;
+    - M4 : la case à cocher des simulations fait 26 px, dans une ligne cliquable de 44 px ;
+    - M7 : lignes alignées seulement sur les pages de texte.
+- **Vérification avec les scripts du juge** :
+  - textes sous le seuil de contraste : 178 avant, 0 après ;
+  - cibles de moins de 44 px : 374 avant, 75 après, réparties sur deux éléments ;
+  - aucune erreur JavaScript, aucun débordement.
+- **Pas encore fait** : une nouvelle relecture par le juge.
 
 ## Limites relevées par les auteurs (22/10/2026)
 

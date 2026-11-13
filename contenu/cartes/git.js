@@ -21,7 +21,7 @@ LS.ajouterCarte({
       { t: "Pull request", d: "Proposition de fusionner une branche dans une autre, avec discussion, revue de code et résultats des tests automatiques avant la fusion." },
       { t: "Issues", d: "Tickets pour noter bogues, idées et tâches, liés aux commits et pull requests qui les traitent." },
       { t: "Intégration continue", d: "GitHub Actions lance automatiquement tests et vérifications à chaque push ou pull request." },
-      { t: "GitHub Pages", d: "Publie gratuitement un site statique depuis un dépôt : idéal pour un espace d'apprentissage comme celui-ci (Settings → Pages)." },
+      { t: "GitHub Pages", d: "Publie gratuitement un site statique depuis un dépôt : idéal pour un espace d'apprentissage comme celui-ci (Settings, puis Pages)." },
       { t: "Visibilité", d: "Dépôt public (visible de tous) ou privé (collaborateurs invités). Un dépôt peut changer de visibilité : ne jamais y mettre ce qu'on ne veut pas voir public un jour." }
     ] },
     { t: "Bonnes pratiques", c: [

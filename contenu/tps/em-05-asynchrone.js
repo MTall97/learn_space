@@ -15,7 +15,7 @@ LS.ajouterTP({
   questions: [
     { q: "Comment inverser le sens de rotation d'un moteur triphasé ?", choix: ["Inverser deux des trois phases", "Inverser la tension", "Couper une phase"], bonne: 0 },
     { q: "Un moteur asynchrone porte une charge de 25 N·m en marche, mais ne démarre pas avec cette charge. Pourquoi ?", choix: ["Son couple de démarrage est plus faible que son couple maximal", "Il manque une phase", "Le glissement est nul à l'arrêt"], bonne: 0, explication: "À l'arrêt, g = 1 : le couple vaut le couple de démarrage, souvent 60 à 80 % du couple maximal pour une cage simple, plus avec une double cage." },
-    { q: "Plaque d'un moteur : 1 450 tr/min à 50 Hz. Combien de paires de pôles ?", choix: ["1", "2", "4"], bonne: 1, explication: "ns = 1 500 tr/min (la vitesse réelle est un peu inférieure) → p = 2." }
+    { q: "Plaque d'un moteur : 1 450 tr/min à 50 Hz. Combien de paires de pôles ?", choix: ["1", "2", "4"], bonne: 1, explication: "ns = 1 500 tr/min (la vitesse réelle est un peu inférieure), donc p = 2." }
   ],
   notions: [["electromecanique", "Champ tournant"], ["electromecanique", "Moteur asynchrone"], ["electromecanique", "Glissement"], ["elec-alternatif", "Triphasé"]]
 });

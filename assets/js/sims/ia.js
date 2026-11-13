@@ -122,8 +122,8 @@
       explication(s) {
         const k = s.etat.k || {};
         let t = "Le neurone calcule **z = w1·x + w2·y + b**, puis une probabilité **σ(z) = 1/(1+e⁻ᶻ)** d'être orange. La frontière σ = 0,5 est la droite z = 0 : les poids fixent son **orientation**, le biais la **décale**. La **perte** mesure à quel point les probabilités sont fausses ; la **descente de gradient** modifie chaque poids d'un petit pas dans le sens qui la fait baisser.";
-        if (s.p.donnees === "xor") t += "\n\n⚠ Aucune droite ne sépare un **OU exclusif** : un neurone seul plafonne vers 50 à 75 %. Il faut une **couche cachée** (plusieurs neurones) pour courber la frontière.";
-        else if (s.p.lr > 10 && s.p.apprendre) t += "\n\n⚠ Pas trop grand : les poids sautent d'un côté à l'autre du minimum, la perte rebondit au lieu de descendre régulièrement.";
+        if (s.p.donnees === "xor") t += "\n\nAttention, aucune droite ne sépare un **OU exclusif** : un neurone seul plafonne vers 50 à 75 %. Il faut une **couche cachée** (plusieurs neurones) pour courber la frontière.";
+        else if (s.p.lr > 10 && s.p.apprendre) t += "\n\nAttention, pas trop grand : les poids sautent d'un côté à l'autre du minimum, la perte rebondit au lieu de descendre régulièrement.";
         else if (s.p.donnees === "separable" && k.perte < 0.05) t += "\n\nDonnées séparables : la perte peut s'approcher de 0, les poids grandissent sans fin (le modèle devient « trop sûr de lui »). C'est une raison d'ajouter une **régularisation**.";
         return t;
       }
@@ -188,7 +188,7 @@
         const ex = pile ? 30 : 60 + gw, ey = pile ? 30 + gh + 50 : 30;
         const emax = Math.max(0.8, s.p.bruit * 3);
         const g2 = D().graphe(ctx, ex, ey, gw, gh, { c, xlim: [1, 15], ylim: [0, emax], series: [{ pts: k.res.map(q => [q.d, q.train]), coul: c.info, ep: 2.5 }, { pts: k.res.map(q => [q.d, q.val]), coul: c.alerte, ep: 2.5 }],
-          points: [{ x: s.p.degre, y: Math.min(emax, r.val), coul: c.alerte }, { x: s.p.degre, y: Math.min(emax, r.train), coul: c.info }], titre: "Erreur selon le degré : entraînement (bleu), validation (rouge)", xlab: "degré 1 → 15" });
+          points: [{ x: s.p.degre, y: Math.min(emax, r.val), coul: c.alerte }, { x: s.p.degre, y: Math.min(emax, r.train), coul: c.info }], titre: "Erreur selon le degré : entraînement (bleu), validation (rouge)", xlab: "degré de 1 à 15" });
         if (s.p.bruit > 0) { ctx.setLineDash([4, 4]); ctx.strokeStyle = c.doux; ctx.beginPath(); ctx.moveTo(ex, g2.Y(s.p.bruit)); ctx.lineTo(ex + gw, g2.Y(s.p.bruit)); ctx.stroke(); ctx.setLineDash([]); D().texte(ctx, "niveau du bruit", ex + gw - 4, g2.Y(s.p.bruit) - 8, c.doux, 11, "right"); }
       },
       mesures(s) {
@@ -199,7 +199,7 @@
       explication(s) {
         const k = calcul(s), r = k.res[s.p.degre - 1];
         let t = "On cherche la loi cachée (verte) à partir de quelques mesures bruitées. Un modèle trop simple **sous-apprend** (erreurs d'entraînement et de validation fortes). Un modèle trop complexe **suit le bruit** : il colle aux exemples (erreur d'entraînement basse) mais se trompe ailleurs (erreur de validation haute). On ne choisit jamais la complexité sur l'erreur d'entraînement, toujours sur des données **mises de côté**. On ne descend pas sous le niveau du bruit : c'est l'erreur irréductible.";
-        if (r.val > 2 * r.train && s.p.degre > 4) t += "\n\n⚠ **Surapprentissage** : l'écart entre entraînement et validation se creuse. Remèdes : plus d'exemples, un modèle plus simple, ou une régularisation.";
+        if (r.val > 2 * r.train && s.p.degre > 4) t += "\n\nAttention, **surapprentissage** : l'écart entre entraînement et validation se creuse. Remèdes : plus d'exemples, un modèle plus simple, ou une régularisation.";
         return t;
       }
     }, cfg);
@@ -287,7 +287,7 @@
     return LS.simAnimee(el, {
       hauteur: 440,
       controles: [
-        { k: "son", nom: "Son", choix: [["voyelles", "voix : « a », « i », « ou »"], ["sifflement", "sifflement à 2,5 kHz"], ["glissando", "glissando 200 Hz → 7,6 kHz"], ["clics", "claquements toutes les 25 ms"], ["bruit", "bruit blanc"]], defaut: "voyelles" },
+        { k: "son", nom: "Son", choix: [["voyelles", "voix : « a », « i », « ou »"], ["sifflement", "sifflement à 2,5 kHz"], ["glissando", "glissando de 200 Hz à 7,6 kHz"], ["clics", "claquements toutes les 25 ms"], ["bruit", "bruit blanc"]], defaut: "voyelles" },
         { k: "fe", nom: "Fréquence d'échantillonnage", choix: [[8000, "8 kHz (téléphone)"], [16000, "16 kHz (reconnaissance vocale)"], [44100, "44,1 kHz (CD)"]], nombres: true, defaut: 16000 },
         { k: "N", nom: "Taille de la fenêtre d'analyse", choix: [[128, "128 échantillons"], [256, "256"], [512, "512"], [1024, "1 024"], [2048, "2 048"]], nombres: true, defaut: 256 },
         { k: "bruitFond", nom: "Bruit de fond", min: 0, max: 1, pas: 0.05, defaut: 0, dec: 2 },
@@ -337,7 +337,7 @@
       explication(s) {
         let t = "Le spectrogramme découpe le son en courtes **fenêtres** et calcule, pour chacune, l'énergie de chaque fréquence (transformée de Fourier). Couleur claire = forte énergie. Une fenêtre **longue** sépare bien les fréquences mais brouille le temps ; une fenêtre **courte** fait l'inverse : c'est le compromis temps-fréquence. Les modèles de reconnaissance utilisent en général 25 ms à 16 kHz (400 échantillons), avec des fréquences comprimées façon oreille (échelle mel).";
         if (s.p.son === "voyelles") t += "\n\nVoix : des **raies** régulières (harmoniques de la note de la voix, ici 120 Hz) dont certaines bandes sont renforcées : les **formants**. Ce sont eux qui font la voyelle (« i » : F1 ≈ 270 Hz, F2 ≈ 2 300 Hz ; « a » : F1 ≈ 730, F2 ≈ 1 090 ; « ou » : 300 et 870 Hz).";
-        if (s.p.fe === 8000 && (s.p.son === "glissando" || s.p.son === "voyelles")) t += "\n\n⚠ **Repliement** : à 8 kHz, rien au-dessus de 4 kHz ne peut être représenté. Les composantes plus aiguës réapparaissent à une fausse fréquence (le glissando redescend). Un vrai convertisseur filtre avant d'échantillonner pour l'éviter.";
+        if (s.p.fe === 8000 && (s.p.son === "glissando" || s.p.son === "voyelles")) t += "\n\nAttention, **repliement** : à 8 kHz, rien au-dessus de 4 kHz ne peut être représenté. Les composantes plus aiguës réapparaissent à une fausse fréquence (le glissando redescend). Un vrai convertisseur filtre avant d'échantillonner pour l'éviter.";
         return t;
       }
     }, cfg);
@@ -453,7 +453,7 @@
       explication(s) {
         const p = s.p.hyp !== "libre" ? preset(s) : null;
         let t = "Le **WER** compte les mots à corriger pour passer de la sortie à la référence ; il peut dépasser 100 % si le système ajoute beaucoup de mots. Le **CER** fait de même avec les lettres : une faute d'orthographe coûte un mot entier au WER, mais une lettre au CER. Le **BLEU** compte les suites de 1 à 4 mots communes avec la référence. Aucun ne lit le **sens** : une paraphrase juste est punie, une négation qui inverse tout ne coûte presque rien. D'où l'évaluation humaine sur un jeu de test de référence.";
-        if (p && p[2].startsWith("sens inversé")) t += "\n\n⚠ Scores flatteurs, sens **faux** : le danger des métriques automatiques.";
+        if (p && p[2].startsWith("sens inversé")) t += "\n\nAttention, scores flatteurs, sens **faux** : le danger des métriques automatiques.";
         return t;
       }
     }, cfg);
@@ -558,7 +558,7 @@
       explication(s) {
         const e = calcul(s);
         let t = "Les segments d'une même série se ressemblent (même voix, même micro, mêmes tournures du sous-titreur). Si on découpe **au hasard par segment**, le test contient des « cousins » des exemples d'entraînement : le modèle les reconnaît sans avoir appris la tâche, et le score est **trop beau**. Découper **par série** (et, pour un jeu de test de référence, par producteur) reproduit la vraie situation : des séries jamais entendues.";
-        if (e.res.segment - e.res.reel > 0.05) t += "\n\n⚠ Le découpage par segment surestime la performance de **" + LS.nombre(100 * (e.res.segment - e.res.reel), 0) + " points**.";
+        if (e.res.segment - e.res.reel > 0.05) t += "\n\nAttention, le découpage par segment surestime la performance de **" + LS.nombre(100 * (e.res.segment - e.res.reel), 0) + " points**.";
         return t;
       }
     }, cfg);

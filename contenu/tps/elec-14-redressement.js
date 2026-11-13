@@ -3,7 +3,7 @@ LS.ajouterTP({
   titre: "Redresser et lisser une tension",
   domaine: "electronique", niveau: 3, duree: "40 min",
   sim: "circuit",
-  intro: "Les appareils électroniques veulent du **continu**, le réseau fournit de l'**alternatif**. Une alimentation fait : transformateur (abaisse la tension) → **redressement** (diodes) → **lissage** (condensateur) → régulation. Ici le GBF remplace la sortie du transformateur : 12 V crête, 50 Hz. Voie 1 : entrée ; voie 2 : tension sur la charge **Rch** (1 kΩ).",
+  intro: "Les appareils électroniques veulent du **continu**, le réseau fournit de l'**alternatif**. Une alimentation fait : transformateur (abaisse la tension), puis **redressement** (diodes), **lissage** (condensateur) et régulation. Ici le GBF remplace la sortie du transformateur : 12 V crête, 50 Hz. Voie 1 : entrée ; voie 2 : tension sur la charge **Rch** (1 kΩ).",
   config: {
     palette: ["diode", "condensateur", "resistance", "voltmetre", "led"],
     tDiv: 0.005,

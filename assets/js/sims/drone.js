@@ -73,7 +73,7 @@
       explication(s) {
         const k = LS.bilanDrone(s.p);
         return "Une hélice pousse proportionnellement au **carré** de sa vitesse et à la **puissance 4** de son diamètre ; la puissance absorbée croît comme le **cube** de la vitesse. Un drone doit avoir une **poussée d'au moins 2 fois son poids** pour être pilotable (≥ 4 en voltige). Une plus grosse batterie dure plus longtemps… mais pèse plus : l'autonomie plafonne." +
-          (k.twr < 1 ? "\n\n⚠ **Le drone ne peut pas décoller** : poids supérieur à la poussée." : k.limite ? "\n\n⚠ **Moteurs surchargés** : avec ce KV et cette tension, l'hélice demanderait plus de " + LS.nombre(k.Pmot, 0) + " W par moteur, le maximum d'un moteur de cette taille. Le moteur plafonne (il chaufferait jusqu'à griller) : baisse le KV ou la tension." : k.Imax > k.Icrete ? "\n\n⚠ À plein gaz, les moteurs demandent plus de courant que la batterie ne peut en fournir : chute de tension, batterie abîmée." : "");
+          (k.twr < 1 ? "\n\nAttention, **le drone ne peut pas décoller** : poids supérieur à la poussée." : k.limite ? "\n\nAttention, **moteurs surchargés** : avec ce KV et cette tension, l'hélice demanderait plus de " + LS.nombre(k.Pmot, 0) + " W par moteur, le maximum d'un moteur de cette taille. Le moteur plafonne (il chaufferait jusqu'à griller) : baisse le KV ou la tension." : k.Imax > k.Icrete ? "\n\nAttention, à plein gaz, les moteurs demandent plus de courant que la batterie ne peut en fournir : chute de tension, batterie abîmée." : "");
       }
     }, cfg);
   };
@@ -221,8 +221,8 @@
           ["Inclinaison roulis / tangage", LS.nombre((e.inclX || 0) * 57.3, 0) + "° / " + LS.nombre((e.inclY || 0) * 57.3, 0) + "°"]];
       },
       explication(s) {
-        return "Un quadricoptère n'a aucune gouverne : il se pilote **uniquement** en changeant la vitesse de ses 4 moteurs. Les hélices tournent deux à deux en sens opposés pour annuler le couple de réaction.\n- **Gaz** : les 4 ensemble → monter / descendre.\n- **Roulis / tangage** : un côté plus vite que l'autre → le drone s'incline et part de ce côté.\n- **Lacet** : on accélère les hélices d'un même sens de rotation ; leur couple de réaction fait tourner le drone dans l'autre sens." +
-          (s.p.panne >= 0 ? "\n\n⚠ **Moteur en panne** : le couple de réaction n'est plus équilibré, le drone tourne sur lui-même et ne peut plus tenir son cap. Un quadricoptère ne survit pas à une panne moteur (un hexacoptère, si)." : "");
+        return "Un quadricoptère n'a aucune gouverne : il se pilote **uniquement** en changeant la vitesse de ses 4 moteurs. Les hélices tournent deux à deux en sens opposés pour annuler le couple de réaction.\n- **Gaz** : les 4 ensemble, pour monter ou descendre.\n- **Roulis / tangage** : un côté plus vite que l'autre, donc le drone s'incline et part de ce côté.\n- **Lacet** : on accélère les hélices d'un même sens de rotation ; leur couple de réaction fait tourner le drone dans l'autre sens." +
+          (s.p.panne >= 0 ? "\n\nAttention, **moteur en panne** : le couple de réaction n'est plus équilibré, le drone tourne sur lui-même et ne peut plus tenir son cap. Un quadricoptère ne survit pas à une panne moteur (un hexacoptère, si)." : "");
       }
     }, cfg);
   };

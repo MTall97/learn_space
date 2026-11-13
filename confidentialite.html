@@ -13,8 +13,10 @@
     .texte-legal > * { max-width: 70ch; }
     .texte-legal h2 { margin-top: 1.6em; }
     .texte-legal li { margin: 4px 0; }
-    .etat-journal { padding: 12px 0; border-top: 2px solid var(--texte); border-bottom: 1px solid var(--bordure); display: grid; gap: 10px; }
-    .etat-journal .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    /* Sans bordure qui décale les lignes du cahier : des traits dessinés par box-shadow */
+    .etat-journal { padding: 0; box-shadow: inset 0 2px 0 var(--texte), inset 0 -1px 0 var(--bordure); display: grid; gap: 0; margin-bottom: var(--interligne); }
+    .etat-journal p { margin: 0 !important; padding-top: var(--interligne); }
+    .etat-journal .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: calc(2 * var(--interligne)); }
     .etat-journal [hidden] { display: none; }
     .a-completer { background: color-mix(in srgb, var(--alerte) 12%, transparent); padding: 0 4px; font-weight: 700; }
   </style>
@@ -26,7 +28,7 @@
   <script src="assets/js/niveaux.js"></script>
 </head>
 <body>
-  <main class="page cahier texte-legal">
+  <main class="page cahier aligne texte-legal">
     <h1>Confidentialité</h1>
     <p>Learn Space est gratuit et sans compte. <strong>Ta progression</strong> (tes points, tes TP réussis) <strong>reste dans ce navigateur</strong>. Pour améliorer le site, il peut aussi compter comment il est utilisé. Tu peux refuser ici : le site marche pareil.</p>
 

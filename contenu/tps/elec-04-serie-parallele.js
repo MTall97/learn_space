@@ -46,7 +46,7 @@ LS.ajouterTP({
     { q: "À la maison, si la lampe du salon grille, la télé s'éteint-elle ?", niv: [1, 1], choix: ["Non : chaque appareil a son propre chemin", "Oui : tout s'éteint"], bonne: 0,
       explication: "Les appareils d'une maison sont branchés en parallèle : chacun a son chemin." },
     { q: "En parallèle, le courant débité par la pile est…", niv: 2, choix: ["le même que dans une lampe", "la somme des courants des lampes", "nul"], bonne: 1, explication: "Loi des nœuds : I = I1 + I2. Appuie sur la pile pour le vérifier : ≈ 167 mA = 83 + 83 mA." },
-    { q: "Deux résistances de 100 Ω en parallèle équivalent à…", niv: 3, choix: ["200 Ω", "100 Ω", "50 Ω"], bonne: 2, explication: "1/R = 1/100 + 1/100 → R = 50 Ω : il y a deux chemins, le courant passe plus facilement." },
+    { q: "Deux résistances de 100 Ω en parallèle équivalent à…", niv: 3, choix: ["200 Ω", "100 Ω", "50 Ω"], bonne: 2, explication: "1/R = 1/100 + 1/100, donc R = 50 Ω : il y a deux chemins, le courant passe plus facilement." },
     { q: "Dans une guirlande en série, une ampoule grille. Que se passe-t-il ?", choix: ["Les autres brillent plus", "Tout s'éteint", "Rien ne change"], bonne: 1 }
   ],
   notions: [["elec-bases", "En série"], ["elec-bases", "En parallèle (dérivation)"], ["elec-bases", "Loi des nœuds"], ["elec-bases", "Loi des mailles"]]

@@ -160,8 +160,8 @@
   const PICTOS = {
     accueil: '<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
     ateliers: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/>',
-    brevets: '<rect x="4" y="5" width="16" height="11" rx="1" transform="rotate(-6 12 10.5)"/><path d="M8 11h8"/><path d="M9 20h6"/>',
-    bac: '<path d="M3 12h4l2-5 3 10 2-5h7"/>',
+    brevets: '<path d="M10 3h4a1.5 1.5 0 0 1 1.5 1.5c0 2-1.5 3-1.5 5.5h-4C10 7.5 8.5 6.5 8.5 4.5A1.5 1.5 0 0 1 10 3z"/><path d="M5 13h14v4H5z"/><path d="M7 20.5h10"/>',
+    bac: '<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M3 12h18"/><path d="M7 9h.01M10 9h.01M13 9h.01M16 9h.01M7 15h.01M10 15h.01M13 15h.01M16 15h.01"/>',
     theme: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>',
     installer: '<path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 19h14"/>',
     retour: '<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
@@ -199,11 +199,16 @@
     const liens = [["accueil", "Accueil", "index.html#tableau"], ["ateliers", "Ateliers", "index.html#ateliers"], ["brevets", "Brevets", "index.html#brevets"], ["bac", "Bac à sable", "tp.html?id=elec-bac-a-sable"]];
     const lien = l => LS.el("a", { href: racine + l[2], class: "onglet" + (l[0] === actif ? " actif" : ""), "aria-current": l[0] === actif ? "page" : null }, [LS.el("span", { class: "ic", "aria-hidden": "true", html: LS.icone(l[0]) }), LS.el("span", { text: l[1] })]);
     const theme = LS.el("button", { class: "bouton-theme", title: "Changer de thème", "aria-label": "Changer de thème (clair ou sombre)", html: LS.icone("theme"), onclick: LS.basculerTheme });
+    // Lien « Aller au contenu » (clavier, lecteur d'écran) : vers le premier <main>, ou la zone de la carte.
+    const contenu = document.querySelector("main") || document.querySelector(".carte-zone");
+    if (contenu && !contenu.id) contenu.id = "contenu";
+    if (contenu && !contenu.hasAttribute("tabindex")) contenu.setAttribute("tabindex", "-1");
     const h = LS.el("header", { class: "entete" }, [
+      contenu ? LS.el("a", { class: "aller-contenu", href: "#" + contenu.id, text: "Aller au contenu" }) : null,
       LS.el("div", { class: "entete-barre" }, [
-        LS.el("a", { class: "logo", href: racine + "index.html" }, [LS.el("span", { text: "Learn" }), LS.el("span", { class: "logo-2", text: "Space" })]),
+        LS.el("a", { class: "logo", href: racine + "index.html", "aria-label": "Learn Space, accueil" }, [LS.el("span", { text: "Learn" }), LS.el("span", { class: "logo-2", text: "Space" })]),
         LS.el("nav", { class: "nav-haut", "aria-label": "Navigation" }, liens.map(lien)),
-        LS.profil ? LS.el("a", { class: "puce-niveau", href: racine + "index.html#niveau", title: "Changer de niveau", text: LS.infoNiveau(LS.niveau()).nom }) : null,
+        LS.profil ? LS.el("a", { class: "puce-niveau", href: racine + "index.html#niveau", title: "Choisir ou changer de niveau", text: LS.nomPuceNiveau ? LS.nomPuceNiveau() : LS.infoNiveau(LS.niveau()).nom }) : null,
         LS.jeu ? LS.jeu.puce(racine) : null,
         theme
       ])
