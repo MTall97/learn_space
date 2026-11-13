@@ -603,7 +603,9 @@ par erreur s'y trouvent.
 `~/learnspace/journal`) avec une nouvelle racine de domaine. Ce serait plus complet, mais c'est trop de
 manipulations dans cPanel pour l'instant.
 
-**Non vérifié** : le premier déploiement avec ce réglage.
+**Puis** : le nouvel essai montre que le compte FTP s'ouvre maintenant sur le dossier personnel. Le garde-fou
+a arrêté l'envoi sans rien écrire. Le déploiement détecte désormais les dossiers tout seul (site, et serveur
+du journal s'il est visible), ce qui rend la mise à jour du serveur automatique avec ce compte.
 
 ---
 

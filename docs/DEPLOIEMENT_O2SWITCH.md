@@ -5,12 +5,18 @@ Chaque `git push` sur `claude/ecstatic-gates-507okj` ou `main` lance
 
 1. lance les tests et s'arrête s'ils échouent ;
 2. prépare les fichiers publics du site (`node outils/site-public.js`) ;
-3. se connecte en FTPS et vérifie qu'il est bien dans le dossier du site : `manifest.webmanifest` doit
-   déjà y exister, sinon il s'arrête sans rien envoyer ;
+3. se connecte en FTPS et **trouve les dossiers tout seul** d'après ce que voit le compte :
+   - si `manifest.webmanifest` est à la racine, le compte s'ouvre dans le dossier du site ;
+   - si `learningspace223.duckdns.org/` est à la racine, le compte s'ouvre sur le dossier personnel, et il
+     met aussi à jour `learnspace-journal/` s'il le voit ;
+
+   il vérifie ensuite que `manifest.webmanifest` existe (et `config.json` pour le serveur), sinon il
+   s'arrête sans rien envoyer ;
 4. envoie le site, en terminant par `sw-fichiers.js` et `sw.js` ;
 5. vérifie que `https://learningspace223.duckdns.org/api/sante` répond `ok`.
 
-**Compte FTP** : cPanel n'accepte pas `/` comme répertoire. Le compte FTP s'ouvre donc directement dans
+**Compte FTP** : depuis le 13/11/2026, le compte s'ouvre sur le dossier personnel, ce qui met à jour le
+site et le serveur. Pour un compte FTP supplémentaire, cPanel n'accepte pas `/` comme répertoire. Le compte FTP s'ouvre donc directement dans
 le dossier du site (Répertoire : `learningspace223.duckdns.org`), et le site est envoyé à sa racine
 (`DOSSIER_SITE` vaut `.`).
 
