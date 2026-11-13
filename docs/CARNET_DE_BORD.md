@@ -607,6 +607,23 @@ manipulations dans cPanel pour l'instant.
 a arrêté l'envoi sans rien écrire. Le déploiement détecte désormais les dossiers tout seul (site, et serveur
 du journal s'il est visible), ce qui rend la mise à jour du serveur automatique avec ce compte.
 
+## 13/11/2026 : mise à jour du serveur du journal par dépôt et script
+
+**Constat (vérifié par l'auteur)** : le déploiement `36d7ae8` a mis à jour le site sur DuckDNS. La version
+du site en ligne correspond, et `/api/sante` répond `ok`.
+
+**Décision de l'utilisateur** : ne pas remplacer le serveur automatiquement. Le déploiement dépose
+`app.js` et `liste-blanche.json` dans un sous-dossier, et un script bash, lancé à la main dans le terminal,
+les déplace au bon endroit avec `mv`.
+
+**Fait par l'auteur** :
+- dépôt dans `~/learnspace-maj/`, protégé par un `.htaccess` qui interdit l'accès par le web ;
+- `serveur/installer-maj.sh`, qui vérifie `config.json` et la syntaxe de `app.js`, garde une copie
+  datée des anciens fichiers, fait le `mv`, redémarre l'application par `tmp/restart.txt`, puis vérifie
+  `/api/sante`.
+
+**Non vérifié** : le script exécuté sur O2switch.
+
 ---
 
 ## Reste à faire et à décider

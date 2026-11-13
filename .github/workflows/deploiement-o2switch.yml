@@ -1,7 +1,7 @@
 # Copie de secours du site et serveur du journal sur O2switch, à chaque push (après les tests).
 # Secrets du dépôt (Settings > Secrets and variables > Actions) : FTP_SERVEUR, FTP_UTILISATEUR,
-# FTP_MOT_DE_PASSE. Variables facultatives : DOSSIER_SITE (« . » par défaut), DOSSIER_SERVEUR (vide : pas de
-# mise à jour du serveur) (chemins depuis la racine
+# FTP_MOT_DE_PASSE. Variables facultatives : DOSSIER_SITE (détecté sinon), DOSSIER_MAJ (« learnspace-maj » :
+# dépôt de app.js, liste-blanche.json et installer-maj.sh pour le serveur du journal) (chemins depuis la racine
 # du compte FTP), DEPLOIEMENT_O2SWITCH = "non" pour couper. Voir docs/DEPLOIEMENT_O2SWITCH.md.
 # Jamais envoyés : config.json et les données du serveur (ils ne sont pas dans le dépôt).
 name: Déploiement O2switch
@@ -25,7 +25,7 @@ jobs:
       LFTP_PASSWORD: ${{ secrets.FTP_MOT_DE_PASSE }}
       # Vides par défaut : détectés à la connexion (voir l'étape d'envoi). Une variable du dépôt les impose.
       DOSSIER_SITE: ${{ vars.DOSSIER_SITE || '' }}
-      DOSSIER_SERVEUR: ${{ vars.DOSSIER_SERVEUR || '' }}
+      DOSSIER_MAJ: ${{ vars.DOSSIER_MAJ || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,7 +51,6 @@ jobs:
       - name: Envoyer sur O2switch (FTPS)
         if: steps.secrets.outputs.pret == 'oui'
         run: |
-          date -u +%FT%TZ > restart.txt
           REGLAGES='set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate true; set ssl:verify-certificate/${{ vars.FTP_EMPREINTE || '56:68:82:B3:41:72:7C:0E:F8:D7:81:35:CF:D8:2D:3B:1D:29:2C:56' }} no; set net:max-retries 3; set net:timeout 30'
           # Détection des dossiers d'après ce que voit le compte FTP (noms seulement) :
           # - compte ouvert dans le dossier du site : manifest.webmanifest à la racine ;
@@ -63,16 +62,13 @@ jobs:
             elif echo "$RACINE" | grep -qx "learningspace223.duckdns.org/"; then DOSSIER_SITE=learningspace223.duckdns.org
             else echo "::error::Dossier du site introuvable depuis ce compte FTP."; exit 1; fi
           fi
-          if [ -z "$DOSSIER_SERVEUR" ] && echo "$RACINE" | grep -qx "learnspace-journal/"; then DOSSIER_SERVEUR=learnspace-journal; fi
-          echo "Site : $DOSSIER_SITE ; serveur du journal : ${DOSSIER_SERVEUR:-non atteint, à mettre à jour à la main}"
-          # Partie serveur du journal, seulement s'il est atteint (garde-fou : config.json doit y exister).
-          if [ -n "$DOSSIER_SERVEUR" ]; then
-            printf '%s\n' "cls -1 \"$DOSSIER_SERVEUR/config.json\"" "put -O \"$DOSSIER_SERVEUR\" serveur/app.js" \
-              "put -O \"$DOSSIER_SERVEUR\" serveur/liste-blanche.json" "mkdir -p -f \"$DOSSIER_SERVEUR/tmp\"" \
-              "put -O \"$DOSSIER_SERVEUR/tmp\" restart.txt" > serveur.lftp
-          else
-            echo 'echo "Serveur du journal non mis à jour (dossier non atteint)."' > serveur.lftp
-          fi
+          # Serveur du journal : on ne l'écrase pas. app.js et liste-blanche.json sont déposés dans
+          # learnspace-maj/ avec installer-maj.sh ; l'utilisateur lance « bash ~/learnspace-maj/installer-maj.sh ».
+          DOSSIER_MAJ="${DOSSIER_MAJ:-learnspace-maj}"
+          echo "Site : $DOSSIER_SITE ; mise à jour du serveur déposée dans : $DOSSIER_MAJ"
+          printf '%s\n' "mkdir -p -f \"$DOSSIER_MAJ\"" "put -O \"$DOSSIER_MAJ\" serveur/.htaccess" \
+            "put -O \"$DOSSIER_MAJ\" serveur/installer-maj.sh" "put -O \"$DOSSIER_MAJ\" serveur/app.js" \
+            "put -O \"$DOSSIER_MAJ\" serveur/liste-blanche.json" > serveur.lftp
           # Le service worker en dernier, pour qu'un visiteur ne mette jamais en cache un mélange de versions.
           lftp <<LFTP
           set ftp:ssl-force true
@@ -97,7 +93,7 @@ jobs:
           source serveur.lftp
           bye
           LFTP
-      - name: Vérifier le serveur
+      - name: Vérifier que le serveur du journal répond
         if: steps.secrets.outputs.pret == 'oui'
         run: |
           for i in 1 2 3 4 5 6; do
