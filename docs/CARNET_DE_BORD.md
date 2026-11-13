@@ -622,7 +622,9 @@ les déplace au bon endroit avec `mv`.
   datée des anciens fichiers, fait le `mv`, redémarre l'application par `tmp/restart.txt`, puis vérifie
   `/api/sante`.
 
-**Non vérifié** : le script exécuté sur O2switch.
+**Vérifié par l'utilisateur sur O2switch (13/11/2026)** : `bash ~/learnspace-maj/installer-maj.sh` a gardé
+une sauvegarde, installé `app.js` et `liste-blanche.json`, redémarré l'application, et `/api/sante` a
+répondu `ok`. Relancé tout de suite après, il s'arrête proprement avec « rien à installer ».
 
 ---
 
