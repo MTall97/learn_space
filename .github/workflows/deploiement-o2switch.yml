@@ -1,6 +1,7 @@
 # Copie de secours du site et serveur du journal sur O2switch, à chaque push (après les tests).
 # Secrets du dépôt (Settings > Secrets and variables > Actions) : FTP_SERVEUR, FTP_UTILISATEUR,
-# FTP_MOT_DE_PASSE. Variables facultatives : DOSSIER_SITE, DOSSIER_SERVEUR (chemins depuis la racine
+# FTP_MOT_DE_PASSE. Variables facultatives : DOSSIER_SITE (« . » par défaut), DOSSIER_SERVEUR (vide : pas de
+# mise à jour du serveur) (chemins depuis la racine
 # du compte FTP), DEPLOIEMENT_O2SWITCH = "non" pour couper. Voir docs/DEPLOIEMENT_O2SWITCH.md.
 # Jamais envoyés : config.json et les données du serveur (ils ne sont pas dans le dépôt).
 name: Déploiement O2switch
@@ -22,8 +23,10 @@ jobs:
       FTP_SERVEUR: ${{ secrets.FTP_SERVEUR }}
       FTP_UTILISATEUR: ${{ secrets.FTP_UTILISATEUR }}
       LFTP_PASSWORD: ${{ secrets.FTP_MOT_DE_PASSE }}
-      DOSSIER_SITE: ${{ vars.DOSSIER_SITE || 'learningspace223.duckdns.org' }}
-      DOSSIER_SERVEUR: ${{ vars.DOSSIER_SERVEUR || 'learnspace-journal' }}
+      # Par défaut, le compte FTP s'ouvre directement dans le dossier du site (cPanel n'accepte pas « / »).
+      DOSSIER_SITE: ${{ vars.DOSSIER_SITE || '.' }}
+      # Serveur du journal : seulement si le compte FTP l'atteint (variable DOSSIER_SERVEUR) ; sinon, à la main.
+      DOSSIER_SERVEUR: ${{ vars.DOSSIER_SERVEUR || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,6 +53,14 @@ jobs:
         if: steps.secrets.outputs.pret == 'oui'
         run: |
           date -u +%FT%TZ > restart.txt
+          # Partie serveur du journal, seulement si DOSSIER_SERVEUR est réglé (garde-fou : config.json).
+          if [ -n "$DOSSIER_SERVEUR" ]; then
+            printf '%s\n' "cls -1 \"$DOSSIER_SERVEUR/config.json\"" "put -O \"$DOSSIER_SERVEUR\" serveur/app.js" \
+              "put -O \"$DOSSIER_SERVEUR\" serveur/liste-blanche.json" "mkdir -p -f \"$DOSSIER_SERVEUR/tmp\"" \
+              "put -O \"$DOSSIER_SERVEUR/tmp\" restart.txt" > serveur.lftp
+          else
+            echo 'echo "Serveur du journal non mis à jour (DOSSIER_SERVEUR non réglé)."' > serveur.lftp
+          fi
           # Le service worker en dernier, pour qu'un visiteur ne mette jamais en cache un mélange de versions.
           lftp <<LFTP
           set ftp:ssl-force true
@@ -67,17 +78,14 @@ jobs:
           cls -1
           # Toute erreur arrête l'envoi (sinon lftp continue et le travail paraît réussi).
           set cmd:fail-exit yes
-          # Garde-fou : le vrai dossier du journal contient config.json (jamais envoyé d'ici). S'il manque,
-          # le compte FTP ne démarre pas au dossier personnel : on s'arrête sans rien envoyer.
-          echo "Vérification : $DOSSIER_SERVEUR/config.json doit exister (sinon, voir docs/DEPLOIEMENT_O2SWITCH.md)."
-          cls -1 "$DOSSIER_SERVEUR/config.json"
+          # Garde-fou : le vrai dossier du site contient déjà manifest.webmanifest. S'il manque, le compte
+          # FTP ne s'ouvre pas sur le site : on s'arrête sans rien envoyer.
+          echo "Vérification : $DOSSIER_SITE/manifest.webmanifest doit exister (sinon, voir docs/DEPLOIEMENT_O2SWITCH.md)."
+          cls -1 "$DOSSIER_SITE/manifest.webmanifest"
           mirror -R --verbose=1 --parallel=4 --exclude-glob sw.js --exclude-glob sw-fichiers.js _site "$DOSSIER_SITE"
           put -O "$DOSSIER_SITE" _site/sw-fichiers.js
           put -O "$DOSSIER_SITE" _site/sw.js
-          put -O "$DOSSIER_SERVEUR" serveur/app.js
-          put -O "$DOSSIER_SERVEUR" serveur/liste-blanche.json
-          mkdir -p -f "$DOSSIER_SERVEUR/tmp"
-          put -O "$DOSSIER_SERVEUR/tmp" restart.txt
+          source serveur.lftp
           bye
           LFTP
       - name: Vérifier le serveur

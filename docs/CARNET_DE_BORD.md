@@ -584,6 +584,27 @@ Fait par l'auteur de l'interface :
     44 px passées de 374 à 75, sur deux éléments.
 - **Non vérifié** : de vrais appareils, un vrai lecteur d'écran, et une nouvelle relecture par le juge.
 
+## 13/11/2026 : déploiement O2switch limité au site
+
+**Contrainte constatée par l'utilisateur** : cPanel n'accepte pas `/` comme répertoire d'un compte FTP.
+
+**Diagnostic de l'auteur**, à partir des captures du gestionnaire de fichiers : le compte s'ouvrait sur
+`~/learningspace223.duckdns.org/sc1busu9925`, un sous-dossier public créé par défaut. Les copies faites
+par erreur s'y trouvent.
+
+**Décision de l'auteur.**
+- Le compte FTP s'ouvre dans le dossier du site, et le déploiement automatique n'envoie que le site
+  (`DOSSIER_SITE` = `.`).
+- Le serveur du journal se met à jour à la main, ou automatiquement si une variable `DOSSIER_SERVEUR` est
+  réglée un jour.
+- Garde-fou : `manifest.webmanifest` doit déjà exister dans le dossier du site, sinon rien n'est envoyé.
+
+**Écarté** : déplacer le site et le journal dans un dossier commun (`~/learnspace/site` et
+`~/learnspace/journal`) avec une nouvelle racine de domaine. Ce serait plus complet, mais c'est trop de
+manipulations dans cPanel pour l'instant.
+
+**Non vérifié** : le premier déploiement avec ce réglage.
+
 ---
 
 ## Reste à faire et à décider
