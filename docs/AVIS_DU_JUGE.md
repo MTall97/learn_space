@@ -365,6 +365,73 @@ Les 122 tests passent. En CI, `tp-quiz.test.js` est sauté parce que Chromium n'
 ### Suites
 Toutes les corrections sont confiées à l'auteur. Ce qui est fait sera noté dans le carnet de bord.
 
+## Revue de la nouvelle interface « cahier d'écolier malien », 13/11/2026
+
+Juge indépendant, en lecture seule, sur le commit `0cb6913`. Il a utilisé Chromium aux largeurs 360, 390
+et 1280 px, en thème clair et en thème sombre, sans profil, en collège et en primaire. Il a calculé les
+contrastes WCAG à partir des couleurs réelles et mesuré la taille des cibles tactiles.
+
+Résultat des tests : 133 réussis. Aucun débordement horizontal, aucune erreur JavaScript.
+
+**Verdict.** Mise en ligne acceptable après un court lot de corrections (I1 à I4). I5 et I6 sont à
+traiter avant d'annoncer le site aux écoles.
+
+### Importants
+- **I1.** Au téléphone, après « Voir tous les brevets », les libellés des brevets se chevauchent. La
+  règle `.tampon { min-width: 104px }` écrase la règle prévue pour le téléphone.
+- **I2.** Sur l'accueil, la puce de niveau de l'en-tête ne fait rien : il n'y a pas d'écouteur
+  `hashchange`. Ce défaut existait déjà avant la refonte. De plus, sans profil, la puce affiche
+  « Collège » alors que l'écran demande « Choisis ton niveau ».
+- **I3.** Contrastes insuffisants :
+  - encadré « Pour commencer » : 4,21 ;
+  - en thème sombre, objectif en cours et « Indice » : 2,83 ;
+  - boutons principaux en sombre : 4,33 ;
+  - ateliers « pour plus tard », affichés à 0,62 d'opacité : environ 2,8, ce qui touche 11 ateliers
+    sur 17 au primaire ;
+  - bouton « Tout effacer » du tableau de bord en sombre : 2,15.
+- **I4.** Dans l'onglet « Notions » des TP, la marge rouge passe à travers le texte.
+- **I5.** Le rouge, couleur de la correction, affiche des zéros (« 0 / 60 points », « 0 jour de suite »)
+  à un nouvel élève. Certains textes sont décourageants ou obscurs : « Notion 10, objectif 25,
+  question 10 », « Tu as fait 0 sur 43 ».
+- **I6.** Il reste des motifs génériques :
+  - la structure surtitre + titre + sous-titre (encadré d'accueil, en-tête des TP) ;
+  - la journée présentée comme une rangée de compteurs façon tableau de bord ;
+  - les niveaux en grille 2 × 2 de boîtes ;
+  - les brevets en grille de 26 boîtes.
+
+### Mineurs
+- **M1.** Symboles décoratifs encore présents : environ 45 ⚠ et 3 ⚡ dans `assets/js/sims/`, et 51 →
+  dans `contenu/`. Le test ne vérifie pas ces dossiers.
+- **M2.** Au primaire, une fois les ateliers repliés, la numérotation a des trous.
+- **M3.** Le focus est perdu après le petit test, et il n'y a pas de lien « Aller au contenu ».
+- **M4.** Plusieurs cibles tactiles font moins de 44 px : lien du bandeau du journal, « Compris »,
+  « Voir les brevets », liens des leçons, cases à cocher des simulations.
+- **M5.** Le toast « +25 » masque les boutons de la simulation et les réponses du quiz.
+- **M6.** Petit test : « question 1 » sans « sur 8 », et le reste de la page reste visible sous le test.
+- **M7.** Les lignes du cahier ne sont pas alignées sur le texte.
+- **M8.** Restes de l'ancienne identité :
+  - codes « Ω », « 4T » et teinte inutilisés dans `jeu.js` ;
+  - chiffres en police monospace « façon afficheur ».
+- **M9.** Pictogrammes discutables : électrocardiogramme pour « Bac à sable », écran pour « Brevets ».
+  Le logo est lu « LearnSpace » par les lecteurs d'écran.
+- **M10.** Carnet : la page d'accueil faisait 6 647 px CSS avant le repli et 3 527 px après. Les
+  13 600 px annoncés étaient des pixels d'écran (× 2). Le juge n'avait encore rien approuvé au moment de
+  l'envoi.
+- **M11.** Hors du design :
+  - `esp-01-blink` valide l'objectif 1 dès l'ouverture du TP ;
+  - « Grandeurs » n'a pas de définition dans la carte `elec-bases`.
+
+### Réussi (selon le juge)
+- Une identité nouvelle et cohérente sur toutes les pages, tableau de bord compris. La frise reste en
+  bordure.
+- Le bouton « Commencer » est visible sans faire défiler.
+- Le retour dans les TP est bon : cases, réponse fausse barrée, tampon « Très bien ».
+- Aucune erreur de contraste en thème clair dans les TP, les cartes et les autres pages.
+- Le poids reste raisonnable : `style.css` fait 11,9 Ko compressé.
+
+### Suites
+Les corrections sont confiées à l'auteur de l'interface. Ce qui est fait sera noté dans le carnet.
+
 ## Limites relevées par les auteurs (22/10/2026)
 
 ### Maths utiles

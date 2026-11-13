@@ -527,8 +527,8 @@ puis, en voyant les captures : « raccourcis l'accueil au téléphone et pousse 
 - les ateliers « pour plus tard », les leçons éloignées de la leçon en cours et les brevets à venir
   au-delà de 3 sont repliés derrière des boutons « Voir… » ;
 - les descriptions des ateliers sont masquées ;
-- la page passe d'environ 13 600 px à 3 400 px de haut à 390 px de large, et rien ne change sur grand
-  écran.
+- la page passe de 6 647 px CSS à environ 3 500 px de haut à 390 px de large (mesure du juge ; les
+  « 13 600 px » annoncés d'abord étaient des pixels d'écran × 2), et rien ne change sur grand écran.
 
 **Vérifié** :
 - 133 tests réussis ;
@@ -541,8 +541,8 @@ puis, en voyant les captures : « raccourcis l'accueil au téléphone et pousse 
 - un vrai téléphone ;
 - les polices du tableau de bord une fois en ligne.
 
-Le juge est en train de relire l'interface au moment du push, à la demande de l'utilisateur de pousser
-sans attendre. Ses remarques seront traitées ensuite.
+L'interface a été poussée à la demande de l'utilisateur, sans attendre l'avis du juge et donc sans son
+approbation. L'avis rendu ensuite (13/11) est dans `AVIS_DU_JUGE.md`.
 
 ---
 
